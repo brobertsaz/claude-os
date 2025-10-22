@@ -1,0 +1,29 @@
+# Core Framework
+streamlit>=1.30.0
+
+# LlamaIndex and RAG
+llama-index>=0.10.0
+llama-index-llms-ollama>=0.1.0
+llama-index-embeddings-ollama>=0.1.0
+llama-index-vector-stores-chroma>=0.1.0
+
+# Vector Database
+chromadb>=0.4.22
+
+# Document Processing
+pymupdf>=1.23.0
+
+# Reranking and Hybrid Search
+sentence-transformers>=2.2.0
+rank-bm25>=0.2.2
+
+# MCP Server
+mcp>=1.0.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0
+
