@@ -58,51 +58,39 @@ def check_ollama_health() -> Dict[str, any]:
         }
 
 
-def check_chroma_health() -> Dict[str, any]:
+def check_postgres_health() -> Dict[str, any]:
     """
-    Check ChromaDB service health.
+    Check PostgreSQL service health.
 
     Returns:
         dict: Status information with 'status' and optional 'error'
     """
     try:
-        # Use v2 API endpoint for health check
-        response = requests.get(
-            f"{Config.get_chroma_url()}/api/v2/auth/identity",
-            timeout=5
-        )
-        response.raise_for_status()
+        from app.core.pg_manager import get_pg_manager
+
+        pg_manager = get_pg_manager()
+        # Try to list collections as a health check
+        collections = pg_manager.list_collections()
 
         return {
             "status": "healthy",
-            "url": Config.get_chroma_url()
-        }
-    except requests.exceptions.ConnectionError as e:
-        logger.warning(f"ChromaDB connection failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": "Connection refused - is ChromaDB running?",
-            "url": Config.get_chroma_url()
-        }
-    except requests.exceptions.Timeout as e:
-        logger.warning(f"ChromaDB timeout: {e}")
-        return {
-            "status": "unhealthy",
-            "error": "Request timed out",
-            "url": Config.get_chroma_url()
+            "collections": len(collections)
         }
     except Exception as e:
-        logger.error(f"ChromaDB health check failed: {e}")
+        logger.warning(f"PostgreSQL connection failed: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e),
-            "url": Config.get_chroma_url()
+            "error": "Connection refused - is PostgreSQL running?"
         }
+
+
+# Backwards compatibility alias
+check_chroma_health = check_postgres_health
 
 
 def wait_for_services(max_retries: int = 30, delay: int = 2) -> bool:
     """
-    Wait for both Ollama and ChromaDB services to become healthy.
+    Wait for both Ollama and PostgreSQL services to become healthy.
 
     Args:
         max_retries: Maximum number of retry attempts
@@ -115,16 +103,16 @@ def wait_for_services(max_retries: int = 30, delay: int = 2) -> bool:
 
     for attempt in range(1, max_retries + 1):
         ollama_status = check_ollama_health()
-        chroma_status = check_chroma_health()
+        postgres_status = check_postgres_health()
 
-        if ollama_status["status"] == "healthy" and chroma_status["status"] == "healthy":
+        if ollama_status["status"] == "healthy" and postgres_status["status"] == "healthy":
             logger.info(f"All services healthy after {attempt} attempts")
             return True
 
         logger.info(
             f"Attempt {attempt}/{max_retries}: "
             f"Ollama={ollama_status['status']}, "
-            f"ChromaDB={chroma_status['status']}"
+            f"PostgreSQL={postgres_status['status']}"
         )
 
         if attempt < max_retries:

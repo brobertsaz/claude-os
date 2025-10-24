@@ -13,7 +13,8 @@ from llama_index.core.tools import QueryEngineTool
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.core.postprocessor import SentenceTransformerRerank
-from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.vector_stores.postgres import PGVectorStore
+from sqlalchemy import make_url
 
 # BM25 retriever - needs to be installed separately
 try:
@@ -22,7 +23,7 @@ try:
 except ImportError:
     HAS_BM25 = False
 
-from app.core.chroma_manager import get_chroma_manager
+from app.core.pg_manager import get_pg_manager
 from app.core.config import Config
 
 logger = logging.getLogger(__name__)
@@ -33,10 +34,10 @@ class RAGEngine:
 
     def __init__(self, collection_name: str):
         """
-        Initialize RAG engine for a specific knowledge base.
+        Initialize RAG engine for a specific knowledge base using PostgreSQL + pgvector.
 
         Args:
-            collection_name: Name of the ChromaDB collection
+            collection_name: Name of the knowledge base
         """
         self.collection_name = collection_name
 
@@ -57,18 +58,54 @@ class RAGEngine:
             base_url=Config.OLLAMA_HOST
         )
 
-        # Get ChromaDB collection
-        chroma_manager = get_chroma_manager()
-        collection = chroma_manager.get_collection(collection_name)
-
-        if not collection:
+        # Verify KB exists
+        self.pg_manager = get_pg_manager()
+        if not self.pg_manager.collection_exists(collection_name):
             raise ValueError(f"Collection {collection_name} not found")
 
-        # Create vector store and index
-        vector_store = ChromaVectorStore(chroma_collection=collection)
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        # Get KB ID for the vector store
+        conn = self.pg_manager.get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM knowledge_bases WHERE name = %s", (collection_name,))
+                result = cur.fetchone()
+                if not result:
+                    raise ValueError(f"Collection {collection_name} not found")
+                kb_id = result[0]
+        finally:
+            self.pg_manager.return_connection(conn)
+
+        # Build PostgreSQL connection URL
+        import os
+        pg_user = os.getenv("POSTGRES_USER", os.getenv("USER", "postgres"))
+        pg_password = os.getenv("POSTGRES_PASSWORD", "")
+        pg_host = os.getenv("POSTGRES_HOST", "localhost")
+        pg_port = os.getenv("POSTGRES_PORT", "5432")
+        pg_db = os.getenv("POSTGRES_DB", "codeforge")
+
+        # Build connection string (handle empty password for trust auth)
+        if pg_password:
+            connection_string = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+        else:
+            connection_string = f"postgresql+psycopg2://{pg_user}@{pg_host}:{pg_port}/{pg_db}"
+
+        # Initialize PGVectorStore with llama_index
+        self.vector_store = PGVectorStore.from_params(
+            database=pg_db,
+            host=pg_host,
+            password=pg_password if pg_password else None,
+            port=int(pg_port),
+            user=pg_user,
+            table_name="documents",
+            embed_dim=768,  # nomic-embed-text dimension
+        )
+
+        # Create storage context and index
+        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
+
+        # Load existing index from vector store
         self.index = VectorStoreIndex.from_vector_store(
-            vector_store,
+            self.vector_store,
             storage_context=storage_context
         )
 
@@ -86,17 +123,47 @@ class RAGEngine:
         # Initialize BM25 retriever (for hybrid search)
         if HAS_BM25:
             try:
-                all_nodes = self.index.docstore.docs.values()
-                self.bm25_retriever = BM25Retriever.from_defaults(
-                    nodes=list(all_nodes),
-                    similarity_top_k=Config.TOP_K_RETRIEVAL
-                )
+                all_nodes = list(self.index.docstore.docs.values())
+                if all_nodes:
+                    self.bm25_retriever = BM25Retriever.from_defaults(
+                        nodes=all_nodes,
+                        similarity_top_k=Config.TOP_K_RETRIEVAL
+                    )
+                else:
+                    logger.warning("No documents found for BM25 retriever")
+                    self.bm25_retriever = None
             except Exception as e:
                 logger.warning(f"Failed to initialize BM25 retriever: {e}")
                 self.bm25_retriever = None
         else:
             logger.warning("BM25 retriever not available - llama-index-retrievers-bm25 not installed")
             self.bm25_retriever = None
+
+        # Initialize reranker (optional)
+        try:
+            self.reranker = SentenceTransformerRerank(
+                model="cross-encoder/ms-marco-MiniLM-L-2-v2",
+                top_n=Config.TOP_K_RETRIEVAL
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize reranker: {e}")
+            self.reranker = None
+
+        # Initialize sub-question engine for agentic RAG (optional)
+        try:
+            query_engine_tools = [
+                QueryEngineTool.from_defaults(
+                    query_engine=self.query_engine,
+                    name=collection_name,
+                    description=f"Knowledge base: {collection_name}"
+                )
+            ]
+            self.sub_question_engine = SubQuestionQueryEngine.from_defaults(
+                query_engine_tools=query_engine_tools
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize sub-question engine: {e}")
+            self.sub_question_engine = None
 
         # Initialize reranker
         try:
@@ -239,7 +306,7 @@ class RAGEngine:
 
     def _query_base(self, question: str) -> Dict[str, any]:
         """
-        Execute base vector search query.
+        Execute base vector search query using llama_index + PostgreSQL.
 
         Args:
             question: Query string

@@ -14,7 +14,7 @@ from llama_index.core import Document, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.ollama import OllamaEmbedding
 
-from app.core.chroma_manager import get_chroma_manager
+from app.core.pg_manager import get_pg_manager
 from app.core.config import Config
 from app.core.markdown_preprocessor import preprocess_markdown
 
@@ -141,9 +141,9 @@ def ingest_file(
             base_url=Config.OLLAMA_HOST
         )
 
-        # Get ChromaDB collection
-        chroma_manager = get_chroma_manager()
-        collection = chroma_manager.get_collection(collection_name)
+        # Get PostgreSQL collection
+        pg_manager = get_pg_manager()
+        collection = pg_manager.get_collection(collection_name)
 
         if not collection:
             return {

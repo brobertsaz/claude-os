@@ -5,7 +5,7 @@ Centralizes all application settings with environment variable support.
 
 import os
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from dotenv import load_dotenv
 
@@ -42,6 +42,34 @@ class Config:
     CHUNK_OVERLAP: int = 200
     TOP_K_RETRIEVAL: int = 5
     RERANK_TOP_N: int = 3
+
+    # KB Type Configuration
+    DEFAULT_KB_TYPE: str = os.getenv("DEFAULT_KB_TYPE", "generic")
+
+    # Type-specific RAG strategy recommendations
+    # These are suggested defaults - users can override via UI
+    KB_TYPE_RAG_DEFAULTS: Dict[str, Dict[str, bool]] = {
+        "generic": {
+            "hybrid": False,
+            "rerank": False,
+            "agentic": False
+        },
+        "code": {
+            "hybrid": True,   # Code benefits from keyword + semantic search
+            "rerank": True,   # Reranking helps with code relevance
+            "agentic": False
+        },
+        "documentation": {
+            "hybrid": True,   # Docs benefit from hybrid search
+            "rerank": True,   # Reranking improves doc relevance
+            "agentic": False
+        },
+        "agent-os": {
+            "hybrid": True,   # Agent OS specs benefit from hybrid search
+            "rerank": True,   # Reranking for spec relevance
+            "agentic": True   # Agentic RAG for complex spec queries
+        }
+    }
 
     # Storage Configuration
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "/workspace/data/uploads")

@@ -5,10 +5,13 @@ streamlit>=1.30.0
 llama-index>=0.10.0
 llama-index-llms-ollama>=0.1.0
 llama-index-embeddings-ollama>=0.1.0
-llama-index-vector-stores-chroma>=0.1.0
+llama-index-vector-stores-postgres>=0.1.0
 
 # Vector Database
-chromadb>=0.4.22
+psycopg2-binary>=2.9.9
+pgvector>=0.2.0
+sqlalchemy>=2.0.0
+numpy>=1.24.0
 
 # Document Processing
 pymupdf>=1.23.0

@@ -26,6 +26,18 @@ env/
 ENV/
 .venv
 
+# Node.js / React / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn
+
 # IDE
 .vscode/
 .idea/
@@ -40,6 +52,8 @@ ENV/
 # Data Directories
 data/chroma/
 data/uploads/
+data/ollama/
+data/postgres/
 *.db
 *.sqlite
 

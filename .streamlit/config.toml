@@ -15,3 +15,11 @@ enableCORS = false
 [browser]
 gatherUsageStats = false
 
+[ui]
+# Sidebar configuration
+hideTopBar = false
+hideSidebarNav = false
+
+[client]
+toolbarMode = "minimal"
+

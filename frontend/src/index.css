@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-deep-night text-white font-mono;
+    margin: 0;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    background: linear-gradient(135deg, #00FFFF, #4D94FF, #FF8C00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .glow-teal {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  
+  .glow-teal-strong {
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+  }
+  
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.5);
+  }
+  
+  .glow-orange-strong {
+    box-shadow: 0 0 40px rgba(255, 140, 0, 0.8);
+  }
+  
+  .card {
+    @apply bg-gradient-to-br from-deep-night to-cool-blue/10 rounded-2xl border border-electric-teal/30 p-6 transition-all duration-300;
+  }
+  
+  .card:hover {
+    @apply border-electric-teal glow-teal transform -translate-y-1;
+  }
+  
+  .btn {
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105;
+  }
+  
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-electric-teal to-cool-blue text-deep-night glow-teal;
+  }
+  
+  .btn-primary:hover {
+    @apply glow-teal-strong;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-gradient-to-r from-blaze-orange to-blaze-orange/80 text-white glow-orange;
+  }
+  
+  .btn-secondary:hover {
+    @apply glow-orange-strong;
+  }
+  
+  .input {
+    @apply bg-deep-night border border-electric-teal/30 rounded-lg px-4 py-2 text-white placeholder-light-grey focus:outline-none focus:border-electric-teal focus:glow-teal transition-all duration-300;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #0A0E1A;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #00FFFF;
+    border-radius: 5px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4D94FF;
+  }
+}
+
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  }
+  
+  .text-shadow-glow-orange {
+    text-shadow: 0 0 30px rgba(255, 140, 0, 0.5);
+  }
+}
