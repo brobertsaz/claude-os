@@ -16,6 +16,9 @@ export default {
         'blaze-orange': '#FF8C00',
         'cool-blue': '#4D94FF',
         'light-grey': '#C0C0C0',
+        // Archon-inspired accent colors
+        'archon-purple': 'hsl(271, 91%, 65%)',
+        'archon-pink': 'hsl(330, 90%, 65%)',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', 'monospace'],

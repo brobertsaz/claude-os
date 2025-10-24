@@ -143,9 +143,7 @@ def ingest_file(
 
         # Get PostgreSQL collection
         pg_manager = get_pg_manager()
-        collection = pg_manager.get_collection(collection_name)
-
-        if not collection:
+        if not pg_manager.collection_exists(collection_name):
             return {
                 "status": "error",
                 "filename": filename,
@@ -153,6 +151,11 @@ def ingest_file(
             }
 
         # Generate embeddings and add to collection
+        documents = []
+        embeddings = []
+        metadatas = []
+        ids = []
+
         for chunk in chunks:
             # Generate embedding
             embedding = embed_model.get_text_embedding(chunk.text)
@@ -160,13 +163,20 @@ def ingest_file(
             # Create unique ID
             chunk_id = f"{filename}_{chunk.metadata['chunk_index']}_{uuid.uuid4().hex[:8]}"
 
-            # Add to ChromaDB
-            collection.add(
-                documents=[chunk.text],
-                embeddings=[embedding],
-                metadatas=[chunk.metadata],
-                ids=[chunk_id]
-            )
+            # Collect data for batch insert
+            documents.append(chunk.text)
+            embeddings.append(embedding)
+            metadatas.append(chunk.metadata)
+            ids.append(chunk_id)
+
+        # Add all documents to PostgreSQL in batch
+        pg_manager.add_documents(
+            kb_name=collection_name,
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids
+        )
 
         logger.info(f"Ingested {filename}: {len(chunks)} chunks")
 

@@ -268,7 +268,10 @@ export default function MainApp() {
                 </div>
               </div>
             ) : activeTab === 'kb' ? (
-              <KBManagement kbName={selectedKB} />
+              <KBManagement
+                kbName={selectedKB}
+                kbType={kbs.find(kb => kb.name === selectedKB)?.metadata?.kb_type}
+              />
             ) : (
               <ChatInterface
                 kbName={selectedKB}

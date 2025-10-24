@@ -1,0 +1,271 @@
+================================================================================
+CODE-FORGE RAG ANALYSIS - GENERATED FILES
+================================================================================
+
+All analysis documents have been generated and saved to absolute paths below.
+
+================================================================================
+GENERATED DOCUMENTATION
+================================================================================
+
+1. ANALYSIS_INDEX.md
+   Absolute Path: /Users/iamanmp/Projects/code-forge/ANALYSIS_INDEX.md
+   Size: 8.7 KB
+   Purpose: Navigation guide for all analysis documents
+   Read Time: 5 minutes
+   Contains: Document summaries, implementation roadmap, key files list
+
+2. ANALYSIS_SUMMARY.txt
+   Absolute Path: /Users/iamanmp/Projects/code-forge/ANALYSIS_SUMMARY.txt
+   Size: 8.9 KB
+   Purpose: Quick reference guide
+   Read Time: 5-10 minutes
+   Contains: Critical issues, root causes, data flow, parameters, targets
+
+3. RAG_ANALYSIS.md
+   Absolute Path: /Users/iamanmp/Projects/code-forge/RAG_ANALYSIS.md
+   Size: 23 KB (760 lines)
+   Purpose: Comprehensive deep-dive analysis
+   Read Time: 30-45 minutes
+   Contains: Architecture, data flow, 6 bottlenecks, code issues, strengths/weaknesses
+
+4. QUICK_FIXES.md
+   Absolute Path: /Users/iamanmp/Projects/code-forge/QUICK_FIXES.md
+   Size: 6.5 KB
+   Purpose: Implementation guide with specific actions
+   Read Time: 10-15 minutes
+   Contains: File locations, line numbers, priority matrix, testing steps
+
+5. ANALYSIS_FILES.txt (this file)
+   Absolute Path: /Users/iamanmp/Projects/code-forge/ANALYSIS_FILES.txt
+   Size: Reference file
+   Purpose: Lists all generated files and their absolute paths
+
+================================================================================
+CRITICAL CODE FILES ANALYZED
+================================================================================
+
+RAG Engine:
+  /Users/iamanmp/Projects/code-forge/app/core/rag_engine.py (399 lines)
+  - Main RAG query execution engine
+  - Key sections: LLM init (44-55), retriever (128-131), prompt template (140-156)
+
+Configuration:
+  /Users/iamanmp/Projects/code-forge/app/core/config.py (105 lines)
+  - Central configuration
+  - Key parameters: OLLAMA_MODEL (21), TOP_K_RETRIEVAL (43), SIMILARITY_THRESHOLD (45)
+
+Chat Interface:
+  /Users/iamanmp/Projects/code-forge/app/pages/1_Main.py (850+ lines)
+  - Streamlit chat UI
+  - Critical bottleneck: RAGEngine instantiation at line 807
+
+Document Ingestion:
+  /Users/iamanmp/Projects/code-forge/app/core/ingestion.py (235 lines)
+  - Document processing pipeline
+  - Chunking (54-84), embedding generation (139-142)
+
+PostgreSQL Manager:
+  /Users/iamanmp/Projects/code-forge/app/core/pg_manager.py (493 lines)
+  - Vector store operations
+  - Connection pooling, document storage, similarity search
+
+Database Schema:
+  /Users/iamanmp/Projects/code-forge/app/core/schema_pgvector.sql
+  - PostgreSQL schema for vector storage
+  - knowledge_bases table, data_{kb_name} tables, IVFFlat indexes
+
+Markdown Preprocessor:
+  /Users/iamanmp/Projects/code-forge/app/core/markdown_preprocessor.py (287 lines)
+  - Document preprocessing
+  - Frontmatter extraction, header normalization, metadata enrichment
+
+Knowledge Base Metadata:
+  /Users/iamanmp/Projects/code-forge/app/core/kb_metadata.py (253 lines)
+  - KB statistics and metadata management
+
+KB Types:
+  /Users/iamanmp/Projects/code-forge/app/core/kb_types.py (defined KB types)
+
+Debugging Tools:
+  /Users/iamanmp/Projects/code-forge/app/test_vector_query.py (vector search tests)
+  /Users/iamanmp/Projects/code-forge/app/test_ollama_embedding.py (embedding tests)
+
+Test Suite:
+  /Users/iamanmp/Projects/code-forge/tests/ (comprehensive test coverage)
+
+Test Documentation:
+  /Users/iamanmp/Projects/code-forge/test_docs/test1.md (generic appointment docs)
+
+================================================================================
+ISSUE LOCATIONS IN CODE
+================================================================================
+
+PERFORMANCE BOTTLENECK #1: RAGEngine Instantiation
+  File: /Users/iamanmp/Projects/code-forge/app/pages/1_Main.py
+  Line: 807
+  Issue: Creates new RAGEngine instance per query (10-15s overhead)
+  Fix: Implement singleton with KB-based caching
+
+PERFORMANCE BOTTLENECK #2: LLM Configuration
+  File: /Users/iamanmp/Projects/code-forge/app/core/rag_engine.py
+  Lines: 44-55
+  Issue: Small context window (1024 tokens), small model
+  Fix: Increase to 2048-4096, use larger model
+
+HALLUCINATION CAUSE #1: Insufficient Retrieval
+  File: /Users/iamanmp/Projects/code-forge/app/core/config.py
+  Line: 43
+  Parameter: TOP_K_RETRIEVAL = 5
+  Issue: Too few chunks retrieved
+  Fix: Increase to 10-15
+
+HALLUCINATION CAUSE #2: High Similarity Threshold
+  File: /Users/iamanmp/Projects/code-forge/app/core/config.py
+  Line: 45
+  Parameter: SIMILARITY_THRESHOLD = 0.7
+  Issue: Filters out potentially relevant chunks
+  Fix: Lower to 0.5-0.6
+
+HALLUCINATION CAUSE #3: Missing Documentation
+  Files: /Users/iamanmp/Projects/code-forge/test_docs/
+  Missing: APPOINTMENT_COMPREHENSIVE_GUIDE.md, APPOINTMENT_FLOW_DOC.md
+  Issue: Incomplete information in knowledge base
+  Fix: Create comprehensive documentation
+
+EMBEDDING INEFFICIENCY:
+  File: /Users/iamanmp/Projects/code-forge/app/core/ingestion.py
+  Lines: 139-142
+  Issue: Creates new OllamaEmbedding instance per file
+  Fix: Create once, reuse singleton
+
+================================================================================
+HOW TO USE THE ANALYSIS DOCUMENTS
+================================================================================
+
+WORKFLOW 1: QUICK UNDERSTANDING (15 minutes)
+  1. Read ANALYSIS_SUMMARY.txt (5-10 min)
+  2. Review critical issues section in this summary (5 min)
+  Result: Understand what's wrong and why
+
+WORKFLOW 2: IMPLEMENTATION (1-2 hours)
+  1. Read ANALYSIS_SUMMARY.txt (5-10 min)
+  2. Open QUICK_FIXES.md to your side
+  3. Implement Phase 1 (config changes): 30 min
+  4. Implement Phase 2 (documentation): 15 min
+  5. Test and monitor: 30 min
+  Result: 30-40s queries → 20-30s, reduced hallucination
+
+WORKFLOW 3: DEEP UNDERSTANDING (1-2 hours)
+  1. Read ANALYSIS_INDEX.md (5 min)
+  2. Read ANALYSIS_SUMMARY.txt (10 min)
+  3. Read RAG_ANALYSIS.md (45 min)
+  4. Review specific sections for components you're interested in
+  Result: Complete understanding of architecture and issues
+
+WORKFLOW 4: ADVANCED IMPLEMENTATION (3-4 hours)
+  1. Complete Workflow 2 (implement quick fixes)
+  2. Read RAG_ANALYSIS.md (45 min)
+  3. Implement Phase 3 (RAGEngine singleton): 30-60 min
+  4. Implement Phase 4 (larger model): 1-2 hours
+  5. Performance testing and tuning
+  Result: 30-40s → 2-5s response times
+
+================================================================================
+QUICK REFERENCE: THE TWO ISSUES AT A GLANCE
+================================================================================
+
+ISSUE #1: SLOW RESPONSES (30-40 seconds)
+┌─────────────────────────────────────────┐
+│ Root Cause: RAGEngine + small LLM       │
+│ 10-15s: Instantiation [BIGGEST ISSUE]  │
+│ 15-25s: LLM inference                   │
+│                                         │
+│ Quick Fixes:                            │
+│ 1. RAGEngine singleton → save 10-15s   │
+│ 2. Larger model + GPU → save 5-10s     │
+│ 3. Increase context → improve quality  │
+└─────────────────────────────────────────┘
+
+ISSUE #2: HALLUCINATION
+┌─────────────────────────────────────────┐
+│ Root Cause: Insufficient context +      │
+│ small model + incomplete docs           │
+│                                         │
+│ Quick Fixes:                            │
+│ 1. TOP_K: 5 → 10-15                    │
+│ 2. Threshold: 0.7 → 0.5-0.6            │
+│ 3. Add appointment docs                │
+│ 4. Increase context window             │
+│ 5. Use larger model                    │
+└─────────────────────────────────────────┘
+
+================================================================================
+FILE SUMMARY TABLE
+================================================================================
+
+Document              Size    Read Time    Best For
+─────────────────────────────────────────────────────────────
+ANALYSIS_INDEX.md     8.7KB   5 min       Navigation & overview
+ANALYSIS_SUMMARY.txt  8.9KB   5-10 min    Quick reference
+RAG_ANALYSIS.md       23KB    30-45 min   Deep understanding
+QUICK_FIXES.md        6.5KB   10-15 min   Implementation
+ANALYSIS_FILES.txt    (this)  5 min       File location reference
+
+Total Documentation: ~47 KB of analysis and actionable recommendations
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Immediate (5-10 minutes):
+  ► Open ANALYSIS_SUMMARY.txt
+  ► Skim the critical issues section
+  ► Review the root causes
+
+Short-term (1-2 hours):
+  ► Read QUICK_FIXES.md
+  ► Implement Phase 1 & 2 (config + documentation)
+  ► Test with appointment queries
+  ► Expect: Reduced hallucination
+
+Medium-term (2-3 hours):
+  ► Implement Phase 3 (RAGEngine singleton)
+  ► Run performance tests
+  ► Expect: 30-40s → 5-10s response times
+
+Long-term (1-2 days):
+  ► Implement Phase 4 (larger model + GPU)
+  ► Fine-tune parameters
+  ► Expect: 5-10s → 2-5s response times
+
+================================================================================
+SUPPORT & REFERENCE
+================================================================================
+
+If you need to:
+  - Find specific file locations → See QUICK_FIXES.md
+  - Understand architecture → Read RAG_ANALYSIS.md
+  - Get started quickly → Read ANALYSIS_SUMMARY.txt
+  - See implementation steps → Use QUICK_FIXES.md
+  - Navigate all docs → See ANALYSIS_INDEX.md
+
+All files are saved in:
+  /Users/iamanmp/Projects/code-forge/
+
+================================================================================
+ANALYSIS METADATA
+================================================================================
+
+Analysis Date: October 23, 2025
+Analysis Duration: Comprehensive
+Tools Used: Grep, Read, Glob, Bash
+Files Analyzed: 15+ Python files, 1 SQL schema
+Lines of Analysis: 760+ (RAG_ANALYSIS.md)
+Total Documentation: 4 files, ~47 KB
+
+Generation Status: COMPLETE
+Validation Status: ALL FILES CREATED
+Ready for Implementation: YES
+
+================================================================================

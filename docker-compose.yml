@@ -9,9 +9,17 @@ services:
     volumes:
       - ./data/ollama:/root/.ollama
     environment:
-      - OLLAMA_NUM_PARALLEL=1
-      - OLLAMA_MAX_LOADED_MODELS=1
-      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=2      # Allow 2 parallel requests
+      - OLLAMA_MAX_LOADED_MODELS=2  # Keep both embed and LLM in memory
+      - OLLAMA_KEEP_ALIVE=15m       # Keep models loaded longer
+      - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_NUM_THREADS=8        # Use more CPU threads
+    deploy:
+      resources:
+        limits:
+          memory: 16G  # Limit to 16GB (plenty for 8B model)
+        reservations:
+          memory: 8G   # Reserve 8GB minimum
     networks:
       - code-forge-network
     restart: unless-stopped

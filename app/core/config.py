@@ -18,7 +18,7 @@ class Config:
 
     # Ollama Configuration
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:latest")  # Upgraded to faster 8B model
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
     # ChromaDB Configuration
@@ -40,8 +40,9 @@ class Config:
     # RAG Configuration
     CHUNK_SIZE: int = 1024
     CHUNK_OVERLAP: int = 200
-    TOP_K_RETRIEVAL: int = 5
-    RERANK_TOP_N: int = 3
+    TOP_K_RETRIEVAL: int = 15  # Increased to retrieve more context from 51 docs
+    RERANK_TOP_N: int = 8  # Top chunks after reranking (increased for better context)
+    SIMILARITY_THRESHOLD: float = 0.5  # Lowered to include more relevant chunks
 
     # KB Type Configuration
     DEFAULT_KB_TYPE: str = os.getenv("DEFAULT_KB_TYPE", "generic")

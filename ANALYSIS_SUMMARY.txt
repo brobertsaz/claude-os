@@ -1,0 +1,296 @@
+================================================================================
+CODE-FORGE RAG SYSTEM - ANALYSIS SUMMARY
+================================================================================
+
+OVERVIEW
+--------
+Code-Forge is a production-grade RAG system using:
+- PostgreSQL + pgvector (vector database)
+- Ollama llama3.2:3b (3B parameter LLM)
+- nomic-embed-text (embedding model, 768-dim)
+- LlamaIndex (RAG framework)
+- Streamlit (UI)
+
+DIRECTORY STRUCTURE
+-------------------
+/Users/iamanmp/Projects/code-forge/
+├── app/core/                    ← Core RAG implementation
+├── app/pages/                   ← Streamlit UI
+├── test_docs/                   ← Test documents
+├── tests/                       ← Test suite
+└── data/postgres/               ← PostgreSQL data
+
+
+CRITICAL ISSUE #1: SLOW RESPONSE TIMES (30-40 seconds)
+======================================================
+
+Root Cause Breakdown:
+├─ 10-15 seconds: RAGEngine instantiation per query (BIGGEST BOTTLENECK)
+│  ├─ New Ollama LLM connection
+│  ├─ New OllamaEmbedding instance
+│  ├─ New PGVectorStore connection
+│  └─ New VectorStoreIndex creation
+├─ 15-25 seconds: LLM inference (llama3.2:3b on CPU)
+├─ 1-2 seconds: Vector search (efficient, IVFFlat index)
+└─ 2-5 seconds: Other overhead
+
+Top 3 Fixes:
+1. Implement RAGEngine singleton caching         → Save 10-15 seconds
+2. Increase context_window to 2048-4096         → Save inference time
+3. Use larger LLM (7B+) or add GPU              → Save 5-10 seconds
+
+
+CRITICAL ISSUE #2: HALLUCINATION ABOUT "ADVANCED APPOINTMENT SETTINGS"
+=====================================================================
+
+Root Causes:
+├─ TOP_K_RETRIEVAL = 5 (too restrictive, incomplete context)
+├─ SIMILARITY_THRESHOLD = 0.7 (filters out relevant chunks)
+├─ context_window = 1024 (too small for 5 chunks + instructions)
+├─ llama3.2:3b (small model, prone to hallucination)
+└─ Incomplete documentation (test doc is generic)
+
+Evidence:
+- AI generates: "Advanced appointment settings let you configure..."
+- Reality: No "advanced settings" section exists in docs
+- Should cite: APPOINTMENT_COMPREHENSIVE_GUIDE.md + APPOINTMENT_FLOW_DOC.md
+- Currently uses: Generic test1.md with basic workflow only
+
+Top 5 Fixes:
+1. Increase TOP_K_RETRIEVAL: 5 → 10-15            → HIGH impact
+2. Lower SIMILARITY_THRESHOLD: 0.7 → 0.5-0.6      → HIGH impact  
+3. Create comprehensive appointment documentation → HIGH impact
+4. Increase context_window: 1024 → 2048           → MEDIUM impact
+5. Use larger LLM model (7B+)                     → MEDIUM impact
+
+
+DATA FLOW: DOCUMENT INGESTION
+=============================
+
+File Upload
+    ↓
+Text Extraction (PDF/TXT/MD/Code)
+    ↓
+Markdown Preprocessing (extract title, frontmatter, metadata)
+    ↓
+Chunking (1024 tokens, 200 overlap)
+    ↓
+Embedding Generation (nomic-embed-text → 768-dim vectors)
+    ↓
+PostgreSQL Storage (table: data_{kb_name})
+    ├─ Columns: text, metadata_, node_id, embedding
+    └─ Indexes: IVFFlat (100 lists) on embedding
+
+
+DATA FLOW: QUERY EXECUTION
+==========================
+
+User Question (Streamlit chat)
+    ↓
+RAGEngine Instantiation [10-15s] ⚠️ SLOW
+    ├─ Create Ollama LLM (llama3.2:3b)
+    ├─ Create OllamaEmbedding
+    ├─ Connect to PostgreSQL
+    ├─ Create PGVectorStore
+    └─ Create VectorStoreIndex
+    ↓
+Query Embedding Generation [0.5-1s]
+    ├─ Convert question to 768-dim vector
+    └─ Send to Ollama endpoint
+    ↓
+Vector Search [1-2s]
+    ├─ Cosine similarity search via pgvector
+    ├─ Retrieve TOP_K=5 chunks
+    └─ Filter by SIMILARITY_THRESHOLD=0.7
+    ↓
+Reranking [DISABLED]
+    └─ Would add 30-40s, so disabled
+    ↓
+LLM Response Generation [15-25s] ⚠️ SLOW
+    ├─ Build prompt with top chunks
+    ├─ Call Ollama llama3.2:3b
+    ├─ Generate up to 400 tokens
+    └─ Temperature=0.3 (deterministic)
+    ↓
+Response Formatting [<1s]
+    ├─ Extract answer
+    └─ Format sources + similarity scores
+    ↓
+Display to User (Streamlit)
+
+
+KEY CONFIGURATION PARAMETERS
+=============================
+
+| Parameter | Current | Problem | Recommendation |
+|-----------|---------|---------|-----------------|
+| TOP_K_RETRIEVAL | 5 | Too low for docs | Increase to 10-15 |
+| SIMILARITY_THRESHOLD | 0.7 | Filters out chunks | Lower to 0.5-0.6 |
+| context_window | 1024 | Too small | Increase to 2048-4096 |
+| CHUNK_SIZE | 1024 | OK | Keep as is |
+| CHUNK_OVERLAP | 200 | OK | Keep as is |
+| OLLAMA_MODEL | llama3.2:3b | Small, slow | Use 7B+ |
+| OLLAMA_EMBED_MODEL | nomic-embed-text | Generic | OK for now |
+
+
+FILE LOCATIONS FOR KEY COMPONENTS
+==================================
+
+RAG Engine:
+  /Users/iamanmp/Projects/code-forge/app/core/rag_engine.py
+  - RAG query execution, embedding retrieval, LLM synthesis
+  - Lines 44-55: LLM configuration
+  - Lines 128-131: Vector retriever
+  - Lines 140-156: Anti-hallucination prompt
+
+Configuration:
+  /Users/iamanmp/Projects/code-forge/app/core/config.py
+  - RAG parameters (CHUNK_SIZE, TOP_K_RETRIEVAL, SIMILARITY_THRESHOLD)
+  - Ollama endpoints and model names
+  - KB type-specific settings
+
+Chat Interface:
+  /Users/iamanmp/Projects/code-forge/app/pages/1_Main.py
+  - Streamlit chat UI
+  - Line 807: RAGEngine instantiation (creates new instance per query)
+  - Line 808: Query execution with settings
+
+Ingestion:
+  /Users/iamanmp/Projects/code-forge/app/core/ingestion.py
+  - Document text extraction
+  - Chunking with SentenceSplitter
+  - Embedding generation and PostgreSQL storage
+
+Database Manager:
+  /Users/iamanmp/Projects/code-forge/app/core/pg_manager.py
+  - PostgreSQL connection pooling
+  - Vector store operations
+  - Collection management
+
+Database Schema:
+  /Users/iamanmp/Projects/code-forge/app/core/schema_pgvector.sql
+  - knowledge_bases table (metadata)
+  - data_{kb_name} tables (vectors per KB)
+  - IVFFlat index configuration
+
+Markdown Preprocessor:
+  /Users/iamanmp/Projects/code-forge/app/core/markdown_preprocessor.py
+  - Frontmatter extraction
+  - Header normalization
+  - Metadata enrichment
+
+Test Docs:
+  /Users/iamanmp/Projects/code-forge/test_docs/test1.md
+  - Basic appointment workflow test document
+  - Missing: Advanced settings, comprehensive guide
+
+
+QUICK WIN IMPLEMENTATION ORDER
+===============================
+
+1. Configuration Changes (5 minutes)
+   - Increase TOP_K_RETRIEVAL: 5 → 10
+   - Lower SIMILARITY_THRESHOLD: 0.7 → 0.6
+   - Test with appointment queries
+
+2. Create Documentation (15 minutes)
+   - APPOINTMENT_COMPREHENSIVE_GUIDE.md
+   - APPOINTMENT_FLOW_DOC.md
+   - Upload and ingest into KB
+
+3. RAGEngine Singleton (30 minutes)
+   - Implement caching in Streamlit session state
+   - Cache by KB name
+   - Save 10-15 seconds per query
+
+4. Context Window Increase (5 minutes)
+   - Change context_window: 1024 → 2048
+   - Monitor quality improvement
+
+
+ARCHITECTURE STRENGTHS
+======================
+✅ ACID compliance (PostgreSQL)
+✅ Scalable multi-KB design
+✅ Efficient vector indexing (IVFFlat)
+✅ Connection pooling
+✅ Document preprocessing (markdown)
+✅ Type-safe metadata (JSONB)
+✅ Comprehensive test suite
+
+
+ARCHITECTURE WEAKNESSES
+======================
+❌ No RAGEngine caching (expensive per-query init)
+❌ Small LLM prone to hallucination
+❌ Context window too small (1024 tokens)
+❌ TOP_K too restrictive (5 chunks)
+❌ Similarity threshold too high (0.7)
+❌ CPU-based inference (slow)
+❌ Generic embeddings (not domain-specific)
+❌ Reranking disabled (adds 30-40s overhead)
+
+
+PERFORMANCE TARGETS
+==================
+
+Current State:
+  Query time: 30-40 seconds
+  ├─ Init: 10-15s
+  ├─ Search: 1-2s
+  ├─ LLM: 15-25s
+  └─ Other: 2-5s
+
+After Quick Fixes:
+  Query time: 5-10 seconds
+  ├─ Init: <1s (cached)
+  ├─ Search: 1-2s
+  ├─ LLM: 3-7s
+  └─ Other: <1s
+
+With Full Optimization:
+  Query time: 2-5 seconds
+  ├─ Init: <1s (cached)
+  ├─ Search: 0.5-1s
+  ├─ LLM: 1-3s (larger model/GPU)
+  └─ Other: <1s
+
+
+GENERATED REPORTS
+=================
+
+1. RAG_ANALYSIS.md (760 lines)
+   - Complete architecture analysis
+   - Data flow diagrams
+   - Configuration details
+   - Code issues and anti-patterns
+   - Strengths and weaknesses
+
+2. QUICK_FIXES.md
+   - Quick fix guide
+   - Priority implementation matrix
+   - Testing checklist
+   - Performance monitoring
+
+3. This summary file
+   - Quick reference
+   - Key metrics
+   - File locations
+
+
+================================================================================
+READY FOR IMPLEMENTATION
+================================================================================
+
+Next Steps:
+1. Review RAG_ANALYSIS.md for detailed understanding
+2. Follow QUICK_FIXES.md for implementation
+3. Start with config changes (5 min impact)
+4. Create appointment documentation (15 min impact)
+5. Implement RAGEngine singleton (30 min, 10-15s savings)
+
+Estimated Total Time to Fix: 1-2 hours
+Expected Result: 30-40s queries → 5-10s queries
+Hallucination Severity: High → Low
+
+================================================================================

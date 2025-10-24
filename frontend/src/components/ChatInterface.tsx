@@ -22,7 +22,9 @@ export default function ChatInterface({ kbName, useHybrid, useRerank, useAgentic
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [thinkingTime, setThinkingTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const thinkingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,6 +47,27 @@ export default function ChatInterface({ kbName, useHybrid, useRerank, useAgentic
       ]);
     },
   });
+
+  // Timer effect for thinking animation
+  useEffect(() => {
+    if (chatMutation.isPending) {
+      setThinkingTime(0);
+      thinkingIntervalRef.current = setInterval(() => {
+        setThinkingTime((prev) => prev + 0.1);
+      }, 100);
+    } else {
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+        thinkingIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+      }
+    };
+  }, [chatMutation.isPending]);
 
   const handleSend = () => {
     if (!input.trim() || chatMutation.isPending) return;
@@ -122,7 +145,7 @@ export default function ChatInterface({ kbName, useHybrid, useRerank, useAgentic
                     <Bot className="w-6 h-6 text-electric-teal" />
                   </div>
                 )}
-                
+
                 <div
                   className={`max-w-3xl rounded-2xl p-4 ${
                     message.role === 'user'
@@ -137,7 +160,7 @@ export default function ChatInterface({ kbName, useHybrid, useRerank, useAgentic
                       <p className="m-0">{message.content}</p>
                     )}
                   </div>
-                  
+
                   {message.role === 'assistant' && (
                     <div className="mt-3 flex items-center gap-2">
                       <button
@@ -184,8 +207,16 @@ export default function ChatInterface({ kbName, useHybrid, useRerank, useAgentic
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-electric-teal/20 flex items-center justify-center">
               <Bot className="w-6 h-6 text-electric-teal" />
             </div>
-            <div className="bg-cool-blue/10 border border-electric-teal/30 rounded-2xl p-4">
-              <Loader2 className="w-5 h-5 text-electric-teal animate-spin" />
+            <div className="bg-cool-blue/10 border border-electric-teal/30 rounded-2xl p-4 min-w-[200px]">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-electric-teal animate-spin flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-sm text-light-grey">Thinking...</span>
+                  <span className="text-xs text-electric-teal font-mono">
+                    {thinkingTime.toFixed(1)}s
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}

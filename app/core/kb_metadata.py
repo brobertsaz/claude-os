@@ -147,7 +147,7 @@ def get_collection_stats(collection_name: str) -> Dict[str, any]:
 
         # Get KB type from collection metadata
         kb_metadata = pg_manager.get_collection_metadata(collection_name)
-        kb_type = kb_metadata.kb_type if kb_metadata else KBType.GENERIC
+        kb_type = kb_metadata.get("kb_type", KBType.GENERIC.value) if kb_metadata else KBType.GENERIC.value
 
         # Get all documents with metadata
         results = pg_manager.get_documents_by_metadata(collection_name, where={})
@@ -169,7 +169,7 @@ def get_collection_stats(collection_name: str) -> Dict[str, any]:
             "total_documents": len(unique_filenames),
             "total_chunks": len(results),
             "last_updated": last_updated,
-            "kb_type": kb_type.value if isinstance(kb_type, KBType) else kb_type
+            "kb_type": kb_type if isinstance(kb_type, str) else kb_type.value
         }
 
     except Exception as e:

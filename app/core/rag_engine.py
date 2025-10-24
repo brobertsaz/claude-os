@@ -6,13 +6,13 @@ Supports vector search, hybrid search, reranking, and agentic modes.
 import logging
 from typing import Dict, List, Optional
 
-from llama_index.core import Settings, StorageContext, VectorStoreIndex, get_response_synthesizer
+from llama_index.core import Settings, StorageContext, VectorStoreIndex, get_response_synthesizer, PromptTemplate
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.tools import QueryEngineTool
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
-from llama_index.core.postprocessor import SentenceTransformerRerank
+from llama_index.core.postprocessor import SentenceTransformerRerank, SimilarityPostprocessor
 from llama_index.vector_stores.postgres import PGVectorStore
 from sqlalchemy import make_url
 
@@ -34,48 +34,62 @@ class RAGEngine:
 
     def __init__(self, collection_name: str):
         """
-        Initialize RAG engine for a specific knowledge base using PostgreSQL + pgvector.
+        Initialize RAG engine for a specific knowledge base using PGVectorStore.
 
         Args:
             collection_name: Name of the knowledge base
         """
         self.collection_name = collection_name
 
-        # Initialize Ollama LLM with optimized context window
-        # Context needs to fit: retrieved chunks (5 × 1024 = 5120) + question + answer
-        # Using 4096 is a good balance between memory usage and functionality
-        Settings.llm = Ollama(
+        # Initialize Ollama LLM with optimized settings for 8B model
+        self.llm = Ollama(
             model=Config.OLLAMA_MODEL,
             base_url=Config.OLLAMA_HOST,
-            request_timeout=120.0,
-            context_window=4096,  # Balanced: fits most RAG queries without excessive memory
-            num_ctx=4096  # Ollama-specific parameter for context size
+            request_timeout=120.0,  # Timeout for larger model
+            context_window=8192,  # 8B model supports larger context
+            num_ctx=8192,  # Match context_window
+            temperature=0.1,  # Very low for factual RAG responses
+            num_predict=1000,  # Comprehensive answers
+            top_k=40,  # Standard sampling space
+            top_p=0.9,  # Nucleus sampling for better quality
+            num_thread=8,  # Use more CPU threads
+            num_gpu=0,  # CPU mode (set to 1 if you have GPU)
         )
+        Settings.llm = self.llm
 
         # Initialize Ollama embeddings
-        Settings.embed_model = OllamaEmbedding(
+        self.embed_model = OllamaEmbedding(
             model_name=Config.OLLAMA_EMBED_MODEL,
             base_url=Config.OLLAMA_HOST
         )
+        Settings.embed_model = self.embed_model
 
-        # Verify KB exists
+        # Verify KB exists and get table name
         self.pg_manager = get_pg_manager()
         if not self.pg_manager.collection_exists(collection_name):
             raise ValueError(f"Collection {collection_name} not found")
 
-        # Get KB ID for the vector store
+        # Get KB metadata
         conn = self.pg_manager.get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT id FROM knowledge_bases WHERE name = %s", (collection_name,))
+                cur.execute(
+                    "SELECT id, table_name, embed_dim FROM knowledge_bases WHERE name = %s",
+                    (collection_name,)
+                )
                 result = cur.fetchone()
                 if not result:
                     raise ValueError(f"Collection {collection_name} not found")
-                kb_id = result[0]
+                self.kb_id, self.table_name, self.embed_dim = result
+
+                if not self.table_name:
+                    raise ValueError(f"Collection {collection_name} has not been migrated to PGVectorStore schema")
         finally:
             self.pg_manager.return_connection(conn)
 
-        # Build PostgreSQL connection URL
+        logger.info(f"Initializing RAGEngine for KB: {collection_name} (table: {self.table_name})")
+
+        # Create PGVectorStore instance
         import os
         pg_user = os.getenv("POSTGRES_USER", os.getenv("USER", "postgres"))
         pg_password = os.getenv("POSTGRES_PASSWORD", "")
@@ -83,44 +97,85 @@ class RAGEngine:
         pg_port = os.getenv("POSTGRES_PORT", "5432")
         pg_db = os.getenv("POSTGRES_DB", "codeforge")
 
-        # Build connection string (handle empty password for trust auth)
-        if pg_password:
-            connection_string = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
-        else:
-            connection_string = f"postgresql+psycopg2://{pg_user}@{pg_host}:{pg_port}/{pg_db}"
+        logger.info(f"Connecting to PostgreSQL: {pg_user}@{pg_host}:{pg_port}/{pg_db}")
 
-        # Initialize PGVectorStore with llama_index
+        # PGVectorStore automatically adds 'data_' prefix to table names
+        # Our schema already has 'data_' prefix, so we need to strip it
+        pgvector_table_name = self.table_name.removeprefix('data_')
+        logger.info(f"Using PGVectorStore table name: {pgvector_table_name} (actual table: {self.table_name})")
+
+        # Use individual parameters instead of connection_string
+        # This ensures PGVectorStore creates both sync and async connection strings correctly
         self.vector_store = PGVectorStore.from_params(
-            database=pg_db,
             host=pg_host,
-            password=pg_password if pg_password else None,
-            port=int(pg_port),
+            port=pg_port,
+            database=pg_db,
             user=pg_user,
-            table_name="documents",
-            embed_dim=768,  # nomic-embed-text dimension
+            password=pg_password,
+            table_name=pgvector_table_name,  # PGVectorStore will add 'data_' prefix
+            embed_dim=self.embed_dim,
+            hybrid_search=False,  # Start with pure vector search
+            hnsw_kwargs=None,  # Use IVFFlat index (already created)
+            perform_setup=False  # Don't recreate tables, use existing schema
         )
 
-        # Create storage context and index
-        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
-
-        # Load existing index from vector store
+        # Create VectorStoreIndex from the vector store
         self.index = VectorStoreIndex.from_vector_store(
-            self.vector_store,
-            storage_context=storage_context
+            vector_store=self.vector_store,
+            embed_model=self.embed_model
         )
+        logger.info(f"Created VectorStoreIndex for {collection_name}")
 
-        # Create base query engine
-        self.query_engine = self.index.as_query_engine(
-            similarity_top_k=Config.TOP_K_RETRIEVAL
-        )
-
-        # Initialize retrievers
+        # Create vector retriever
         self.vector_retriever = VectorIndexRetriever(
             index=self.index,
             similarity_top_k=Config.TOP_K_RETRIEVAL
         )
 
+        # Initialize reranker (DISABLED by default due to performance issues - 40+ seconds per query)
+        # The reranker downloads a large model and runs on CPU which is extremely slow
+        # Enable only if you have GPU acceleration or can tolerate 40+ second delays
+        self.reranker = None
+        logger.info("Reranker disabled for performance (enable in code if needed)")
+
+        # Create custom prompt template that PREVENTS hallucination
+        qa_prompt_template = PromptTemplate(
+            "You are a documentation assistant. Your ONLY job is to extract and present information from the context below.\n\n"
+            "Context from documentation:\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n\n"
+            "STRICT RULES - VIOLATION WILL CAUSE SYSTEM FAILURE:\n"
+            "1. **ONLY use information explicitly stated in the context above**\n"
+            "2. **If the answer is not in the context, respond EXACTLY**: \"I don't have specific documentation about that. The available documentation covers: [list topics from context]\"\n"
+            "3. **NEVER invent steps, settings, UI elements, or procedures**\n"
+            "4. **ALWAYS cite the source** - Start your answer with \"According to [document name]...\" or \"The documentation states...\"\n"
+            "5. **Use exact quotes** when possible, especially for settings, field names, and procedures\n"
+            "6. **Use Markdown** - ## headings, **bold**, `code`, lists, but ONLY for information from the context\n"
+            "7. **If context is incomplete**, say \"The documentation provides partial information: [what's available]. For complete details, you may need to check [suggest where]\"\n\n"
+            "Question: {query_str}\n\n"
+            "Answer (extract from context only, cite sources):"
+        )
+
+        # Create similarity filter to enforce minimum relevance threshold
+        similarity_filter = SimilarityPostprocessor(similarity_cutoff=Config.SIMILARITY_THRESHOLD)
+
+        # Create query engine with custom prompt and strict filtering
+        # Using "simple_summarize" mode for faster responses (single LLM call instead of multiple)
+        node_postprocessors = [similarity_filter]
+        if self.reranker:
+            node_postprocessors.append(self.reranker)
+
+        self.query_engine = self.index.as_query_engine(
+            similarity_top_k=Config.TOP_K_RETRIEVAL,
+            node_postprocessors=node_postprocessors,
+            response_mode="simple_summarize",
+            text_qa_template=qa_prompt_template
+        )
+        logger.info(f"Created query engine with strict filtering (similarity >= {Config.SIMILARITY_THRESHOLD}, top_k={Config.TOP_K_RETRIEVAL})")
+
         # Initialize BM25 retriever (for hybrid search)
+        self.bm25_retriever = None
         if HAS_BM25:
             try:
                 all_nodes = list(self.index.docstore.docs.values())
@@ -129,53 +184,16 @@ class RAGEngine:
                         nodes=all_nodes,
                         similarity_top_k=Config.TOP_K_RETRIEVAL
                     )
+                    logger.info("Initialized BM25 retriever for hybrid search")
                 else:
                     logger.warning("No documents found for BM25 retriever")
-                    self.bm25_retriever = None
             except Exception as e:
                 logger.warning(f"Failed to initialize BM25 retriever: {e}")
-                self.bm25_retriever = None
         else:
-            logger.warning("BM25 retriever not available - llama-index-retrievers-bm25 not installed")
-            self.bm25_retriever = None
-
-        # Initialize reranker (optional)
-        try:
-            self.reranker = SentenceTransformerRerank(
-                model="cross-encoder/ms-marco-MiniLM-L-2-v2",
-                top_n=Config.TOP_K_RETRIEVAL
-            )
-        except Exception as e:
-            logger.warning(f"Failed to initialize reranker: {e}")
-            self.reranker = None
-
-        # Initialize sub-question engine for agentic RAG (optional)
-        try:
-            query_engine_tools = [
-                QueryEngineTool.from_defaults(
-                    query_engine=self.query_engine,
-                    name=collection_name,
-                    description=f"Knowledge base: {collection_name}"
-                )
-            ]
-            self.sub_question_engine = SubQuestionQueryEngine.from_defaults(
-                query_engine_tools=query_engine_tools
-            )
-        except Exception as e:
-            logger.warning(f"Failed to initialize sub-question engine: {e}")
-            self.sub_question_engine = None
-
-        # Initialize reranker
-        try:
-            self.reranker = SentenceTransformerRerank(
-                model="cross-encoder/ms-marco-MiniLM-L-6-v2",
-                top_n=Config.RERANK_TOP_N
-            )
-        except Exception as e:
-            logger.warning(f"Failed to initialize reranker: {e}")
-            self.reranker = None
+            logger.warning("BM25 retriever not available")
 
         # Initialize agentic query engine
+        self.sub_question_engine = None
         try:
             query_tool = QueryEngineTool.from_defaults(
                 query_engine=self.query_engine,
@@ -185,9 +203,9 @@ class RAGEngine:
             self.sub_question_engine = SubQuestionQueryEngine.from_defaults(
                 query_engine_tools=[query_tool]
             )
+            logger.info("Initialized agentic query engine")
         except Exception as e:
             logger.warning(f"Failed to initialize agentic engine: {e}")
-            self.sub_question_engine = None
 
     def _reciprocal_rank_fusion(
         self,
@@ -306,7 +324,7 @@ class RAGEngine:
 
     def _query_base(self, question: str) -> Dict[str, any]:
         """
-        Execute base vector search query using llama_index + PostgreSQL.
+        Execute base vector search query using PGVectorStore and llama_index query engine.
 
         Args:
             question: Query string
@@ -314,17 +332,29 @@ class RAGEngine:
         Returns:
             dict: Answer and sources
         """
+        logger.info(f"Executing base query: {question}")
+
+        # Use llama_index query engine (with reranking if available)
         response = self.query_engine.query(question)
+
+        logger.info(f"Generated answer: {str(response)[:200]}")
+
+        # Format response
         return self._format_response(response, response.source_nodes)
 
     def _format_response(self, response, source_nodes) -> Dict[str, any]:
         """Format query response for return."""
         sources = []
         for node in source_nodes:
+            # Convert score to Python float for JSON serialization
+            score = node.score if hasattr(node, "score") else None
+            if score is not None:
+                score = float(score)
+
             sources.append({
                 "text": node.text,
                 "metadata": node.metadata if hasattr(node, "metadata") else {},
-                "score": node.score if hasattr(node, "score") else None
+                "score": score
             })
 
         return {
@@ -344,8 +374,8 @@ class RAGEngine:
 
         Args:
             question: Query string
-            use_hybrid: Enable hybrid search
-            use_rerank: Enable reranking
+            use_hybrid: Enable hybrid search (not implemented yet)
+            use_rerank: Enable reranking (always enabled if reranker is available)
             use_agentic: Enable agentic RAG
 
         Returns:
@@ -353,24 +383,13 @@ class RAGEngine:
         """
         try:
             # Route to appropriate query method
+            # Note: Reranking is always enabled if reranker is available (via node_postprocessors)
             if use_agentic:
                 return self._query_agentic(question)
             elif use_hybrid:
-                result = self._query_hybrid(question)
-                if use_rerank and result.get("sources"):
-                    # Note: Reranking after hybrid fusion
-                    pass  # Already applied in hybrid
-                return result
+                return self._query_hybrid(question)
             else:
-                result = self._query_base(question)
-                if use_rerank and result.get("sources"):
-                    # Apply reranking to base results
-                    nodes = self.vector_retriever.retrieve(question)
-                    reranked_nodes = self._apply_reranking(nodes, question)
-                    synthesizer = get_response_synthesizer()
-                    response = synthesizer.synthesize(question, nodes=reranked_nodes)
-                    return self._format_response(response, reranked_nodes)
-                return result
+                return self._query_base(question)
 
         except Exception as e:
             logger.error(f"Query failed: {e}")

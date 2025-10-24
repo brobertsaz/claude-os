@@ -37,6 +37,7 @@ yarn-error.log*
 pnpm-debug.log*
 .npm
 .yarn
+frontend-dev.log
 
 # IDE
 .vscode/

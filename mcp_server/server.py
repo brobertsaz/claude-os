@@ -27,6 +27,9 @@ from app.core.kb_types import KBType
 from app.core.rag_engine import RAGEngine
 from app.core.agent_os_ingestion import AgentOSIngestion
 from app.core.agent_os_parser import AgentOSContentType
+from functools import lru_cache
+import time
+from threading import Lock
 
 # Configure logging
 logging.basicConfig(
@@ -34,6 +37,11 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# RAGEngine cache with TTL
+RAG_ENGINE_CACHE = {}
+RAG_ENGINE_CACHE_LOCK = Lock()
+RAG_ENGINE_CACHE_TTL = 600  # 10 minutes TTL for cached engines
 
 # Initialize FastAPI
 app = FastAPI(title="Code-Forge MCP Server")
@@ -46,6 +54,51 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def get_cached_rag_engine(kb_name: str) -> RAGEngine:
+    """
+    Get or create a cached RAGEngine instance.
+    Implements singleton pattern with TTL to avoid recreating engines for every query.
+
+    Args:
+        kb_name: Name of the knowledge base
+
+    Returns:
+        Cached or new RAGEngine instance
+    """
+    global RAG_ENGINE_CACHE
+
+    with RAG_ENGINE_CACHE_LOCK:
+        current_time = time.time()
+
+        # Check if engine exists and is not expired
+        if kb_name in RAG_ENGINE_CACHE:
+            engine, timestamp = RAG_ENGINE_CACHE[kb_name]
+            if current_time - timestamp < RAG_ENGINE_CACHE_TTL:
+                logger.info(f"Using cached RAGEngine for {kb_name} (age: {current_time - timestamp:.1f}s)")
+                return engine
+            else:
+                logger.info(f"RAGEngine cache expired for {kb_name}, creating new instance")
+                del RAG_ENGINE_CACHE[kb_name]
+
+        # Create new engine
+        logger.info(f"Creating new RAGEngine for {kb_name}")
+        start_time = time.time()
+        engine = RAGEngine(kb_name)
+        creation_time = time.time() - start_time
+        logger.info(f"RAGEngine created for {kb_name} in {creation_time:.2f}s")
+
+        # Cache the engine
+        RAG_ENGINE_CACHE[kb_name] = (engine, current_time)
+
+        # Clean up old entries (keep max 10 engines in cache)
+        if len(RAG_ENGINE_CACHE) > 10:
+            oldest_kb = min(RAG_ENGINE_CACHE.items(), key=lambda x: x[1][1])[0]
+            del RAG_ENGINE_CACHE[oldest_kb]
+            logger.info(f"Evicted oldest RAGEngine from cache: {oldest_kb}")
+
+        return engine
+
 
 # MCP Tools Registry
 TOOLS = {
@@ -191,8 +244,10 @@ TOOLS = {
 # Tool implementation functions
 async def search_knowledge_base(kb_name: str, query: str, use_hybrid: bool = False,
                                 use_rerank: bool = False, use_agentic: bool = False) -> dict:
-    """Search a knowledge base using RAG."""
+    """Search a knowledge base using RAG with cached engine for performance."""
     try:
+        start_time = time.time()
+
         pg_manager = get_pg_manager()
         if not pg_manager.collection_exists(kb_name):
             return {"error": f"Knowledge base '{kb_name}' not found", "answer": "", "sources": []}
@@ -201,10 +256,23 @@ async def search_knowledge_base(kb_name: str, query: str, use_hybrid: bool = Fal
         if count == 0:
             return {"error": f"Knowledge base '{kb_name}' is empty", "answer": "", "sources": []}
 
-        rag_engine = RAGEngine(kb_name)
+        # Use cached RAGEngine instance instead of creating new one
+        rag_engine = get_cached_rag_engine(kb_name)
+
+        query_start = time.time()
         result = rag_engine.query(question=query, use_hybrid=use_hybrid,
                                  use_rerank=use_rerank, use_agentic=use_agentic)
-        logger.info(f"Query executed on {kb_name}: {query[:50]}...")
+        query_time = time.time() - query_start
+
+        total_time = time.time() - start_time
+        logger.info(f"Query executed on {kb_name}: {query[:50]}... (total: {total_time:.2f}s, query: {query_time:.2f}s)")
+
+        # Add timing info to result for debugging
+        result['_timing'] = {
+            'total_time': total_time,
+            'query_time': query_time
+        }
+
         return result
     except Exception as e:
         logger.error(f"Search failed: {e}")
@@ -513,8 +581,7 @@ async def api_upload_document(kb_name: str, file: UploadFile = File(...)):
 
     # Validate KB exists
     pg_manager = get_pg_manager()
-    kb = pg_manager.get_collection(kb_name)
-    if not kb:
+    if not pg_manager.collection_exists(kb_name):
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
     # Save uploaded file to temp location
@@ -553,8 +620,7 @@ async def api_import_directory(kb_name: str, directory_path: str):
 
     # Validate KB exists
     pg_manager = get_pg_manager()
-    kb = pg_manager.get_collection(kb_name)
-    if not kb:
+    if not pg_manager.collection_exists(kb_name):
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
     # Validate directory exists

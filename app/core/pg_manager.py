@@ -60,21 +60,37 @@ class PostgresManager:
         name: str,
         kb_type: KBType = KBType.GENERIC,
         description: str = "",
-        tags: List[str] = None
+        tags: List[str] = None,
+        embed_dim: int = 768
     ) -> Dict[str, Any]:
-        """Create a new knowledge base."""
+        """Create a new knowledge base with PGVectorStore table."""
+        import json
+
         conn = self.get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Sanitize name for table name
+                table_name = f"data_{name.lower().replace(' ', '_').replace('-', '_')}"
+
+                # Prepare metadata (tags go in metadata JSON, not separate column)
+                metadata = {}
+                if tags:
+                    metadata["tags"] = tags
+
+                # Insert KB metadata (no tags column in NEW schema)
                 cur.execute(
                     """
-                    INSERT INTO knowledge_bases (name, kb_type, description, tags)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id, name, kb_type, description, created_at, tags
+                    INSERT INTO knowledge_bases (name, kb_type, description, metadata, table_name, embed_dim)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id, name, kb_type, description, created_at, metadata, table_name, embed_dim
                     """,
-                    (name, kb_type.value, description, ",".join(tags) if tags else "")
+                    (name, kb_type.value, description, json.dumps(metadata), table_name, embed_dim)
                 )
                 result = cur.fetchone()
+
+                # Create the PGVectorStore table using the helper function
+                cur.execute("SELECT create_kb_table(%s, %s, %s)", (name, table_name, embed_dim))
+
             conn.commit()
             return dict(result)
         except psycopg2.IntegrityError:
@@ -84,12 +100,27 @@ class PostgresManager:
             self.return_connection(conn)
 
     def delete_collection(self, name: str) -> bool:
-        """Delete a knowledge base and all its documents."""
+        """Delete a knowledge base and its PGVectorStore table."""
         conn = self.get_connection()
         try:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get table name before deleting
+                cur.execute("SELECT table_name FROM knowledge_bases WHERE name = %s", (name,))
+                result = cur.fetchone()
+
+                if not result:
+                    return False
+
+                table_name = result['table_name']
+
+                # Drop the PGVectorStore table if it exists
+                if table_name:
+                    cur.execute("SELECT drop_kb_table(%s)", (table_name,))
+
+                # Delete KB metadata
                 cur.execute("DELETE FROM knowledge_bases WHERE name = %s", (name,))
                 deleted = cur.rowcount > 0
+
             conn.commit()
             return deleted
         finally:
@@ -102,7 +133,7 @@ class PostgresManager:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT name, kb_type, description, created_at, tags, metadata
+                    SELECT name, kb_type, description, created_at, metadata
                     FROM knowledge_bases
                     ORDER BY created_at DESC
                     """
@@ -116,7 +147,6 @@ class PostgresManager:
                         "kb_type": row["kb_type"],
                         "description": row["description"] or "",
                         "created_at": row["created_at"].isoformat() if row["created_at"] else "",
-                        "tags": row["tags"] or "",
                         **row["metadata"]
                     }
                 }
@@ -160,7 +190,7 @@ class PostgresManager:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT name, kb_type, description, created_at, tags, metadata
+                    SELECT name, kb_type, description, created_at, metadata
                     FROM knowledge_bases
                     WHERE kb_type = %s
                     ORDER BY created_at DESC
@@ -176,7 +206,6 @@ class PostgresManager:
                         "kb_type": row["kb_type"],
                         "description": row["description"] or "",
                         "created_at": row["created_at"].isoformat() if row["created_at"] else "",
-                        "tags": row["tags"] or "",
                         **row["metadata"]
                     }
                 }
@@ -195,34 +224,70 @@ class PostgresManager:
         metadatas: List[Dict[str, Any]],
         ids: List[str]
     ) -> None:
-        """Add documents to a knowledge base."""
+        """Add documents to a knowledge base using PGVectorStore schema."""
+        from llama_index.core.schema import TextNode
+        from llama_index.vector_stores.postgres import PGVectorStore
+
         conn = self.get_connection()
         try:
-            # Get KB ID
-            with conn.cursor() as cur:
-                cur.execute("SELECT id FROM knowledge_bases WHERE name = %s", (kb_name,))
+            # Get KB metadata
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT id, table_name, embed_dim FROM knowledge_bases WHERE name = %s",
+                    (kb_name,)
+                )
                 result = cur.fetchone()
                 if not result:
                     raise ValueError(f"Knowledge base '{kb_name}' not found")
-                kb_id = result[0]
 
-            # Insert documents
-            with conn.cursor() as cur:
-                for doc, emb, meta, doc_id in zip(documents, embeddings, metadatas, ids):
-                    cur.execute(
-                        """
-                        INSERT INTO documents (kb_id, doc_id, content, embedding, metadata)
-                        VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (kb_id, doc_id) DO UPDATE
-                        SET content = EXCLUDED.content,
-                            embedding = EXCLUDED.embedding,
-                            metadata = EXCLUDED.metadata
-                        """,
-                        (kb_id, doc_id, doc, emb, Json(meta))
-                    )
-            conn.commit()
+                kb_id = result['id']
+                table_name = result['table_name']
+                embed_dim = result['embed_dim']
+
+                if not table_name:
+                    raise ValueError(f"Knowledge base '{kb_name}' has not been migrated to PGVectorStore schema")
         finally:
             self.return_connection(conn)
+
+        # Create PGVectorStore instance
+        pg_user = os.getenv("POSTGRES_USER", os.getenv("USER", "postgres"))
+        pg_password = os.getenv("POSTGRES_PASSWORD", "")
+        pg_host = os.getenv("POSTGRES_HOST", "localhost")
+        pg_port = os.getenv("POSTGRES_PORT", "5432")
+        pg_db = os.getenv("POSTGRES_DB", "codeforge")
+
+        # PGVectorStore automatically adds 'data_' prefix to table names
+        # Our schema already has 'data_' prefix, so we need to strip it
+        pgvector_table_name = table_name.removeprefix('data_')
+
+        # Use individual parameters to avoid async connection string issues
+        vector_store = PGVectorStore.from_params(
+            host=pg_host,
+            port=pg_port,
+            database=pg_db,
+            user=pg_user,
+            password=pg_password,
+            table_name=pgvector_table_name,  # PGVectorStore will add 'data_' prefix
+            embed_dim=embed_dim,
+            perform_setup=False  # Don't recreate tables
+        )
+
+        # Create TextNode objects for llama_index
+        nodes = []
+        for doc, emb, meta, doc_id in zip(documents, embeddings, metadatas, ids):
+            # Add kb_id to metadata
+            meta_with_kb = {**meta, "kb_id": str(kb_id)}
+
+            node = TextNode(
+                text=doc,
+                id_=doc_id,
+                embedding=emb,
+                metadata=meta_with_kb
+            )
+            nodes.append(node)
+
+        # Add nodes to vector store
+        vector_store.add(nodes)
 
     def get_documents_by_metadata(
         self,
@@ -230,30 +295,31 @@ class PostgresManager:
         where: Dict[str, Any],
         limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Get documents filtered by metadata."""
+        """Get documents filtered by metadata from NEW PGVectorStore schema."""
         conn = self.get_connection()
         try:
-            # Get KB ID
+            # Get table name for this KB
             with conn.cursor() as cur:
-                cur.execute("SELECT id FROM knowledge_bases WHERE name = %s", (kb_name,))
+                cur.execute("SELECT table_name FROM knowledge_bases WHERE name = %s", (kb_name,))
                 result = cur.fetchone()
-                if not result:
+                if not result or not result[0]:
                     return []
-                kb_id = result[0]
+                table_name = result[0]
 
-            # Build WHERE clause for JSONB metadata
+            # Build WHERE clause for JSONB metadata_ column
             where_conditions = []
-            params = [kb_id]
+            params = []
             for key, value in where.items():
-                where_conditions.append(f"metadata->>%s = %s")
+                where_conditions.append(f"metadata_->>%s = %s")
                 params.extend([key, str(value)])
 
             where_clause = " AND ".join(where_conditions) if where_conditions else "TRUE"
 
+            # Query NEW schema: data_{kb_name} table with columns: id, text, metadata_, node_id, embedding
             query = f"""
-                SELECT doc_id, content, metadata
-                FROM documents
-                WHERE kb_id = %s AND {where_clause}
+                SELECT node_id, text, metadata_
+                FROM {table_name}
+                WHERE {where_clause}
             """
             if limit:
                 query += f" LIMIT {limit}"
@@ -261,7 +327,15 @@ class PostgresManager:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query, params)
                 results = cur.fetchall()
-                return [dict(row) for row in results]
+                # Return with 'metadata' key (not 'metadata_') for compatibility
+                return [
+                    {
+                        "node_id": row["node_id"],
+                        "text": row["text"],
+                        "metadata": row["metadata_"]
+                    }
+                    for row in results
+                ]
         finally:
             self.return_connection(conn)
 
@@ -316,16 +390,20 @@ class PostgresManager:
         """Get document count for a knowledge base."""
         conn = self.get_connection()
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT COUNT(*) FROM documents d
-                    JOIN knowledge_bases kb ON d.kb_id = kb.id
-                    WHERE kb.name = %s
-                    """,
-                    (kb_name,)
-                )
-                return cur.fetchone()[0]
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get table name
+                cur.execute("SELECT table_name FROM knowledge_bases WHERE name = %s", (kb_name,))
+                result = cur.fetchone()
+
+                if not result or not result['table_name']:
+                    return 0
+
+                table_name = result['table_name']
+
+                # Count documents in PGVectorStore table
+                cur.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+                count_result = cur.fetchone()
+                return count_result['count'] if count_result else 0
         finally:
             self.return_connection(conn)
 
@@ -333,6 +411,72 @@ class PostgresManager:
         """Close all connections in the pool."""
         if self.pool:
             self.pool.closeall()
+    def query_similar(
+        self,
+        kb_id: int,
+        query_embedding: List[float],
+        top_k: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Query for similar documents using vector similarity.
+        Works with NEW PGVectorStore schema (data_{kb_name} tables).
+
+        Args:
+            kb_id: Knowledge base ID
+            query_embedding: Query embedding vector
+            top_k: Number of results to return
+
+        Returns:
+            List of similar documents with text, metadata, and similarity score
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Get table name for this KB
+                cur.execute("SELECT table_name FROM knowledge_bases WHERE id = %s", (kb_id,))
+                result = cur.fetchone()
+                if not result or not result['table_name']:
+                    logger.warning(f"No table found for kb_id={kb_id}")
+                    return []
+
+                table_name = result['table_name']
+
+                # Convert embedding list to PostgreSQL vector format string
+                # Format: '[0.123, 0.456, ...]'
+                embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+                logger.info(f"Query embedding dimension: {len(query_embedding)}")
+                logger.info(f"Querying kb_id={kb_id}, table={table_name}, top_k={top_k}")
+
+                # Query for similar documents using cosine similarity
+                # NEW schema uses 'text' and 'metadata_' columns
+                query = f"""
+                    SELECT
+                        text,
+                        metadata_ as metadata,
+                        node_id,
+                        1 - (embedding <=> %s::vector) as similarity
+                    FROM {table_name}
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """
+                logger.info(f"Executing query with params: top_k={top_k}")
+
+                # Pass the embedding as a string with ::vector cast
+                cur.execute(query, (embedding_str, embedding_str, top_k))
+
+                results = cur.fetchall()
+                logger.info(f"PostgreSQL returned {len(results)} results")
+                if results:
+                    logger.info(f"First result similarity: {results[0].get('similarity')}")
+                return [dict(row) for row in results]
+        except Exception as e:
+            logger.error(f"Error in query_similar: {e}")
+            raise
+        finally:
+            self.return_connection(conn)
 
 
 # Singleton instance
