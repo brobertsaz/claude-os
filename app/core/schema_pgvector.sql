@@ -27,6 +27,7 @@ BEGIN
     CREATE TABLE IF NOT EXISTS knowledge_bases (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) UNIQUE NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
         kb_type VARCHAR(50) DEFAULT 'GENERIC',
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -34,6 +35,11 @@ BEGIN
     );
 
     -- Add new columns if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name='knowledge_bases' AND column_name='slug') THEN
+        ALTER TABLE knowledge_bases ADD COLUMN slug VARCHAR(255) UNIQUE;
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                    WHERE table_name='knowledge_bases' AND column_name='table_name') THEN
         ALTER TABLE knowledge_bases ADD COLUMN table_name VARCHAR(255) UNIQUE;
@@ -63,6 +69,7 @@ END$$;
 
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_kb_name ON knowledge_bases(name);
+CREATE INDEX IF NOT EXISTS idx_kb_slug ON knowledge_bases(slug);
 CREATE INDEX IF NOT EXISTS idx_kb_table_name ON knowledge_bases(table_name);
 CREATE INDEX IF NOT EXISTS idx_kb_type ON knowledge_bases(kb_type);
 

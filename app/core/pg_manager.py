@@ -5,6 +5,7 @@ Replaces ChromaDB with a more robust, ACID-compliant solution.
 
 import os
 import json
+import re
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 import psycopg2
@@ -14,6 +15,28 @@ import numpy as np
 
 from app.core.config import Config
 from app.core.kb_types import KBType, KBMetadata
+
+
+def generate_slug(name: str) -> str:
+    """
+    Generate a URL-friendly slug from a KB name.
+
+    Examples:
+        "Pistn Agent OS" -> "pistn-agent-os"
+        "My Code Base!" -> "my-code-base"
+        "Test_KB 123" -> "test-kb-123"
+    """
+    # Convert to lowercase
+    slug = name.lower()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r'[\s_]+', '-', slug)
+    # Remove any characters that aren't alphanumeric or hyphens
+    slug = re.sub(r'[^a-z0-9-]', '', slug)
+    # Remove multiple consecutive hyphens
+    slug = re.sub(r'-+', '-', slug)
+    # Remove leading/trailing hyphens
+    slug = slug.strip('-')
+    return slug
 
 
 class PostgresManager:
@@ -69,6 +92,9 @@ class PostgresManager:
         conn = self.get_connection()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Generate URL-friendly slug
+                slug = generate_slug(name)
+
                 # Sanitize name for table name
                 table_name = f"data_{name.lower().replace(' ', '_').replace('-', '_')}"
 
@@ -80,11 +106,11 @@ class PostgresManager:
                 # Insert KB metadata (no tags column in NEW schema)
                 cur.execute(
                     """
-                    INSERT INTO knowledge_bases (name, kb_type, description, metadata, table_name, embed_dim)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    RETURNING id, name, kb_type, description, created_at, metadata, table_name, embed_dim
+                    INSERT INTO knowledge_bases (name, slug, kb_type, description, metadata, table_name, embed_dim)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, name, slug, kb_type, description, created_at, metadata, table_name, embed_dim
                     """,
-                    (name, kb_type.value, description, json.dumps(metadata), table_name, embed_dim)
+                    (name, slug, kb_type.value, description, json.dumps(metadata), table_name, embed_dim)
                 )
                 result = cur.fetchone()
 
@@ -93,8 +119,10 @@ class PostgresManager:
 
             conn.commit()
             return dict(result)
-        except psycopg2.IntegrityError:
+        except psycopg2.IntegrityError as e:
             conn.rollback()
+            if 'slug' in str(e):
+                raise ValueError(f"A knowledge base with a similar name already exists (slug conflict: '{slug}')")
             raise ValueError(f"Knowledge base '{name}' already exists")
         finally:
             self.return_connection(conn)
@@ -133,7 +161,7 @@ class PostgresManager:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(
                     """
-                    SELECT name, kb_type, description, created_at, metadata
+                    SELECT name, slug, kb_type, description, created_at, metadata
                     FROM knowledge_bases
                     ORDER BY created_at DESC
                     """
@@ -143,6 +171,7 @@ class PostgresManager:
             return [
                 {
                     "name": row["name"],
+                    "slug": row.get("slug") or generate_slug(row["name"]),  # Fallback for old KBs
                     "metadata": {
                         "kb_type": row["kb_type"],
                         "description": row["description"] or "",
@@ -377,11 +406,32 @@ class PostgresManager:
             self.return_connection(conn)
 
     def collection_exists(self, kb_name: str) -> bool:
-        """Check if a knowledge base exists."""
+        """Check if a knowledge base exists by name."""
         conn = self.get_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute("SELECT EXISTS(SELECT 1 FROM knowledge_bases WHERE name = %s)", (kb_name,))
+                return cur.fetchone()[0]
+        finally:
+            self.return_connection(conn)
+
+    def get_kb_by_slug(self, slug: str) -> Optional[str]:
+        """Get KB name by slug. Returns None if not found."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT name FROM knowledge_bases WHERE slug = %s", (slug,))
+                result = cur.fetchone()
+                return result[0] if result else None
+        finally:
+            self.return_connection(conn)
+
+    def slug_exists(self, slug: str) -> bool:
+        """Check if a slug exists."""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT EXISTS(SELECT 1 FROM knowledge_bases WHERE slug = %s)", (slug,))
                 return cur.fetchone()[0]
         finally:
             self.return_connection(conn)

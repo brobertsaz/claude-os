@@ -270,6 +270,7 @@ export default function MainApp() {
             ) : activeTab === 'kb' ? (
               <KBManagement
                 kbName={selectedKB}
+                kbSlug={kbs.find(kb => kb.name === selectedKB)?.slug}
                 kbType={kbs.find(kb => kb.name === selectedKB)?.metadata?.kb_type}
               />
             ) : (

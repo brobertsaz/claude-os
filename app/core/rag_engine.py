@@ -41,26 +41,31 @@ class RAGEngine:
         """
         self.collection_name = collection_name
 
-        # Initialize Ollama LLM with optimized settings for 8B model
+        # Initialize Ollama LLM optimized for Apple M4 Pro (14 cores, 48GB RAM)
+        # Using native Ollama with Metal GPU acceleration
         self.llm = Ollama(
-            model=Config.OLLAMA_MODEL,
-            base_url=Config.OLLAMA_HOST,
-            request_timeout=120.0,  # Timeout for larger model
-            context_window=8192,  # 8B model supports larger context
+            model="llama3.1:latest",  # 8B model runs great on M4 Pro
+            base_url="http://localhost:11434",  # Native Ollama (not Docker)
+            request_timeout=120.0,  # Increased to 120s for LLM generation
+            context_window=8192,  # Larger context with 48GB RAM
             num_ctx=8192,  # Match context_window
             temperature=0.1,  # Very low for factual RAG responses
-            num_predict=1000,  # Comprehensive answers
-            top_k=40,  # Standard sampling space
+            num_predict=512,  # Can handle more tokens with M4 Pro
+            top_k=40,  # Better quality sampling
             top_p=0.9,  # Nucleus sampling for better quality
-            num_thread=8,  # Use more CPU threads
-            num_gpu=0,  # CPU mode (set to 1 if you have GPU)
+            num_thread=12,  # Use most cores (leave 2 for system)
+            num_gpu=99,  # Use all GPU layers on Apple Silicon
+            repeat_penalty=1.1,  # Avoid repetition
+            num_batch=512,  # Larger batch size for M4 Pro
+            use_mmap=True,  # Memory-map model for faster loading
+            use_mlock=True,  # Lock model in RAM (plenty available)
         )
         Settings.llm = self.llm
 
         # Initialize Ollama embeddings
         self.embed_model = OllamaEmbedding(
             model_name=Config.OLLAMA_EMBED_MODEL,
-            base_url=Config.OLLAMA_HOST
+            base_url="http://localhost:11434"  # Native Ollama (not Docker)
         )
         Settings.embed_model = self.embed_model
 
@@ -138,23 +143,14 @@ class RAGEngine:
         self.reranker = None
         logger.info("Reranker disabled for performance (enable in code if needed)")
 
-        # Create custom prompt template that PREVENTS hallucination
+        # Create comprehensive prompt template optimized for M4 Pro performance
         qa_prompt_template = PromptTemplate(
-            "You are a documentation assistant. Your ONLY job is to extract and present information from the context below.\n\n"
-            "Context from documentation:\n"
-            "---------------------\n"
-            "{context_str}\n"
-            "---------------------\n\n"
-            "STRICT RULES - VIOLATION WILL CAUSE SYSTEM FAILURE:\n"
-            "1. **ONLY use information explicitly stated in the context above**\n"
-            "2. **If the answer is not in the context, respond EXACTLY**: \"I don't have specific documentation about that. The available documentation covers: [list topics from context]\"\n"
-            "3. **NEVER invent steps, settings, UI elements, or procedures**\n"
-            "4. **ALWAYS cite the source** - Start your answer with \"According to [document name]...\" or \"The documentation states...\"\n"
-            "5. **Use exact quotes** when possible, especially for settings, field names, and procedures\n"
-            "6. **Use Markdown** - ## headings, **bold**, `code`, lists, but ONLY for information from the context\n"
-            "7. **If context is incomplete**, say \"The documentation provides partial information: [what's available]. For complete details, you may need to check [suggest where]\"\n\n"
+            "Context from Pistn Documentation:\n{context_str}\n\n"
             "Question: {query_str}\n\n"
-            "Answer (extract from context only, cite sources):"
+            "Instructions: Provide a helpful answer based on the context above. "
+            "Include relevant details, code examples, and step-by-step instructions when available. "
+            "If the information is not in the context, say 'This information is not available in the current documentation.' "
+            "Answer:"
         )
 
         # Create similarity filter to enforce minimum relevance threshold

@@ -1,22 +1,35 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info } from 'lucide-react';
+import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link } from 'lucide-react';
 import { getKBStats, listDocuments, uploadDocument, type KBStats } from '../lib/api';
 
 interface KBManagementProps {
   kbName: string;
+  kbSlug?: string;
   kbType?: string;
 }
 
-export default function KBManagement({ kbName, kbType }: KBManagementProps) {
+export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadMessage, setUploadMessage] = useState('');
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [isBatchUpload, setIsBatchUpload] = useState(false);
+  const [copiedMCP, setCopiedMCP] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Generate KB-specific MCP endpoint using slug (fallback to name if no slug)
+  const slug = kbSlug || kbName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const mcpEndpoint = `http://localhost:8051/mcp/kb/${slug}`;
+  const mcpCommand = `claude mcp add ${slug} ${mcpEndpoint}`;
+
+  const copyMCPEndpoint = () => {
+    navigator.clipboard.writeText(mcpEndpoint);
+    setCopiedMCP(true);
+    setTimeout(() => setCopiedMCP(false), 2000);
+  };
 
   // Fetch KB stats
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -174,11 +187,70 @@ export default function KBManagement({ kbName, kbType }: KBManagementProps) {
         </motion.div>
       </div>
 
-      {/* Document Upload Section */}
+      {/* MCP Integration Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
+        className="card"
+      >
+        <h2 className="text-xl font-bold text-electric-teal mb-4 flex items-center gap-2">
+          <Link className="w-5 h-5" />
+          MCP Integration
+        </h2>
+
+        <div className="space-y-4">
+          <p className="text-light-grey text-sm">
+            Connect this knowledge base to Claude Desktop using its dedicated MCP endpoint:
+          </p>
+
+          <div className="p-4 bg-electric-teal/10 rounded-lg border border-electric-teal/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-white">MCP Endpoint:</span>
+              <button
+                onClick={copyMCPEndpoint}
+                className="text-xs px-3 py-1 rounded bg-electric-teal/20 hover:bg-electric-teal/30 transition-colors flex items-center gap-1"
+              >
+                {copiedMCP ? (
+                  <>
+                    <CheckCircle className="w-3 h-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+            <code className="text-electric-teal text-sm break-all">{mcpEndpoint}</code>
+          </div>
+
+          <div className="p-4 bg-blaze-orange/10 rounded-lg border border-blaze-orange/30">
+            <p className="text-xs font-semibold text-white mb-2">Add to Claude Desktop:</p>
+            <div className="bg-deep-night rounded p-3 border border-electric-teal/30">
+              <code className="text-electric-teal text-xs break-all">{mcpCommand}</code>
+            </div>
+            <p className="text-xs text-light-grey mt-2">
+              Run this command in your terminal, then restart Claude Desktop.
+            </p>
+          </div>
+
+          <div className="p-3 bg-cool-blue/10 rounded-lg border border-cool-blue/30">
+            <p className="text-xs text-light-grey">
+              <strong className="text-white">💡 Note:</strong> This endpoint only exposes tools for the <strong className="text-electric-teal">{kbName}</strong> knowledge base.
+              You can add multiple KB-specific endpoints to Claude Desktop to keep them organized.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Document Upload Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
         className="card"
       >
         <h2 className="text-xl font-bold text-electric-teal mb-4 flex items-center gap-2">
@@ -305,7 +377,7 @@ export default function KBManagement({ kbName, kbType }: KBManagementProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.5 }}
         className="card"
       >
         <h2 className="text-xl font-bold text-electric-teal mb-4 flex items-center gap-2">

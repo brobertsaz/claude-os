@@ -208,7 +208,29 @@ export default function HelpDocs() {
 
         <div className="space-y-4">
           <div className="p-4 bg-electric-teal/10 rounded-lg border border-electric-teal/30">
-            <p className="text-sm text-white mb-2"><strong>MCP Endpoint:</strong> <code className="text-electric-teal">http://localhost:8051/mcp</code></p>
+            <p className="text-sm text-white mb-3"><strong>MCP Endpoints:</strong></p>
+            <div className="space-y-2 text-xs">
+              <div>
+                <span className="text-light-grey">Global (all KBs):</span>
+                <code className="text-electric-teal ml-2">http://localhost:8051/mcp</code>
+              </div>
+              <div>
+                <span className="text-light-grey">KB-specific:</span>
+                <code className="text-electric-teal ml-2">http://localhost:8051/mcp/kb/{'<kb-slug>'}</code>
+              </div>
+              <div className="text-light-grey/70 mt-1">
+                (Slug is a URL-friendly version: "My KB" → "my-kb")
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 bg-cool-blue/10 rounded-lg border border-cool-blue/30">
+            <p className="text-sm text-white mb-2"><strong>💡 KB-Specific Endpoints (Recommended)</strong></p>
+            <p className="text-xs text-light-grey">
+              Each knowledge base has its own MCP endpoint that only exposes tools for that specific KB.
+              This keeps your Claude Desktop configuration organized and prevents accidental cross-KB queries.
+              Find the endpoint URL in the <strong className="text-electric-teal">KB Management</strong> tab when you select a knowledge base.
+            </p>
           </div>
 
           <div className="p-4 bg-blaze-orange/10 rounded-lg border border-blaze-orange/30">
@@ -218,19 +240,29 @@ export default function HelpDocs() {
             </h3>
 
             <div className="mb-4">
-              <p className="text-sm text-white mb-2"><strong>Option 1: Using CLI (Recommended)</strong></p>
-              <p className="text-sm text-light-grey mb-3">Run this command in your terminal:</p>
+              <p className="text-sm text-white mb-2"><strong>Option 1: KB-Specific (Recommended)</strong></p>
+              <p className="text-sm text-light-grey mb-3">Add individual knowledge bases using their slug:</p>
               <div className="bg-deep-night rounded-lg p-4 border border-electric-teal/30">
-                <code className="text-electric-teal text-sm">npx @modelcontextprotocol/inspector http://localhost:8051/mcp</code>
+                <code className="text-electric-teal text-sm">claude mcp add my-kb http://localhost:8051/mcp/kb/my-kb</code>
               </div>
-              <p className="text-xs text-light-grey mt-2">Or add directly to Claude Desktop:</p>
-              <div className="bg-deep-night rounded-lg p-4 border border-electric-teal/30 mt-2">
-                <code className="text-electric-teal text-sm">claude mcp add code-forge http://localhost:8051/mcp</code>
-              </div>
+              <p className="text-xs text-light-grey mt-2">
+                The slug is shown in the KB Management tab. Examples: "My Docs" → <code className="text-electric-teal">my-docs</code>, "Agent OS" → <code className="text-electric-teal">agent-os</code>
+              </p>
             </div>
 
             <div className="mb-4">
-              <p className="text-sm text-white mb-2"><strong>Option 2: Manual Configuration</strong></p>
+              <p className="text-sm text-white mb-2"><strong>Option 2: Global Endpoint</strong></p>
+              <p className="text-sm text-light-grey mb-3">Add all knowledge bases at once:</p>
+              <div className="bg-deep-night rounded-lg p-4 border border-electric-teal/30">
+                <code className="text-electric-teal text-sm">claude mcp add code-forge http://localhost:8051/mcp</code>
+              </div>
+              <p className="text-xs text-light-grey mt-2">
+                This exposes all KBs through a single endpoint with tools like <code className="text-electric-teal">search_knowledge_base</code> that require a <code className="text-electric-teal">kb_name</code> parameter.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-white mb-2"><strong>Option 3: Manual Configuration</strong></p>
               <p className="text-sm text-light-grey mb-3">Edit your Claude Desktop config file:</p>
 
               <div className="bg-deep-night rounded-lg p-4 border border-blaze-orange/30 mb-3">
@@ -242,8 +274,11 @@ export default function HelpDocs() {
                 <pre className="text-xs text-electric-teal">
 {`{
   "mcpServers": {
-    "code-forge": {
-      "url": "http://localhost:8051/mcp"
+    "my-kb": {
+      "url": "http://localhost:8051/mcp/kb/my-kb"
+    },
+    "another-kb": {
+      "url": "http://localhost:8051/mcp/kb/another-kb"
     }
   }
 }`}

@@ -17,7 +17,7 @@ class Config:
     """Central configuration for Code-Forge application."""
 
     # Ollama Configuration
-    OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+    OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:latest")  # Upgraded to faster 8B model
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
@@ -37,12 +37,12 @@ class Config:
         ".go", ".rs", ".java", ".cpp", ".c", ".h"
     ]
 
-    # RAG Configuration
-    CHUNK_SIZE: int = 1024
-    CHUNK_OVERLAP: int = 200
-    TOP_K_RETRIEVAL: int = 15  # Increased to retrieve more context from 51 docs
-    RERANK_TOP_N: int = 8  # Top chunks after reranking (increased for better context)
-    SIMILARITY_THRESHOLD: float = 0.5  # Lowered to include more relevant chunks
+    # RAG Configuration (Optimized for M4 Pro with 48GB RAM)
+    CHUNK_SIZE: int = 1536  # Larger chunks for better context
+    CHUNK_OVERLAP: int = 256  # More overlap for continuity
+    TOP_K_RETRIEVAL: int = 20  # More chunks with plenty of RAM
+    RERANK_TOP_N: int = 10  # More reranked results
+    SIMILARITY_THRESHOLD: float = 0.25  # Lower threshold for broader matches
 
     # KB Type Configuration
     DEFAULT_KB_TYPE: str = os.getenv("DEFAULT_KB_TYPE", "generic")

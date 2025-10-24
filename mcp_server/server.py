@@ -38,10 +38,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# RAGEngine cache with TTL
+# RAGEngine cache with TTL - Optimized for M4 Pro with 48GB RAM
 RAG_ENGINE_CACHE = {}
 RAG_ENGINE_CACHE_LOCK = Lock()
-RAG_ENGINE_CACHE_TTL = 600  # 10 minutes TTL for cached engines
+RAG_ENGINE_CACHE_TTL = 3600  # 1 hour TTL with plenty of RAM
 
 # Initialize FastAPI
 app = FastAPI(title="Code-Forge MCP Server")
@@ -91,8 +91,8 @@ def get_cached_rag_engine(kb_name: str) -> RAGEngine:
         # Cache the engine
         RAG_ENGINE_CACHE[kb_name] = (engine, current_time)
 
-        # Clean up old entries (keep max 10 engines in cache)
-        if len(RAG_ENGINE_CACHE) > 10:
+        # Clean up old entries (keep max 50 engines in cache with 48GB RAM)
+        if len(RAG_ENGINE_CACHE) > 50:
             oldest_kb = min(RAG_ENGINE_CACHE.items(), key=lambda x: x[1][1])[0]
             del RAG_ENGINE_CACHE[oldest_kb]
             logger.info(f"Evicted oldest RAGEngine from cache: {oldest_kb}")
@@ -673,22 +673,49 @@ async def mcp_root(request: Request):
 
 @app.post("/mcp")
 async def mcp_endpoint(request: Request):
-    """Alternative MCP endpoint path."""
-    return await handle_mcp_request(request)
+    """Global MCP endpoint - exposes all KBs."""
+    return await handle_mcp_request(request, kb_filter=None)
 
 
-async def handle_mcp_request(request: Request) -> JSONResponse:
-    """Handle MCP JSON-RPC requests."""
+@app.post("/mcp/kb/{kb_slug}")
+async def mcp_kb_endpoint(kb_slug: str, request: Request):
+    """KB-specific MCP endpoint - only exposes tools for this KB."""
+    # Get KB name from slug
+    pg_manager = get_pg_manager()
+    kb_name = pg_manager.get_kb_by_slug(kb_slug)
+
+    if not kb_name:
+        return JSONResponse({
+            "jsonrpc": "2.0",
+            "id": None,
+            "error": {
+                "code": -32000,
+                "message": f"Knowledge base with slug '{kb_slug}' not found"
+            }
+        }, status_code=404)
+
+    return await handle_mcp_request(request, kb_filter=kb_name)
+
+
+async def handle_mcp_request(request: Request, kb_filter: Optional[str] = None) -> JSONResponse:
+    """
+    Handle MCP JSON-RPC requests.
+
+    Args:
+        request: FastAPI request object
+        kb_filter: If provided, only expose tools for this specific KB
+    """
     try:
         body = await request.json()
         method = body.get("method")
         params = body.get("params", {})
         request_id = body.get("id")
 
-        logger.info(f"MCP request: {method}")
+        logger.info(f"MCP request: {method} (kb_filter={kb_filter})")
 
         # Handle MCP protocol methods
         if method == "initialize":
+            server_name = f"code-forge-{kb_filter}" if kb_filter else "code-forge"
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -698,17 +725,55 @@ async def handle_mcp_request(request: Request) -> JSONResponse:
                         "tools": {}
                     },
                     "serverInfo": {
-                        "name": "code-forge",
+                        "name": server_name,
                         "version": "1.0.0"
                     }
                 }
             })
 
         elif method == "tools/list":
-            tools_list = [
-                {"name": name, **info}
-                for name, info in TOOLS.items()
-            ]
+            # Filter tools based on kb_filter
+            if kb_filter:
+                # KB-specific endpoint: only expose search tool for this KB
+                tools_list = [
+                    {
+                        "name": "search",
+                        "description": f"Search the '{kb_filter}' knowledge base using RAG with optional advanced features",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": {"type": "string", "description": "The search query"},
+                                "use_hybrid": {"type": "boolean", "description": "Enable hybrid search (vector + BM25)", "default": False},
+                                "use_rerank": {"type": "boolean", "description": "Enable reranking for better relevance", "default": False},
+                                "use_agentic": {"type": "boolean", "description": "Enable agentic RAG for complex queries", "default": False}
+                            },
+                            "required": ["query"]
+                        }
+                    },
+                    {
+                        "name": "get_stats",
+                        "description": f"Get statistics for the '{kb_filter}' knowledge base",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    },
+                    {
+                        "name": "list_documents",
+                        "description": f"List all documents in the '{kb_filter}' knowledge base",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
+                ]
+            else:
+                # Global endpoint: expose all tools
+                tools_list = [
+                    {"name": name, **info}
+                    for name, info in TOOLS.items()
+                ]
+
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -719,40 +784,59 @@ async def handle_mcp_request(request: Request) -> JSONResponse:
             tool_name = params.get("name")
             arguments = params.get("arguments", {})
 
-            # Route to appropriate tool function
-            if tool_name == "search_knowledge_base":
-                result = await search_knowledge_base(**arguments)
-            elif tool_name == "list_knowledge_bases":
-                result = await list_knowledge_bases()
-            elif tool_name == "list_knowledge_bases_by_type":
-                result = await list_knowledge_bases_by_type(**arguments)
-            elif tool_name == "create_knowledge_base":
-                result = await create_knowledge_base(**arguments)
-            elif tool_name == "get_kb_stats":
-                result = await get_kb_stats(**arguments)
-            elif tool_name == "list_documents":
-                result = await list_documents(**arguments)
-            elif tool_name == "ingest_agent_os_profile":
-                result = await ingest_agent_os_profile(**arguments)
-            elif tool_name == "get_agent_os_stats":
-                result = await get_agent_os_stats(**arguments)
-            elif tool_name == "get_standards":
-                result = await get_standards(**arguments)
-            elif tool_name == "get_workflows":
-                result = await get_workflows(**arguments)
-            elif tool_name == "get_specs":
-                result = await get_specs(**arguments)
-            elif tool_name == "get_product_context":
-                result = await get_product_context(**arguments)
+            # Handle KB-specific endpoint tool calls
+            if kb_filter:
+                # Inject kb_name into arguments for KB-specific tools
+                if tool_name == "search":
+                    result = await search_knowledge_base(kb_name=kb_filter, **arguments)
+                elif tool_name == "get_stats":
+                    result = await get_kb_stats(kb_name=kb_filter)
+                elif tool_name == "list_documents":
+                    result = await list_documents(kb_name=kb_filter)
+                else:
+                    return JSONResponse({
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {
+                            "code": -32601,
+                            "message": f"Unknown tool: {tool_name}"
+                        }
+                    })
             else:
-                return JSONResponse({
-                    "jsonrpc": "2.0",
-                    "id": request_id,
-                    "error": {
-                        "code": -32601,
-                        "message": f"Unknown tool: {tool_name}"
-                    }
-                })
+                # Global endpoint: route to appropriate tool function
+                if tool_name == "search_knowledge_base":
+                    result = await search_knowledge_base(**arguments)
+                elif tool_name == "list_knowledge_bases":
+                    result = await list_knowledge_bases()
+                elif tool_name == "list_knowledge_bases_by_type":
+                    result = await list_knowledge_bases_by_type(**arguments)
+                elif tool_name == "create_knowledge_base":
+                    result = await create_knowledge_base(**arguments)
+                elif tool_name == "get_kb_stats":
+                    result = await get_kb_stats(**arguments)
+                elif tool_name == "list_documents":
+                    result = await list_documents(**arguments)
+                elif tool_name == "ingest_agent_os_profile":
+                    result = await ingest_agent_os_profile(**arguments)
+                elif tool_name == "get_agent_os_stats":
+                    result = await get_agent_os_stats(**arguments)
+                elif tool_name == "get_standards":
+                    result = await get_standards(**arguments)
+                elif tool_name == "get_workflows":
+                    result = await get_workflows(**arguments)
+                elif tool_name == "get_specs":
+                    result = await get_specs(**arguments)
+                elif tool_name == "get_product_context":
+                    result = await get_product_context(**arguments)
+                else:
+                    return JSONResponse({
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {
+                            "code": -32601,
+                            "message": f"Unknown tool: {tool_name}"
+                        }
+                    })
 
             return JSONResponse({
                 "jsonrpc": "2.0",

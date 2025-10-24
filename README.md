@@ -87,10 +87,6 @@
   - Interactive KB management dashboard
   - Built-in help documentation
 
-- **🎨 Legacy Streamlit UI** (Still available)
-  - Alternative interface on port 8501
-  - Full feature parity with React UI
-
 ### Knowledge Base Types
 
 | Type | Icon | Description | Use Case |
@@ -115,42 +111,42 @@
 │                        Code-Forge System                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌──────────────┐  ┌──────────────┐      ┌──────────────┐           │
-│  │  React UI    │  │  Streamlit   │      │  MCP Server  │           │
-│  │  (Vite)      │  │     UI       │      │   (HTTP)     │           │
-│  │  Port 5173   │  │  Port 8501   │      │  Port 8051   │           │
-│  └──────┬───────┘  └──────┬───────┘      └──────┬───────┘           │
-│         │                 │                     │                   │
-│         └─────────────────┴──────────┬──────────┘                   │
-│                                      │                              │
-│                           ┌──────────▼──────────┐                   │
-│                           │   FastAPI Backend   │                   │
-│                           │   (REST + MCP)      │                   │
-│                           └──────────┬──────────┘                   │
-│                                      │                              │
-│                           ┌──────────▼──────────┐                   │
-│                           │   RAG Engine        │                   │
-│                           │  (llama-index)      │                   │
-│                           │                     │                   │
-│                           │  • Vector Search    │                   │
-│                           │  • Hybrid Search    │                   │
-│                           │  • Reranking        │                   │
-│                           │  • Agentic RAG      │                   │
-│                           └──────────┬──────────┘                   │
-│                                      │                              │
-│                           ┌──────────▼──────────┐                   │
-│                           │  PostgresManager    │                   │
-│                           └──────────┬──────────┘                   │
-│                                      │                              │
-│              ┌───────────────────────▼───────────────────┐          │
-│              │       PostgreSQL + pgvector               │          │
-│              │           (Local Database)                │          │
-│              │                                           │          │
-│              │  Tables:                                  │          │
-│              │  • knowledge_bases                        │          │
-│              │  • documents (with embeddings)            │          │
-│              │  • agent_os_content                       │          │
-│              └───────────────────────────────────────────┘          │
+│  ┌──────────────┐                        ┌──────────────┐           │
+│  │  React UI    │                        │  MCP Server  │           │
+│  │  (Vite)      │                        │   (HTTP)     │           │
+│  │  Port 5173   │                        │  Port 8051   │           │
+│  └──────┬───────┘                        └──────┬───────┘           │
+│         │                                       │                   │
+│         └───────────────────┬───────────────────┘                   │
+│                             │                                       │
+│                  ┌──────────▼──────────┐                            │
+│                  │   FastAPI Backend   │                            │
+│                  │   (REST + MCP)      │                            │
+│                  └──────────┬──────────┘                            │
+│                             │                                       │
+│                  ┌──────────▼──────────┐                            │
+│                  │   RAG Engine        │                            │
+│                  │  (llama-index)      │                            │
+│                  │                     │                            │
+│                  │  • Vector Search    │                            │
+│                  │  • Hybrid Search    │                            │
+│                  │  • Reranking        │                            │
+│                  │  • Agentic RAG      │                            │
+│                  └──────────┬──────────┘                            │
+│                             │                                       │
+│                  ┌──────────▼──────────┐                            │
+│                  │  PostgresManager    │                            │
+│                  └──────────┬──────────┘                            │
+│                             │                                       │
+│         ┌───────────────────▼───────────────────┐                   │
+│         │       PostgreSQL + pgvector           │                   │
+│         │           (Local Database)            │                   │
+│         │                                       │                   │
+│         │  Tables:                              │                   │
+│         │  • knowledge_bases                    │                   │
+│         │  • documents (with embeddings)        │                   │
+│         │  • agent_os_content                   │                   │
+│         └───────────────────────────────────────┘                   │
 │                                                                     │
 │  ┌──────────────┐      ┌──────────────┐                             │
 │  │    Ollama    │      │  Ollama LLM  │                             │
@@ -170,9 +166,7 @@
 ### Services
 
 1. **Frontend Container** (port 5173): React + Vite UI with hot reload
-2. **App Container** (ports 8501, 8051):
-   - FastAPI backend with MCP server
-   - Streamlit UI (legacy)
+2. **App Container** (port 8051): FastAPI backend with MCP server
 3. **Ollama Container** (port 11434): Local LLM and embeddings
 4. **PostgreSQL** (local, not Docker): Vector database with pgvector extension
 
@@ -243,8 +237,7 @@ To stop all services:
 
 ### Access the Application
 
-- **React UI**: <http://localhost:5173> **(Recommended)**
-- **Streamlit UI**: <http://localhost:8501> (Legacy)
+- **React UI**: <http://localhost:5173>
 - **MCP Server**: <http://localhost:8051>
 - **Ollama API**: <http://localhost:11434>
 
@@ -328,20 +321,75 @@ Want to share Code-Forge with coworkers? See **[SHARING.md](SHARING.md)** for:
 
 ## 🔗 MCP Integration
 
-### Connecting Claude Desktop
+Code-Forge provides **two types of MCP endpoints** to integrate with Claude Desktop:
 
-1. Ensure the MCP server is running (it starts automatically with `docker compose up`)
-2. Get the MCP endpoint URL from the Streamlit sidebar:
+### 1. KB-Specific Endpoints (Recommended) 🎯
 
-   ```text
-   http://localhost:8051/mcp
-   ```
+Each knowledge base has its own dedicated MCP endpoint that only exposes tools for that specific KB. This keeps your Claude Desktop configuration organized and prevents accidental cross-KB queries.
 
-3. Add to Claude Desktop:
+**Endpoint Pattern:**
 
-   ```bash
-   claude mcp add --transport http code-forge http://localhost:8051/mcp
-   ```
+```text
+http://localhost:8051/mcp/kb/<kb-slug>
+```
+
+Where `<kb-slug>` is a URL-friendly version of your KB name (e.g., "My Code Base" → "my-code-base").
+
+**Example:**
+
+```bash
+# Add a specific knowledge base to Claude Desktop
+claude mcp add my-docs http://localhost:8051/mcp/kb/my-docs
+claude mcp add pistn-agent-os http://localhost:8051/mcp/kb/pistn-agent-os
+```
+
+**Available Tools (KB-specific):**
+
+- `search` - Search this KB using RAG with optional hybrid/rerank/agentic features
+- `get_stats` - Get statistics for this KB
+- `list_documents` - List all documents in this KB
+
+**Benefits:**
+
+- ✅ Clean separation between knowledge bases
+- ✅ No need to specify `kb_name` parameter in queries
+- ✅ Prevents accidental queries to wrong KB
+- ✅ Better organization in Claude Desktop
+- ✅ URL-friendly slugs (no spaces or special characters)
+
+### 2. Global Endpoint (All KBs)
+
+A single endpoint that exposes **all** knowledge bases through tools that accept a `kb_name` parameter.
+
+**Endpoint:**
+
+```text
+http://localhost:8051/mcp
+```
+
+**Example:**
+
+```bash
+# Add all knowledge bases through one endpoint
+claude mcp add code-forge http://localhost:8051/mcp
+```
+
+**Available Tools (Global):**
+
+- `search_knowledge_base` - Search any KB (requires `kb_name` parameter)
+- `list_knowledge_bases` - List all available KBs
+- `create_knowledge_base` - Create a new KB
+- `get_kb_stats` - Get stats for any KB (requires `kb_name` parameter)
+- ... and 8 more tools
+
+### Finding Your KB-Specific Endpoint
+
+The easiest way to get the MCP endpoint for a specific knowledge base:
+
+1. Open the Code-Forge UI at `http://localhost:5173`
+2. Select your knowledge base from the sidebar
+3. Look for the **MCP Integration** section in the KB Management tab
+4. Copy the endpoint URL and CLI command
 
 ### Available MCP Tools
 
@@ -459,13 +507,10 @@ code-forge/
 │   │   ├── kb_metadata.py        # KB metadata management
 │   │   ├── kb_types.py           # KB type definitions
 │   │   └── rag_engine.py         # RAG implementation
-│   ├── db/
-│   │   └── schema.sql            # PostgreSQL schema
-│   └── main.py                   # Streamlit application
+│   └── db/
+│       └── schema.sql            # PostgreSQL schema
 ├── mcp_server/
 │   └── server.py                 # MCP server (FastMCP)
-├── .streamlit/
-│   └── config.toml               # Streamlit theme (Archon colors)
 ├── data/
 │   └── ollama/                   # Ollama models (persistent)
 ├── docs/                         # Documentation
@@ -492,10 +537,11 @@ code-forge/
    python mcp_server/server.py
    ```
 
-4. Start Streamlit:
+4. Start the React frontend:
 
    ```bash
-   streamlit run app/main.py
+   cd frontend
+   npm run dev
    ```
 
 ---
@@ -647,7 +693,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **llama-index** - RAG framework
 - **Ollama** - Local LLM runtime
 - **pgvector** - PostgreSQL vector extension
-- **Streamlit** - UI framework
+- **React + Vite** - Modern UI framework
 - **FastMCP** - MCP server library
 
 ---

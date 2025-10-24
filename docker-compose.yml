@@ -30,7 +30,6 @@ services:
       dockerfile: Dockerfile
     container_name: code-forge-app
     ports:
-      - "8501:8501"  # Streamlit UI (Legacy)
       - "8051:8051"  # MCP Server
     volumes:
       - ./app:/workspace/app

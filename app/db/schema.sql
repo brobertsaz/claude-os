@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS knowledge_bases (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
     kb_type VARCHAR(50) NOT NULL DEFAULT 'generic',
     description TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS knowledge_bases (
 );
 
 CREATE INDEX idx_kb_name ON knowledge_bases(name);
+CREATE INDEX idx_kb_slug ON knowledge_bases(slug);
 CREATE INDEX idx_kb_type ON knowledge_bases(kb_type);
 CREATE INDEX idx_kb_created_at ON knowledge_bases(created_at);
 
@@ -80,7 +82,7 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         d.doc_id,
         d.content,
         1 - (d.embedding <=> p_query_embedding) AS similarity,

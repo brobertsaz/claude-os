@@ -49,7 +49,7 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
    ```
 
 4. **Access the UI:**
-   - Open browser: http://localhost:8501
+   - Open browser: http://localhost:5173
    - Done! 🎉
 
 ---
@@ -92,10 +92,9 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
 ## 🔧 What Gets Shared vs. What Doesn't
 
 ### ✅ Shared (in the repository/ZIP)
-- **All source code** (`app/`, `mcp_server/`, etc.)
+- **All source code** (`app/`, `mcp_server/`, `frontend/`, etc.)
 - **Configuration files** (`docker-compose.yml`, `Dockerfile`, etc.)
-- **Requirements** (`requirements.txt`)
-- **Styling** (`.streamlit/config.toml`)
+- **Requirements** (`requirements.txt`, `package.json`)
 
 ### ❌ NOT Shared (stays local)
 - **Ollama models** (~5GB) - Each person downloads their own
@@ -166,8 +165,10 @@ Change the ports to bind to all interfaces:
 services:
   app:
     ports:
-      - "0.0.0.0:8501:8501"  # Streamlit UI
       - "0.0.0.0:8051:8051"  # MCP Server
+  frontend:
+    ports:
+      - "0.0.0.0:5173:5173"  # React UI
 ```
 
 ### 3. Restart the containers
@@ -180,7 +181,7 @@ docker compose up -d
 ### 4. Share the URL
 
 Your coworker can access:
-- **UI**: `http://<your-ip>:8501`
+- **UI**: `http://<your-ip>:5173`
 - **MCP**: `http://<your-ip>:8051/mcp`
 
 **⚠️ Security Note:** This exposes your instance to your local network. Only do this on trusted networks (office LAN, VPN). For internet sharing, use a reverse proxy with authentication.
@@ -214,12 +215,13 @@ Your coworker can access:
 ### "Docker command not found"
 - Install Docker Desktop: https://www.docker.com/products/docker-desktop/
 
-### "Port 8501 already in use"
+### "Port 5173 already in use"
 - Another app is using that port
 - Change ports in `docker-compose.yml`:
   ```yaml
-  ports:
-    - "8502:8501"  # Use 8502 instead
+  frontend:
+    ports:
+      - "5174:5173"  # Use 5174 instead
   ```
 
 ### "Ollama models not found"
