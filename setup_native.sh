@@ -11,13 +11,51 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     exit 1
 fi
 
-echo "Step 1: Installing Ollama for macOS (Apple Silicon optimized)..."
+echo "Step 1: Checking PostgreSQL installation..."
+if ! command -v psql &> /dev/null; then
+    echo "  ❌ PostgreSQL not found. Please install it first:"
+    echo ""
+    echo "  Option A: Via Homebrew (recommended)"
+    echo "    brew install postgresql@16"
+    echo "    brew services start postgresql@16"
+    echo ""
+    echo "  Option B: Download from https://www.postgresql.org/download/macosx/"
+    echo ""
+    exit 1
+fi
+
+PSQL_VERSION=$(psql --version | cut -d' ' -f3)
+echo "  ✅ PostgreSQL $PSQL_VERSION found"
+
+# Check if PostgreSQL is running
+if ! pg_isready -h localhost &> /dev/null; then
+    echo "  ⚠️  PostgreSQL is not running. Starting..."
+    brew services start postgresql@16 2>/dev/null || true
+    sleep 2
+fi
+
+# Create database if it doesn't exist
+echo "  Setting up 'codeforge' database..."
+if ! psql -h localhost -U "$USER" -l 2>/dev/null | grep -q "codeforge"; then
+    createdb -h localhost -U "$USER" codeforge 2>/dev/null || true
+    echo "  ✅ Database 'codeforge' created"
+else
+    echo "  ✅ Database 'codeforge' already exists"
+fi
+
+# Test connection
+if psql -h localhost -U "$USER" -d codeforge -c "SELECT 1" > /dev/null 2>&1; then
+    echo "  ✅ PostgreSQL connection verified"
+else
+    echo "  ⚠️  Could not connect to PostgreSQL as user '$USER'"
+    echo "  You may need to set POSTGRES_PASSWORD environment variable"
+fi
+
+echo ""
+echo "Step 2: Installing Ollama for macOS (Apple Silicon optimized)..."
 # Download Ollama for macOS
 if ! command -v ollama &> /dev/null; then
     echo "  Downloading Ollama..."
-    # Use the direct download URL
-    OLLAMA_VERSION=$(curl -s https://api.github.com/repos/ollama/ollama/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
-
     # For Apple Silicon Mac
     curl -L "https://ollama.ai/download/Ollama-arm64.zip" -o /tmp/Ollama.zip
     unzip -o /tmp/Ollama.zip -d /Applications/
@@ -32,7 +70,7 @@ else
 fi
 
 echo ""
-echo "Step 2: Starting Ollama service..."
+echo "Step 3: Starting Ollama service..."
 # Start Ollama in the background
 # Check if already running
 if ! pgrep -x "ollama" > /dev/null; then
@@ -50,14 +88,14 @@ else
 fi
 
 echo ""
-echo "Step 3: Pulling required models..."
+echo "Step 4: Pulling required models..."
 echo "  This may take a few minutes for llama3.1:latest (8B)..."
 ollama pull llama3.1:latest
 ollama pull nomic-embed-text:latest
 echo "  ✅ Models ready"
 
 echo ""
-echo "Step 4: Setting up Python environment..."
+echo "Step 5: Setting up Python environment..."
 
 # Check Python version
 if ! command -v python3 &> /dev/null; then
@@ -84,7 +122,7 @@ pip install -q -r requirements.txt
 echo "  ✅ Python environment ready"
 
 echo ""
-echo "Step 5: Updating configuration..."
+echo "Step 6: Updating configuration..."
 
 # Update rag_engine.py to use localhost
 sed -i '' 's|base_url=Config.OLLAMA_HOST|base_url="http://localhost:11434"|g' app/core/rag_engine.py

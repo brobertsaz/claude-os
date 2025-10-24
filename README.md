@@ -16,439 +16,206 @@
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-> Production-grade RAG system with PostgreSQL + pgvector, Ollama LLMs, and Model Context Protocol
+> **Production-grade RAG system** with PostgreSQL + pgvector, Ollama LLMs, and Model Context Protocol. Runs 100% locally on your machine.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-green.svg)](https://www.postgresql.org/)
+[![PostgreSQL 16+](https://img.shields.io/badge/PostgreSQL-16+-green.svg)](https://www.postgresql.org/)
 [![Ollama](https://img.shields.io/badge/Ollama-Latest-pink.svg)](https://ollama.ai/)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](tests/)
-[![Coverage](https://img.shields.io/badge/coverage-85%25-green.svg)](tests/TEST_COVERAGE.md)
 
 ---
 
 ## 🚀 What is Code-Forge?
 
-**Code-Forge** is a **localized, production-grade RAG (Retrieval-Augmented Generation) system** that runs entirely on your machine. It combines:
+**Code-Forge** is a **localized RAG (Retrieval-Augmented Generation) system** designed to make AI assistants deeply knowledgeable about your codebase and documentation. It combines:
 
-- **🗄️ PostgreSQL + pgvector** - ACID-compliant vector database with 768-dimensional embeddings
-- **🤖 Ollama** - Local LLMs (llama3.2, llama3.1) and embeddings (nomic-embed-text)
-- **🔌 MCP (Model Context Protocol)** - HTTP API for AI agent integration
-- **⚡ React + FastAPI UI** - Modern, beautiful interface with electric teal design
-- **📚 Multi-KB Architecture** - Isolated knowledge bases per project
-- **🧠 Advanced RAG** - Vector search, hybrid search, reranking, agentic RAG
+- **🗄️ PostgreSQL + pgvector** - Vector database for semantic search
+- **🤖 Ollama** - Local LLMs (llama3.1) with no API keys needed
+- **🔌 MCP Integration** - Claude Desktop integration via Model Context Protocol
+- **⚡ React UI** - Modern dashboard for managing knowledge bases
+- **📚 Multi-KB Support** - Separate knowledge bases for different projects
+- **🧠 Advanced RAG** - Hybrid search, reranking, and agentic modes
 
-### Why Code-Forge?
+### Perfect For
 
-✅ **100% Local** - Your data never leaves your machine
-✅ **Production-Ready** - PostgreSQL ensures data persistence and ACID compliance
-✅ **Multi-Knowledge-Base** - Separate KBs for different projects/contexts
-✅ **Agent OS Support** - First-class support for spec-driven development
-✅ **Advanced RAG** - Multiple retrieval strategies for optimal results
-✅ **MCP Integration** - Expose knowledge bases to AI agents via HTTP
+✅ Making Claude deeply familiar with your codebase
+✅ Private, secure knowledge base (never leaves your machine)
+✅ Team collaboration (share with coworkers easily)
+✅ Integration with Claude Desktop via MCP
+✅ Building AI-assisted development workflows
 
 ---
 
-## ✨ Features
+## ⚡ Quick Start (5-10 minutes)
 
-### Core Features
+### Prerequisites
 
-- **🗄️ PostgreSQL + pgvector Vector Store**
-  - ACID-compliant transactions
-  - 768-dimensional vector embeddings
-  - IVFFlat indexing for fast similarity search
-  - JSONB metadata for flexible filtering
+Before running the setup, ensure you have:
 
-- **🤖 Local LLM Integration**
-  - Ollama-powered LLMs (llama3.2:3b, llama3.1)
-  - nomic-embed-text embeddings (768 dimensions)
-  - No API keys or cloud dependencies
+1. **PostgreSQL 16+** (macOS)
+   ```bash
+   # Install via Homebrew
+   brew install postgresql@16
+   brew services start postgresql@16
 
-- **📚 Multi-Knowledge-Base Architecture**
-  - Isolated KBs per project
-  - 4 KB types: GENERIC, CODE, DOCUMENTATION, AGENT_OS
-  - Type-specific ingestion and retrieval
+   # Verify
+   psql --version
+   ```
 
-- **🧠 Advanced RAG Strategies**
-  - **Vector Search** - Semantic similarity via pgvector
-  - **Hybrid Search** - BM25 + vector fusion
-  - **Reranking** - Cross-encoder for top results
-  - **Agentic RAG** - Sub-question decomposition
+2. **Python 3.11+**
+   ```bash
+   python3 --version
+   ```
 
-- **🔌 MCP (Model Context Protocol) Server**
-  - 12 HTTP endpoints for AI agent integration
-  - Create, query, and manage knowledge bases
-  - Agent OS-specific tools (standards, specs, workflows)
+3. **Node.js 16+** (for React frontend)
+   ```bash
+   node --version
+   ```
 
-- **⚡ Modern React + FastAPI UI**
-  - Electric teal design system
-  - Drag & drop document upload
-  - Real-time chat interface with markdown rendering
-  - Interactive KB management dashboard
-  - Built-in help documentation
+### Installation
 
-### Knowledge Base Types
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd code-forge
+   ```
 
-| Type | Icon | Description | Use Case |
-|------|------|-------------|----------|
-| **GENERIC** | 📚 | General-purpose knowledge | Documentation, notes, research |
-| **CODE** | 💻 | Source code repositories | Code search, API reference |
-| **DOCUMENTATION** | 📖 | Technical documentation | User guides, API docs |
-| **AGENT_OS** | 🤖 | Spec-driven development | Standards, workflows, specs |
+2. **Run the setup script** (handles Ollama, Python, models)
+   ```bash
+   chmod +x setup_native.sh
+   ./setup_native.sh
+   ```
 
-### 📁 Supported File Types
+   This will:
+   - ✅ Check PostgreSQL is installed and running
+   - ✅ Create the `codeforge` database automatically
+   - ✅ Install/start Ollama
+   - ✅ Download LLM models (5-10 GB total)
+   - ✅ Setup Python environment
 
-- **Documents**: `.md`, `.txt`, `.pdf`
-- **Code**: `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.go`, `.rs`, `.java`, `.cpp`, `.c`, `.h`
-- **Config**: `.json`, `.yaml`, `.yml`
+3. **Start services**
+   ```bash
+   ./start_all_services.sh
+   ```
+
+   This starts:
+   - **MCP Server** (port 8051) - Backend RAG engine
+   - **React UI** (port 5173) - Web dashboard
+   - **Ollama** (port 11434) - LLM service
+
+4. **Access the UI**
+   - Open http://localhost:5173 in your browser
+   - Start uploading documents to create knowledge bases
+
+---
+
+## 🔌 MCP Integration with Claude Desktop
+
+To use your knowledge bases with Claude Desktop:
+
+### Option 1: Via CLI (Easiest)
+
+```bash
+# Add PISTN knowledge base to Claude Desktop
+claude mcp add pistn http://localhost:8051/mcp/kb/pistn
+
+# Add PISTN Agent OS knowledge base
+claude mcp add pistn-agent-os http://localhost:8051/mcp/kb/pistn-agent-os
+```
+
+Then in Claude Desktop, your knowledge bases are available as built-in tools. Ask Claude about your codebase directly!
+
+### Option 2: Manual Configuration
+
+Edit `~/.claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "pistn": {
+      "url": "http://localhost:8051/mcp/kb/pistn"
+    },
+    "pistn-agent-os": {
+      "url": "http://localhost:8051/mcp/kb/pistn-agent-os"
+    }
+  }
+}
+```
+
+Then restart Claude Desktop.
+
+---
+
+## 📚 Managing Knowledge Bases
+
+### Create a Knowledge Base
+
+1. Visit http://localhost:5173
+2. Click "Create Knowledge Base"
+3. Choose type:
+   - **GENERIC** - General documentation
+   - **CODE** - Source code repositories
+   - **DOCUMENTATION** - Technical docs
+   - **AGENT_OS** - Spec-driven development
+
+### Upload Documents
+
+1. Select a knowledge base
+2. Click "Upload Documents"
+3. Choose files (supports .md, .txt, .pdf, .py, .js, .ts, .json, .yaml)
+4. Watch as documents are indexed
+
+### Query the Knowledge Base
+
+**Via Web UI:**
+1. Select a KB from the dropdown
+2. Type your question
+3. View answer with source citations
+
+**Via Claude Desktop:**
+Once added as MCP server, Claude can query automatically when working on your project.
 
 ---
 
 ## 🏗️ Architecture
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Code-Forge System                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────┐                        ┌──────────────┐           │
-│  │  React UI    │                        │  MCP Server  │           │
-│  │  (Vite)      │                        │   (HTTP)     │           │
-│  │  Port 5173   │                        │  Port 8051   │           │
-│  └──────┬───────┘                        └──────┬───────┘           │
-│         │                                       │                   │
-│         └───────────────────┬───────────────────┘                   │
-│                             │                                       │
-│                  ┌──────────▼──────────┐                            │
-│                  │   FastAPI Backend   │                            │
-│                  │   (REST + MCP)      │                            │
-│                  └──────────┬──────────┘                            │
-│                             │                                       │
-│                  ┌──────────▼──────────┐                            │
-│                  │   RAG Engine        │                            │
-│                  │  (llama-index)      │                            │
-│                  │                     │                            │
-│                  │  • Vector Search    │                            │
-│                  │  • Hybrid Search    │                            │
-│                  │  • Reranking        │                            │
-│                  │  • Agentic RAG      │                            │
-│                  └──────────┬──────────┘                            │
-│                             │                                       │
-│                  ┌──────────▼──────────┐                            │
-│                  │  PostgresManager    │                            │
-│                  └──────────┬──────────┘                            │
-│                             │                                       │
-│         ┌───────────────────▼───────────────────┐                   │
-│         │       PostgreSQL + pgvector           │                   │
-│         │           (Local Database)            │                   │
-│         │                                       │                   │
-│         │  Tables:                              │                   │
-│         │  • knowledge_bases                    │                   │
-│         │  • documents (with embeddings)        │                   │
-│         │  • agent_os_content                   │                   │
-│         └───────────────────────────────────────┘                   │
-│                                                                     │
-│  ┌──────────────┐      ┌──────────────┐                             │
-│  │    Ollama    │      │  Ollama LLM  │                             │
-│  │  Container   │──────│   Service    │                             │
-│  │ Port 11434   │      │              │                             │
-│  └──────────────┘      └──────────────┘                             │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
 ```
-
-### Data Flow
-
-1. **Ingestion**: Documents → Chunking → Embedding → PostgreSQL
-2. **Query**: User query → Embedding → Vector search → Reranking → LLM → Response
-3. **MCP**: AI Agent → HTTP request → RAG Engine → Response
-
-### Services
-
-1. **Frontend Container** (port 5173): React + Vite UI with hot reload
-2. **App Container** (port 8051): FastAPI backend with MCP server
-3. **Ollama Container** (port 11434): Local LLM and embeddings
-4. **PostgreSQL** (local, not Docker): Vector database with pgvector extension
-
----
-
-## 🚀 Performance Optimizations & Upload Guides
-
-**Make Claude CLI the most amazing AI developer for your project!**
-
-### Quick Reference Guides
-
-- **[UPLOAD_CHECKLIST.md](UPLOAD_CHECKLIST.md)** ⭐ **START HERE** - Simple checklist for uploading Pistn files via UI
-- **[AGENT_OS_UPLOAD_HELP.md](AGENT_OS_UPLOAD_HELP.md)** - In-app help text for Agent OS uploads (new!)
-- **[PERFORMANCE_OPTIMIZATIONS.md](PERFORMANCE_OPTIMIZATIONS.md)** - Complete performance fixes (40s → 25s)
-- **[PISTN_QUERY_GUIDE.md](PISTN_QUERY_GUIDE.md)** - How to query efficiently for best results
-- **[AGENT_OS_SETUP_GUIDE.md](AGENT_OS_SETUP_GUIDE.md)** - Guide for Agent OS knowledge bases
-
-### Performance Summary
-- **Before**: 30-40 second response times with hallucinations
-- **After**: 25-26 seconds (cached) with accurate, context-aware responses
-- **LLM**: Upgraded to llama3.1:8B for 35% faster inference
-- **Key Fixes**: RAGEngine caching + optimized retrieval + larger model
-
-### In-App Help
-When you create an **Agent OS** knowledge base in Code-Forge UI, you'll see a blue help box showing exactly which files to upload and in what priority order. No guessing needed!
-
----
-
-## ⚡ Quick Start
-
-### First-Time Setup
-
-```bash
-./setup.sh
+┌─────────────────────────────────────────────────┐
+│              Claude Desktop                      │
+│         (or any MCP client)                      │
+└───────────────────┬─────────────────────────────┘
+                    │ MCP HTTP
+┌───────────────────▼─────────────────────────────┐
+│         MCP Server (Port 8051)                   │
+│              FastAPI Backend                     │
+└───────────────────┬─────────────────────────────┘
+                    │
+        ┌───────────┴────────────┐
+        │                        │
+┌───────▼────────────┐  ┌────────▼──────────┐
+│   RAG Engine       │  │  React UI         │
+│  (llama-index)     │  │  (Port 5173)      │
+│  • Vector Search   │  │                   │
+│  • Hybrid Search   │  └────────────────────┘
+│  • Reranking       │
+└───────┬────────────┘
+        │
+┌───────▼────────────────────────────────────────┐
+│   PostgreSQL + pgvector (Local Database)       │
+│  • knowledge_bases                             │
+│  • documents (with embeddings)                 │
+│  • Full ACID compliance                        │
+└────────────────────────────────────────────────┘
+        │
+        └─────────────────────┐
+                              │
+                    ┌─────────▼──────┐
+                    │  Ollama        │
+                    │  (Port 11434)  │
+                    │ • llama3.1     │
+                    │ • Embeddings   │
+                    └────────────────┘
 ```
-
-This automated script will:
-
-- ✅ Check for Docker, Node.js, PostgreSQL, Ollama
-- ✅ Install pgvector extension
-- ✅ Create `codeforge` database
-- ✅ Download required Ollama models (~7GB)
-- ✅ Install frontend dependencies
-- ✅ Build and start Docker containers
-- ✅ Start React dev server
-- ✅ Open browser automatically
-- ✅ Verify installation
-
-### Daily Usage
-
-After initial setup, start Code-Forge with one command:
-
-```bash
-./start.sh
-```
-
-This will:
-
-- ✅ Start backend services (Docker)
-- ✅ Start frontend dev server
-- ✅ Open browser automatically
-
-To stop all services:
-
-```bash
-./stop.sh
-```
-
-### Access the Application
-
-- **React UI**: <http://localhost:5173>
-- **MCP Server**: <http://localhost:8051>
-- **Ollama API**: <http://localhost:11434>
-
----
-
-## 📦 Prerequisites
-
-### Required
-
-- **macOS** (tested on macOS 14+)
-- **Docker Desktop** - [Download](https://www.docker.com/products/docker-desktop)
-- **Node.js 18+** - [Download](https://nodejs.org/) or `brew install node`
-- **PostgreSQL 17+** - [Download Postgres.app](https://postgresapp.com/) or `brew install postgresql@17`
-- **Ollama** - [Download](https://ollama.ai/download) or `brew install ollama`
-
-### Disk Space
-
-- **PostgreSQL**: ~500MB
-- **Ollama Models**: ~7GB
-  - llama3.2:3b (2.0 GB)
-  - llama3.1:latest (4.9 GB)
-  - nomic-embed-text (274 MB)
-- **Docker Images**: ~2GB
-
-**Total**: ~10GB
-
----
-
-## 📚 Usage Guide
-
-### Creating a Knowledge Base
-
-1. Open the React UI at <http://localhost:5173>
-2. Click the **"Main App"** button
-3. Click **"+ New KB"** in the sidebar
-4. Enter a name (e.g., `my-project`)
-5. Select a KB type (GENERIC, CODE, DOCUMENTATION, or AGENT_OS)
-6. Click **"Create"**
-
-### Uploading Documents
-
-#### Option 1: File Upload
-
-1. Select your KB from the sidebar
-2. Go to the **"Documents"** tab
-3. Drag & drop files or click **"Choose Files"**
-4. Click **"Upload"**
-
-#### Option 2: Directory Import
-
-1. Select your KB from the sidebar
-2. Go to the **"Documents"** tab
-3. Enter the full path to your project directory
-4. Click **"Import Directory"**
-
-### Chatting with Your KB
-
-1. Select your KB from the sidebar
-2. Go to the **"Chat"** tab
-3. (Optional) Configure RAG settings:
-   - **Strategy**: Vector, Hybrid, Reranking, or Agentic
-   - **Top K**: Number of documents to retrieve
-   - **Temperature**: LLM creativity (0.0-1.0)
-4. Type your question and press Enter
-5. View sources in the response
-
-### Sharing with Your Team
-
-Want to share Code-Forge with coworkers? See **[SHARING.md](SHARING.md)** for:
-
-- ✅ How to share the repository
-- ✅ What your coworker needs to install
-- ✅ Quick start guide for new users
-- ✅ Exporting/importing knowledge bases
-- ✅ Network sharing options
-- ✅ Troubleshooting guide
-
-**TL;DR:** Share the repo → They run `docker compose up -d` → Pull models → Done! 🎉
-
----
-
-## 🔗 MCP Integration
-
-Code-Forge provides **two types of MCP endpoints** to integrate with Claude Desktop:
-
-### 1. KB-Specific Endpoints (Recommended) 🎯
-
-Each knowledge base has its own dedicated MCP endpoint that only exposes tools for that specific KB. This keeps your Claude Desktop configuration organized and prevents accidental cross-KB queries.
-
-**Endpoint Pattern:**
-
-```text
-http://localhost:8051/mcp/kb/<kb-slug>
-```
-
-Where `<kb-slug>` is a URL-friendly version of your KB name (e.g., "My Code Base" → "my-code-base").
-
-**Example:**
-
-```bash
-# Add a specific knowledge base to Claude Desktop
-claude mcp add my-docs http://localhost:8051/mcp/kb/my-docs
-claude mcp add pistn-agent-os http://localhost:8051/mcp/kb/pistn-agent-os
-```
-
-**Available Tools (KB-specific):**
-
-- `search` - Search this KB using RAG with optional hybrid/rerank/agentic features
-- `get_stats` - Get statistics for this KB
-- `list_documents` - List all documents in this KB
-
-**Benefits:**
-
-- ✅ Clean separation between knowledge bases
-- ✅ No need to specify `kb_name` parameter in queries
-- ✅ Prevents accidental queries to wrong KB
-- ✅ Better organization in Claude Desktop
-- ✅ URL-friendly slugs (no spaces or special characters)
-
-### 2. Global Endpoint (All KBs)
-
-A single endpoint that exposes **all** knowledge bases through tools that accept a `kb_name` parameter.
-
-**Endpoint:**
-
-```text
-http://localhost:8051/mcp
-```
-
-**Example:**
-
-```bash
-# Add all knowledge bases through one endpoint
-claude mcp add code-forge http://localhost:8051/mcp
-```
-
-**Available Tools (Global):**
-
-- `search_knowledge_base` - Search any KB (requires `kb_name` parameter)
-- `list_knowledge_bases` - List all available KBs
-- `create_knowledge_base` - Create a new KB
-- `get_kb_stats` - Get stats for any KB (requires `kb_name` parameter)
-- ... and 8 more tools
-
-### Finding Your KB-Specific Endpoint
-
-The easiest way to get the MCP endpoint for a specific knowledge base:
-
-1. Open the Code-Forge UI at `http://localhost:5173`
-2. Select your knowledge base from the sidebar
-3. Look for the **MCP Integration** section in the KB Management tab
-4. Copy the endpoint URL and CLI command
-
-### Available MCP Tools
-
-#### `search_knowledge_base`
-
-Search a KB using RAG with optional advanced features.
-
-**Parameters:**
-
-- `kb_name` (string): Name of the knowledge base
-- `query` (string): Search query
-- `use_hybrid` (boolean): Enable hybrid search
-- `use_rerank` (boolean): Enable reranking
-- `use_agentic` (boolean): Enable agentic RAG
-
-**Example:**
-
-```json
-{
-  "kb_name": "my-project",
-  "query": "How does authentication work?",
-  "use_hybrid": true,
-  "use_rerank": true
-}
-```
-
-#### `list_knowledge_bases`
-
-List all available knowledge bases.
-
-**Returns:** Array of KB names
-
-#### `get_kb_stats`
-
-Get statistics for a knowledge base.
-
-**Parameters:**
-
-- `kb_name` (string): Name of the knowledge base
-
-**Returns:**
-
-```json
-{
-  "total_documents": 42,
-  "total_chunks": 387,
-  "last_updated": "2025-10-22T10:30:00"
-}
-```
-
-#### `list_documents`
-
-List all documents in a knowledge base.
-
-**Parameters:**
-
-- `kb_name` (string): Name of the knowledge base
-
-**Returns:** Array of document metadata objects
 
 ---
 
@@ -456,248 +223,176 @@ List all documents in a knowledge base.
 
 ### Environment Variables
 
-Create `.env` file:
+The system uses sensible defaults, but you can customize via environment variables:
 
 ```bash
-# Ollama
-OLLAMA_HOST=http://ollama:11434
-OLLAMA_MODEL=llama3.2:3b
-OLLAMA_EMBED_MODEL=nomic-embed-text
-
 # PostgreSQL
-POSTGRES_HOST=host.docker.internal
-POSTGRES_PORT=5432
-POSTGRES_DB=codeforge
-POSTGRES_USER=your_username
+POSTGRES_HOST=localhost          # Default: localhost
+POSTGRES_PORT=5432              # Default: 5432
+POSTGRES_DB=codeforge           # Default: codeforge
+POSTGRES_USER=$USER             # Default: current user
+POSTGRES_PASSWORD=              # Default: empty (no password)
 
-# RAG
-TOP_K_RETRIEVAL=5
-CHUNK_SIZE=512
-CHUNK_OVERLAP=50
+# Ollama
+OLLAMA_HOST=http://localhost:11434  # Default: localhost:11434
+
+# MCP Server
+MCP_SERVER_HOST=0.0.0.0         # Default: 0.0.0.0
+MCP_SERVER_PORT=8051            # Default: 8051
 ```
 
-### RAG Strategy Tuning
+### PostgreSQL Password (if needed)
 
-Edit `app/core/config.py`:
+If your PostgreSQL requires a password:
 
-```python
-# Retrieval settings
-TOP_K_RETRIEVAL = 5
-RERANK_TOP_N = 3
-
-# Chunking settings
-CHUNK_SIZE = 512
-CHUNK_OVERLAP = 50
+```bash
+export POSTGRES_PASSWORD="your_password"
+./start_all_services.sh
 ```
 
 ---
 
-## 🛠️ Development
+## 📊 Performance
 
-### Project Structure
+**Native Ollama Setup (Current)**
+- Response time: ~40 seconds per query
+- GPU acceleration: Full Metal GPU on Apple Silicon
+- Memory usage: 8-10GB (models + context)
+- CPU usage: 12 cores (M4 Pro, leaves 2 for system)
 
-```text
-code-forge/
-├── app/
-│   ├── core/
-│   │   ├── config.py             # Configuration management
-│   │   ├── pg_manager.py         # PostgreSQL operations
-│   │   ├── ingestion.py          # Document processing
-│   │   ├── agent_os_ingestion.py # Agent OS profile ingestion
-│   │   ├── kb_metadata.py        # KB metadata management
-│   │   ├── kb_types.py           # KB type definitions
-│   │   └── rag_engine.py         # RAG implementation
-│   └── db/
-│       └── schema.sql            # PostgreSQL schema
-├── mcp_server/
-│   └── server.py                 # MCP server (FastMCP)
-├── data/
-│   └── ollama/                   # Ollama models (persistent)
-├── docs/                         # Documentation
-├── docker-compose.yml            # Service orchestration
-├── Dockerfile                    # Application container
-├── requirements.txt              # Python dependencies
-├── setup.sh                      # Automated setup script
-└── README.md                     # This file
+**Why it's fast:**
+- 33-56% faster than Docker containers
+- Direct GPU acceleration (no virtualization)
+- Efficient vector search in PostgreSQL
+- Optimized RAG engine with caching
+
+---
+
+## 📁 Project Structure
+
 ```
-
-### Running Locally (Without Docker)
-
-1. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Ensure PostgreSQL and Ollama are running locally
-
-3. Start the MCP server:
-
-   ```bash
-   python mcp_server/server.py
-   ```
-
-4. Start the React frontend:
-
-   ```bash
-   cd frontend
-   npm run dev
-   ```
+code-forge/
+├── app/                    # Backend application
+│   ├── core/              # Core modules
+│   │   ├── config.py      # Configuration management
+│   │   ├── pg_manager.py  # PostgreSQL interface
+│   │   ├── rag_engine.py  # RAG logic
+│   │   └── ...
+│   ├── db/                # Database schemas
+│   └── ...
+├── frontend/              # React UI (Vite)
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   └── ...
+│   └── package.json
+├── mcp_server/           # MCP Server (HTTP)
+│   ├── server.py         # FastAPI + MCP endpoints
+│   └── ...
+├── migrations/           # Database migrations
+├── setup_native.sh       # Installation script
+├── start_all_services.sh # Start all services
+├── stop_all_services.sh  # Stop all services
+├── requirements.txt      # Python dependencies
+└── README.md             # This file
+```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### PostgreSQL Connection Failed
+### PostgreSQL Connection Issues
 
 ```bash
 # Check if PostgreSQL is running
-psql -c "SELECT version();"
+brew services list | grep postgresql
 
-# If using Postgres.app, ensure it's started
-# Check: Applications → Postgres.app
+# Start PostgreSQL if stopped
+brew services start postgresql@16
+
+# Check if database exists
+psql -h localhost -U $USER -l | grep codeforge
+
+# If database doesn't exist, create it
+createdb -h localhost -U $USER codeforge
 ```
 
-### Ollama Models Not Found
+### Ollama Issues
 
 ```bash
-# List installed models
+# Check if Ollama is running
 ollama list
 
-# Re-download if needed
-ollama pull nomic-embed-text
-ollama pull llama3.2:3b
+# Start Ollama manually
+ollama serve
+
+# Check for specific model
+ollama list | grep llama3.1
 ```
 
-### Docker Container Won't Start
+### Port Already in Use
+
+```bash
+# Find process on port 8051 (MCP Server)
+lsof -i :8051
+
+# Find process on port 5173 (React UI)
+lsof -i :5173
+
+# Kill if needed (replace PID with actual process ID)
+kill -9 <PID>
+```
+
+### MCP Server Not Starting
 
 ```bash
 # Check logs
-docker-compose logs -f app
+tail -f /tmp/mcp_server.log
 
-# Rebuild
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+# Verify Python environment
+source venv/bin/activate
+python mcp_server/server.py
+
+# Check port 8051 is accessible
+curl http://localhost:8051/health
 ```
-
-### Data Persistence Issues
-
-Your data is stored in:
-
-- **PostgreSQL**: Local database (survives all Docker operations)
-- **Ollama models**: `./data/ollama/` (survives all Docker operations)
-
-To verify:
-
-```bash
-# Check database
-psql -d codeforge -c "\dt"
-
-# Check models
-ls -lh data/ollama/
-```
-
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.
 
 ---
 
-## 🧪 Testing
+## 📖 Additional Documentation
 
-Code-Forge has a comprehensive test suite to ensure reliability and catch bugs early.
-
-### Quick Start
-
-```bash
-# Run all tests
-./run_tests.sh
-
-# Run with coverage
-./run_tests.sh --coverage
-
-# Run only unit tests (fast)
-./run_tests.sh --unit
-
-# Run only integration tests
-./run_tests.sh --integration
-```
-
-### Test Categories
-
-- **Unit Tests** (`--unit`) - Fast, no external dependencies
-- **Integration Tests** (`--integration`) - Require database/Ollama
-- **Vector Tests** (`--vector`) - PostgreSQL vector operations
-- **RAG Tests** (`--rag`) - RAG engine functionality
-- **API Tests** (`--api`) - FastAPI endpoints
-
-### Test Coverage
-
-| Component | Coverage |
-|-----------|----------|
-| PostgreSQL Manager | 90% |
-| RAG Engine | 85% |
-| Document Processing | 80% |
-| API Endpoints | 90% |
-| Embeddings | 85% |
-| **Overall** | **85%** |
-
-See [tests/TEST_COVERAGE.md](tests/TEST_COVERAGE.md) for detailed coverage information.
-
-### Writing Tests
-
-When adding new features:
-
-1. **Write tests first** (TDD approach)
-2. **Use appropriate markers** (`@pytest.mark.unit`, etc.)
-3. **Ensure >80% coverage** for new code
-4. **Run tests before committing**
-
-```python
-import pytest
-
-@pytest.mark.unit
-def test_my_feature():
-    """Test description."""
-    assert my_function() == expected_result
-```
+- **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup guide
+- **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why we chose native Ollama
+- **[PERFORMANCE_TEST_RESULTS.md](PERFORMANCE_TEST_RESULTS.md)** - Benchmark results
+- **[SLUG_IMPLEMENTATION_SUMMARY.md](SLUG_IMPLEMENTATION_SUMMARY.md)** - URL slug system
+- **[MCP_KB_ENDPOINTS.md](MCP_KB_ENDPOINTS.md)** - MCP endpoint documentation
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. **Add tests** (see Testing section above)
-5. Run `./run_tests.sh` to verify
-6. Submit a pull request
-
-All PRs must:
-- ✅ Pass all tests
-- ✅ Maintain >80% code coverage
-- ✅ Follow existing code style
-- ✅ Include documentation updates
+This is a personal development tool. Feel free to:
+- Modify for your specific needs
+- Add new KB types
+- Optimize RAG strategies
+- Contribute improvements back
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - Use it freely!
 
 ---
 
-## 🙏 Acknowledgments
+## 🎯 Next Steps
 
-- **llama-index** - RAG framework
-- **Ollama** - Local LLM runtime
-- **pgvector** - PostgreSQL vector extension
-- **React + Vite** - Modern UI framework
-- **FastMCP** - MCP server library
+1. **First-time setup:** Run `./setup_native.sh`
+2. **Start services:** Run `./start_all_services.sh`
+3. **Create knowledge base:** Visit http://localhost:5173
+4. **Upload documents:** Add your codebase/docs
+5. **Integrate with Claude:** Run `claude mcp add ...`
+6. **Start coding:** Ask Claude about your project!
 
----
+Happy coding! 🚀
 
-> **Built with ❤️ for the local-first AI community**
->
-> [Documentation](docs/) • [Issues](https://github.com/yourusername/code-forge/issues) • [Discussions](https://github.com/yourusername/code-forge/discussions)
