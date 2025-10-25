@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link } from 'lucide-react';
-import { getKBStats, listDocuments, uploadDocument, type KBStats } from '../lib/api';
+import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link, Trash2 } from 'lucide-react';
+import { getKBStats, listDocuments, uploadDocument, deleteDocument, type KBStats } from '../lib/api';
 
 interface KBManagementProps {
   kbName: string;
@@ -17,6 +17,7 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [isBatchUpload, setIsBatchUpload] = useState(false);
   const [copiedMCP, setCopiedMCP] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ filename: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -69,6 +70,24 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
     onError: (error: any) => {
       setUploadStatus('error');
       setUploadMessage(`❌ Upload failed: ${error.response?.data?.detail || error.message}`);
+      setTimeout(() => setUploadStatus('idle'), 5000);
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (filename: string) => deleteDocument(kbName, filename),
+    onSuccess: (data) => {
+      setUploadStatus('success');
+      setUploadMessage(`✅ Deleted ${data.filename}`);
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['kb-stats', kbName] });
+      queryClient.invalidateQueries({ queryKey: ['kb-documents', kbName] });
+      setTimeout(() => setUploadStatus('idle'), 3000);
+    },
+    onError: (error: any) => {
+      setUploadStatus('error');
+      setUploadMessage(`❌ Delete failed: ${error.response?.data?.detail || error.message}`);
       setTimeout(() => setUploadStatus('idle'), 5000);
     },
   });
@@ -411,8 +430,18 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="p-5 bg-gradient-to-br from-cool-blue/10 to-electric-teal/5 border-2 border-electric-teal/30 rounded-xl hover:border-electric-teal/60 hover:shadow-xl hover:shadow-electric-teal/20 hover:-translate-y-1 transition-all duration-300"
+                  className="p-5 bg-gradient-to-br from-cool-blue/10 to-electric-teal/5 border-2 border-electric-teal/30 rounded-xl hover:border-electric-teal/60 hover:shadow-xl hover:shadow-electric-teal/20 hover:-translate-y-1 transition-all duration-300 relative group"
                 >
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => setDeleteConfirm({ filename: doc.filename })}
+                    disabled={deleteMutation.isPending}
+                    className="absolute top-3 right-3 p-2 bg-blaze-orange/20 hover:bg-blaze-orange/40 text-blaze-orange rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-50"
+                    title="Delete document"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
                   <div className="text-center">
                     {/* Large emoji icon */}
                     <div className="text-4xl mb-3">{icon}</div>
@@ -452,6 +481,57 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
           </div>
         )}
       </motion.div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-deep-night border-2 border-blaze-orange/50 rounded-xl p-6 max-w-sm mx-4"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-blaze-orange/20 rounded-lg">
+                <XCircle className="w-8 h-8 text-blaze-orange" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg">Delete Document?</h3>
+                <p className="text-sm text-light-grey">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-blaze-orange/10 rounded-lg border border-blaze-orange/30">
+              <p className="text-sm text-light-grey">
+                <strong className="text-white">File:</strong> {deleteConfirm.filename}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                disabled={deleteMutation.isPending}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteMutation.mutate(deleteConfirm.filename)}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-blaze-orange hover:bg-blaze-orange/80 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

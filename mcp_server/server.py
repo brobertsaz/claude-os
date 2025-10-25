@@ -646,6 +646,63 @@ async def api_import_directory(kb_name: str, directory_path: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.delete("/api/kb/{kb_name}/documents/{filename}")
+async def api_delete_document(kb_name: str, filename: str):
+    """REST API: Delete a document from a knowledge base by filename."""
+    pg_manager = get_pg_manager()
+
+    # Validate KB exists
+    if not pg_manager.collection_exists(kb_name):
+        raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
+
+    try:
+        # Get the collection ID
+        conn = pg_manager.get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Get collection ID
+                cur.execute(
+                    "SELECT id FROM knowledge_bases WHERE name = %s",
+                    (kb_name,)
+                )
+                result = cur.fetchone()
+                if not result:
+                    raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
+
+                collection_id = result[0]
+
+                # Delete documents with this filename
+                cur.execute(
+                    """
+                    DELETE FROM documents
+                    WHERE kb_id = %s AND metadata->>'filename' = %s
+                    RETURNING id
+                    """,
+                    (collection_id, filename)
+                )
+                deleted_count = len(cur.fetchall())
+                conn.commit()
+
+                if deleted_count == 0:
+                    raise HTTPException(status_code=404, detail=f"No documents found with filename '{filename}'")
+
+                logger.info(f"Deleted {deleted_count} document(s) with filename '{filename}' from KB '{kb_name}'")
+                return {
+                    "success": True,
+                    "message": f"Deleted {deleted_count} document(s)",
+                    "filename": filename,
+                    "kb_name": kb_name
+                }
+        finally:
+            pg_manager.return_connection(conn)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/ollama/models")
 async def api_list_ollama_models():
     """REST API: List available Ollama models."""
