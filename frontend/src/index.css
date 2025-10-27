@@ -37,7 +37,7 @@
   }
   
   .card {
-    @apply bg-gradient-to-br from-deep-night to-cool-blue/10 rounded-2xl border border-electric-teal/30 p-6 transition-all duration-300;
+    @apply bg-gradient-to-br from-deep-night to-deep-night rounded-2xl border border-electric-teal/30 p-6 transition-all duration-300;
   }
   
   .card:hover {

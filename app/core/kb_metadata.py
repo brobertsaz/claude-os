@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List
 
-from app.core.pg_manager import get_pg_manager
+from app.core.sqlite_manager import get_sqlite_manager
 from app.core.kb_types import KBType, get_kb_type_info, validate_kb_type
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def get_documents_metadata(collection_name: str) -> List[Dict[str, any]]:
         List of document metadata dicts
     """
     try:
-        pg_manager = get_pg_manager()
+        pg_manager = get_sqlite_manager()
 
         if not pg_manager.collection_exists(collection_name):
             logger.warning(f"Collection {collection_name} not found")
@@ -135,7 +135,7 @@ def get_collection_stats(collection_name: str) -> Dict[str, any]:
         dict: Statistics including total docs, chunks, last updated, and kb_type
     """
     try:
-        pg_manager = get_pg_manager()
+        pg_manager = get_sqlite_manager()
 
         if not pg_manager.collection_exists(collection_name):
             return {
@@ -229,7 +229,7 @@ def get_kb_type_summary() -> Dict[str, int]:
         }
     """
     try:
-        pg_manager = get_pg_manager()
+        pg_manager = get_sqlite_manager()
         collections = pg_manager.list_collections()
 
         # Count by type

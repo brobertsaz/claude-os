@@ -1,7 +1,7 @@
 #!/bin/bash
 # Start the MCP server natively on macOS with Metal GPU acceleration
 
-echo "🚀 Starting Code-Forge MCP Server (Native, no Docker)"
+echo "🚀 Starting Claude OS MCP Server (Native, no Docker)"
 echo "=================================================="
 echo ""
 echo "System Info:"

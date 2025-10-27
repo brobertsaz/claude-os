@@ -1,8 +1,8 @@
-# Code-Forge Test Coverage
+# Claude OS Test Coverage
 
 ## Overview
 
-Comprehensive test suite for Code-Forge RAG system covering all critical components.
+Comprehensive test suite for Claude OS RAG system covering all critical components.
 
 ## Test Files
 

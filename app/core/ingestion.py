@@ -1,5 +1,5 @@
 """
-Document ingestion pipeline for Code-Forge.
+Document ingestion pipeline for Claude OS.
 Handles file upload, text extraction, chunking, embedding, and storage.
 """
 
@@ -14,7 +14,7 @@ from llama_index.core import Document, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.ollama import OllamaEmbedding
 
-from app.core.pg_manager import get_pg_manager
+from app.core.sqlite_manager import get_sqlite_manager
 from app.core.config import Config
 from app.core.markdown_preprocessor import preprocess_markdown
 
@@ -142,7 +142,7 @@ def ingest_file(
         )
 
         # Get PostgreSQL collection
-        pg_manager = get_pg_manager()
+        pg_manager = get_sqlite_manager()
         if not pg_manager.collection_exists(collection_name):
             return {
                 "status": "error",
@@ -156,18 +156,38 @@ def ingest_file(
         metadatas = []
         ids = []
 
-        for chunk in chunks:
-            # Generate embedding
-            embedding = embed_model.get_text_embedding(chunk.text)
+        failed_chunks = 0
 
-            # Create unique ID
-            chunk_id = f"{filename}_{chunk.metadata['chunk_index']}_{uuid.uuid4().hex[:8]}"
+        for i, chunk in enumerate(chunks):
+            try:
+                # Truncate very long chunks to prevent Ollama crashes
+                chunk_text = chunk.text
+                if len(chunk_text) > 8000:  # Limit to ~8K characters
+                    logger.warning(f"Truncating chunk {i} of {filename} from {len(chunk_text)} to 8000 chars")
+                    chunk_text = chunk_text[:8000]
 
-            # Collect data for batch insert
-            documents.append(chunk.text)
-            embeddings.append(embedding)
-            metadatas.append(chunk.metadata)
-            ids.append(chunk_id)
+                # Generate embedding
+                embedding = embed_model.get_text_embedding(chunk_text)
+
+                # Create unique ID
+                chunk_id = f"{filename}_{chunk.metadata['chunk_index']}_{uuid.uuid4().hex[:8]}"
+
+                # Collect data for batch insert
+                documents.append(chunk_text)
+                embeddings.append(embedding)
+                metadatas.append(chunk.metadata)
+                ids.append(chunk_id)
+            except Exception as e:
+                failed_chunks += 1
+                logger.warning(f"Failed to embed chunk {i} of {filename}: {e}. Skipping this chunk.")
+                continue
+
+        if not documents:
+            return {
+                "status": "error",
+                "filename": filename,
+                "error": f"All {len(chunks)} chunks failed to generate embeddings"
+            }
 
         # Add all documents to PostgreSQL in batch
         pg_manager.add_documents(
@@ -178,7 +198,10 @@ def ingest_file(
             ids=ids
         )
 
-        logger.info(f"Ingested {filename}: {len(chunks)} chunks")
+        success_msg = f"Ingested {filename}: {len(documents)}/{len(chunks)} chunks"
+        if failed_chunks > 0:
+            success_msg += f" ({failed_chunks} chunks skipped due to errors)"
+        logger.info(success_msg)
 
         return {
             "status": "success",
@@ -193,6 +216,110 @@ def ingest_file(
             "status": "error",
             "filename": filename,
             "error": str(e)
+        }
+
+
+def ingest_documents(
+    collection_name: str,
+    documents: List[str],
+    metadatas: List[Dict]
+) -> Dict[str, any]:
+    """
+    Ingest a list of pre-processed documents into a knowledge base.
+    Used by hooks system for bulk ingestion.
+
+    Args:
+        collection_name: Target collection name
+        documents: List of document texts
+        metadatas: List of metadata dicts corresponding to each document
+
+    Returns:
+        dict: Ingestion result with status and details
+    """
+    try:
+        # Initialize embedding model
+        embed_model = OllamaEmbedding(
+            model_name=Config.OLLAMA_EMBED_MODEL,
+            base_url=Config.OLLAMA_HOST
+        )
+
+        # Get SQLite manager
+        db_manager = get_sqlite_manager()
+        if not db_manager.collection_exists(collection_name):
+            return {
+                "status": "error",
+                "error": f"Collection {collection_name} not found",
+                "documents_processed": 0
+            }
+
+        # Process all documents
+        all_document_texts = []
+        all_embeddings = []
+        all_metadatas = []
+        all_ids = []
+
+        for doc_text, metadata in zip(documents, metadatas):
+            if not doc_text.strip():
+                logger.warning(f"Skipping empty document: {metadata.get('filename', 'unknown')}")
+                continue
+
+            # Chunk the document
+            chunks = chunk_document(doc_text, metadata)
+
+            # Generate embeddings for each chunk
+            for i, chunk in enumerate(chunks):
+                try:
+                    # Truncate very long chunks to prevent Ollama crashes
+                    chunk_text = chunk.text
+                    if len(chunk_text) > 8000:  # Limit to ~8K characters
+                        logger.warning(f"Truncating chunk {i} from {len(chunk_text)} to 8000 chars")
+                        chunk_text = chunk_text[:8000]
+
+                    embedding = embed_model.get_text_embedding(chunk_text)
+
+                    # Create unique ID
+                    chunk_id = f"{metadata.get('filename', 'doc')}_{chunk.metadata['chunk_index']}_{uuid.uuid4().hex[:8]}"
+
+                    # Collect data
+                    all_document_texts.append(chunk_text)
+                    all_embeddings.append(embedding)
+                    all_metadatas.append(chunk.metadata)
+                    all_ids.append(chunk_id)
+                except Exception as e:
+                    logger.warning(f"Failed to embed chunk {i}: {e}. Skipping this chunk.")
+                    continue
+
+        if not all_document_texts:
+            return {
+                "status": "error",
+                "error": "No valid documents to ingest",
+                "documents_processed": 0
+            }
+
+        # Add all documents to database in batch
+        db_manager.add_documents(
+            kb_name=collection_name,
+            documents=all_document_texts,
+            embeddings=all_embeddings,
+            metadatas=all_metadatas,
+            ids=all_ids
+        )
+
+        logger.info(f"Ingested {len(documents)} documents into {collection_name}: {len(all_document_texts)} total chunks")
+
+        return {
+            "status": "success",
+            "documents_processed": len(documents),
+            "chunks_created": len(all_document_texts),
+            "collection_name": collection_name
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to ingest documents into {collection_name}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "documents_processed": 0
         }
 
 

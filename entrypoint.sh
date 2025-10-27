@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# Code-Forge Docker Container Entrypoint
+# Claude OS Docker Container Entrypoint
 # ============================================================================
 # This script runs inside the Docker container and starts the MCP server.
 # ============================================================================
@@ -46,7 +46,7 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-print_status "Starting Code-Forge MCP Server..."
+print_status "Starting Claude OS MCP Server..."
 
 # ============================================================================
 # Wait for Dependencies

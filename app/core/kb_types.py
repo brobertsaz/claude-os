@@ -1,5 +1,5 @@
 """
-Knowledge Base Type System for Code-Forge.
+Knowledge Base Type System for Claude OS.
 Defines KB types, metadata models, and type-specific configurations.
 """
 
@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 class KBType(str, Enum):
     """
-    Knowledge Base types supported by Code-Forge.
+    Knowledge Base types supported by Claude OS.
 
     Each type represents a distinct category of knowledge with
     specialized handling and retrieval strategies.

@@ -1,8 +1,8 @@
-# Code-Forge Testing Guide
+# Claude OS Testing Guide
 
 ## 🎯 Overview
 
-This guide provides comprehensive information about testing Code-Forge, a production-grade RAG system.
+This guide provides comprehensive information about testing Claude OS, a production-grade RAG system.
 
 ---
 
@@ -255,7 +255,7 @@ ollama serve
 
 ```bash
 # Ensure you're in project root
-cd /path/to/code-forge
+cd /path/to/claude-os
 
 # Install dependencies
 pip install -r requirements.txt

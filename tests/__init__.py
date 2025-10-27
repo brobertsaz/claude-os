@@ -1,6 +1,6 @@
 """
-Code-Forge Test Suite
+Claude OS Test Suite
 
-Comprehensive tests for all components of the Code-Forge RAG system.
+Comprehensive tests for all components of the Claude OS RAG system.
 """
 

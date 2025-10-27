@@ -36,7 +36,7 @@ Claude OS is a **complete platform** that transforms Claude from a generic AI as
    - Instant recall without searching
    - Zero latency context retrieval
 
-3. **Code-Forge** (Evolved from RAG)
+3. **Claude OS** (Evolved from RAG)
    - Live knowledge base of your entire codebase
    - Semantic search on 130+ documents
    - Automatically updated via git hooks
@@ -116,7 +116,7 @@ You: "Show me my memories about Block deprecation"
 - Status: **Fully operational**
 - Already seeded with 3 memories from today
 
-### Code-Forge Knowledge Base ✅
+### Claude OS Knowledge Base ✅
 - 130 documents indexed (495 chunks)
 - Content: 82 services, 286 models, 138 migrations, 50 controllers
 - Updates: Automatically via git hooks
@@ -193,7 +193,7 @@ You: "Show me my memories about Block deprecation"
 ### Phase 3: Scale (Next 6 Months)
 - Migrate remaining 100+ blocks
 - Improve Memory MCP
-- Advanced Code-Forge features
+- Advanced Claude OS features
 - Performance optimization
 
 ### Phase 4: Productize (Beyond)
@@ -217,7 +217,7 @@ Claude OS
 │   ├── memories.json (all your memories)
 │   └── Complete persistence
 │
-├── Code-Forge (localhost:8051)
+├── Claude OS (localhost:8051)
 │   ├── PostgreSQL + pgvector
 │   ├── 130 documents indexed
 │   ├── Semantic search
@@ -237,7 +237,7 @@ Result: AI developer who never forgets, always understands,
 Claude OS capabilities that **no other tool offers**:
 
 - ✅ Persistent memory across sessions (Memory MCP)
-- ✅ Complete codebase indexing (Code-Forge TIER 1)
+- ✅ Complete codebase indexing (Claude OS TIER 1)
 - ✅ Automatic learning from commits (Git Hooks)
 - ✅ Zero-latency context recall (no embedding lookup)
 - ✅ Natural context reference (automatic relevance)

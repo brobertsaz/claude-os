@@ -66,9 +66,9 @@ def check_postgres_health() -> Dict[str, any]:
         dict: Status information with 'status' and optional 'error'
     """
     try:
-        from app.core.pg_manager import get_pg_manager
+        from app.core.sqlite_manager import get_sqlite_manager
 
-        pg_manager = get_pg_manager()
+        pg_manager = get_sqlite_manager()
         # Try to list collections as a health check
         collections = pg_manager.list_collections()
 

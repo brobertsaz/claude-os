@@ -1,5 +1,5 @@
 """
-Markdown preprocessing for Code-Forge.
+Markdown preprocessing for Claude OS.
 Standardizes markdown files for better chunking and retrieval.
 """
 

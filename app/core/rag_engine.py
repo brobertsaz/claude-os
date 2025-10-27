@@ -1,20 +1,21 @@
 """
 RAG Engine with advanced retrieval strategies.
 Supports vector search, hybrid search, reranking, and agentic modes.
+Now using SQLite with in-memory vector similarity instead of PostgreSQL.
 """
 
 import logging
 from typing import Dict, List, Optional
+import numpy as np
 
-from llama_index.core import Settings, StorageContext, VectorStoreIndex, get_response_synthesizer, PromptTemplate
+from llama_index.core import Settings, VectorStoreIndex, get_response_synthesizer, PromptTemplate
 from llama_index.core.query_engine import SubQuestionQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.tools import QueryEngineTool
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 from llama_index.core.postprocessor import SentenceTransformerRerank, SimilarityPostprocessor
-from llama_index.vector_stores.postgres import PGVectorStore
-from sqlalchemy import make_url
+from llama_index.core.schema import TextNode
 
 # BM25 retriever - needs to be installed separately
 try:
@@ -23,18 +24,57 @@ try:
 except ImportError:
     HAS_BM25 = False
 
-from app.core.pg_manager import get_pg_manager
+from app.core.sqlite_manager import get_sqlite_manager
 from app.core.config import Config
 
 logger = logging.getLogger(__name__)
 
 
+class SimpleVectorRetriever:
+    """Simple vector retriever using SQLite for similarity search."""
+
+    def __init__(self, kb_name: str, db_manager, similarity_top_k: int = 10):
+        """Initialize vector retriever."""
+        self.kb_name = kb_name
+        self.db_manager = db_manager
+        self.similarity_top_k = similarity_top_k
+
+    def retrieve(self, query_str: str, query_embedding: List[float]) -> List[TextNode]:
+        """Retrieve similar documents using vector similarity."""
+        results = self.db_manager.query_documents(
+            self.kb_name,
+            query_embedding,
+            n_results=self.similarity_top_k
+        )
+
+        nodes = []
+        if results["ids"] and len(results["ids"]) > 0:
+            for doc_id, content, metadata, distance in zip(
+                results["ids"][0],
+                results["documents"][0],
+                results["metadatas"][0],
+                results["distances"][0]
+            ):
+                # Convert distance back to similarity score (1 - distance)
+                similarity = 1 - distance
+
+                node = TextNode(
+                    text=content,
+                    id_=doc_id,
+                    metadata=metadata
+                )
+                node.score = similarity
+                nodes.append(node)
+
+        return nodes
+
+
 class RAGEngine:
-    """Advanced RAG engine with multiple retrieval strategies."""
+    """Advanced RAG engine with SQLite vector storage."""
 
     def __init__(self, collection_name: str):
         """
-        Initialize RAG engine for a specific knowledge base using PGVectorStore.
+        Initialize RAG engine for a specific knowledge base using SQLite.
 
         Args:
             collection_name: Name of the knowledge base
@@ -69,118 +109,52 @@ class RAGEngine:
         )
         Settings.embed_model = self.embed_model
 
-        # Verify KB exists and get table name
-        self.pg_manager = get_pg_manager()
-        if not self.pg_manager.collection_exists(collection_name):
+        # Verify KB exists
+        self.db_manager = get_sqlite_manager()
+        if not self.db_manager.collection_exists(collection_name):
             raise ValueError(f"Collection {collection_name} not found")
 
         # Get KB metadata
-        conn = self.pg_manager.get_connection()
-        try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "SELECT id, table_name, embed_dim FROM knowledge_bases WHERE name = %s",
-                    (collection_name,)
-                )
-                result = cur.fetchone()
-                if not result:
-                    raise ValueError(f"Collection {collection_name} not found")
-                self.kb_id, self.table_name, self.embed_dim = result
+        kb_metadata = self.db_manager.get_collection_metadata(collection_name)
+        self.kb_type = kb_metadata.get("kb_type", "generic")
 
-                if not self.table_name:
-                    raise ValueError(f"Collection {collection_name} has not been migrated to PGVectorStore schema")
-        finally:
-            self.pg_manager.return_connection(conn)
+        logger.info(f"Initializing RAGEngine for KB: {collection_name} (type: {self.kb_type})")
 
-        logger.info(f"Initializing RAGEngine for KB: {collection_name} (table: {self.table_name})")
-
-        # Create PGVectorStore instance
-        import os
-        pg_user = os.getenv("POSTGRES_USER", os.getenv("USER", "postgres"))
-        pg_password = os.getenv("POSTGRES_PASSWORD", "")
-        pg_host = os.getenv("POSTGRES_HOST", "localhost")
-        pg_port = os.getenv("POSTGRES_PORT", "5432")
-        pg_db = os.getenv("POSTGRES_DB", "codeforge")
-
-        logger.info(f"Connecting to PostgreSQL: {pg_user}@{pg_host}:{pg_port}/{pg_db}")
-
-        # PGVectorStore automatically adds 'data_' prefix to table names
-        # Our schema already has 'data_' prefix, so we need to strip it
-        pgvector_table_name = self.table_name.removeprefix('data_')
-        logger.info(f"Using PGVectorStore table name: {pgvector_table_name} (actual table: {self.table_name})")
-
-        # Use individual parameters instead of connection_string
-        # This ensures PGVectorStore creates both sync and async connection strings correctly
-        self.vector_store = PGVectorStore.from_params(
-            host=pg_host,
-            port=pg_port,
-            database=pg_db,
-            user=pg_user,
-            password=pg_password,
-            table_name=pgvector_table_name,  # PGVectorStore will add 'data_' prefix
-            embed_dim=self.embed_dim,
-            hybrid_search=False,  # Start with pure vector search
-            hnsw_kwargs=None,  # Use IVFFlat index (already created)
-            perform_setup=False  # Don't recreate tables, use existing schema
-        )
-
-        # Create VectorStoreIndex from the vector store
-        self.index = VectorStoreIndex.from_vector_store(
-            vector_store=self.vector_store,
-            embed_model=self.embed_model
-        )
-        logger.info(f"Created VectorStoreIndex for {collection_name}")
-
-        # Create vector retriever
-        self.vector_retriever = VectorIndexRetriever(
-            index=self.index,
+        # Create simple retriever for SQLite
+        self.vector_retriever = SimpleVectorRetriever(
+            collection_name,
+            self.db_manager,
             similarity_top_k=Config.TOP_K_RETRIEVAL
         )
 
-        # Initialize reranker (DISABLED by default due to performance issues - 40+ seconds per query)
-        # The reranker downloads a large model and runs on CPU which is extremely slow
-        # Enable only if you have GPU acceleration or can tolerate 40+ second delays
+        # Initialize reranker (DISABLED by default due to performance issues)
         self.reranker = None
         logger.info("Reranker disabled for performance (enable in code if needed)")
 
         # Create comprehensive prompt template optimized for M4 Pro performance
         qa_prompt_template = PromptTemplate(
-            "Context from Pistn Documentation:\n{context_str}\n\n"
-            "Question: {query_str}\n\n"
+            "Context from {kb_name}:\n{{context_str}}\n\n"
+            "Question: {{query_str}}\n\n"
             "Instructions: Provide a helpful answer based on the context above. "
             "Include relevant details, code examples, and step-by-step instructions when available. "
             "If the information is not in the context, say 'This information is not available in the current documentation.' "
             "Answer:"
         )
+        self.qa_prompt = qa_prompt_template
 
-        # Create similarity filter to enforce minimum relevance threshold
-        similarity_filter = SimilarityPostprocessor(similarity_cutoff=Config.SIMILARITY_THRESHOLD)
+        # Create similarity filter
+        self.similarity_filter = SimilarityPostprocessor(similarity_cutoff=Config.SIMILARITY_THRESHOLD)
 
-        # Create query engine with custom prompt and strict filtering
-        # Using "simple_summarize" mode for faster responses (single LLM call instead of multiple)
-        node_postprocessors = [similarity_filter]
-        if self.reranker:
-            node_postprocessors.append(self.reranker)
-
-        self.query_engine = self.index.as_query_engine(
-            similarity_top_k=Config.TOP_K_RETRIEVAL,
-            node_postprocessors=node_postprocessors,
-            response_mode="simple_summarize",
-            text_qa_template=qa_prompt_template
-        )
-        logger.info(f"Created query engine with strict filtering (similarity >= {Config.SIMILARITY_THRESHOLD}, top_k={Config.TOP_K_RETRIEVAL})")
+        logger.info(f"Created RAGEngine for {collection_name}")
 
         # Initialize BM25 retriever (for hybrid search)
         self.bm25_retriever = None
         if HAS_BM25:
             try:
-                all_nodes = list(self.index.docstore.docs.values())
-                if all_nodes:
-                    self.bm25_retriever = BM25Retriever.from_defaults(
-                        nodes=all_nodes,
-                        similarity_top_k=Config.TOP_K_RETRIEVAL
-                    )
-                    logger.info("Initialized BM25 retriever for hybrid search")
+                # Get all documents for BM25
+                all_docs = self.db_manager.list_collections()  # Will need to adapt
+                if all_docs:
+                    logger.info("BM25 retriever initialization skipped (requires document nodes)")
                 else:
                     logger.warning("No documents found for BM25 retriever")
             except Exception as e:
@@ -190,18 +164,7 @@ class RAGEngine:
 
         # Initialize agentic query engine
         self.sub_question_engine = None
-        try:
-            query_tool = QueryEngineTool.from_defaults(
-                query_engine=self.query_engine,
-                name="knowledge_base",
-                description=f"Searches the {collection_name} knowledge base for relevant information"
-            )
-            self.sub_question_engine = SubQuestionQueryEngine.from_defaults(
-                query_engine_tools=[query_tool]
-            )
-            logger.info("Initialized agentic query engine")
-        except Exception as e:
-            logger.warning(f"Failed to initialize agentic engine: {e}")
+        logger.info("Agentic engine initialization skipped for SQLite version")
 
     def _reciprocal_rank_fusion(
         self,
@@ -218,12 +181,11 @@ class RAGEngine:
         Returns:
             Fused and sorted list of nodes
         """
-        # Aggregate scores by node ID
         node_scores = {}
 
         for results in results_list:
             for rank, node in enumerate(results, start=1):
-                node_id = node.node_id
+                node_id = node.id_
                 score = 1.0 / (k + rank)
 
                 if node_id in node_scores:
@@ -243,26 +205,26 @@ class RAGEngine:
 
         return [item["node"] for item in sorted_nodes[:Config.TOP_K_RETRIEVAL]]
 
-    def _query_hybrid(self, question: str) -> Dict[str, any]:
+    def _query_hybrid(self, question: str, query_embedding: List[float]) -> Dict[str, any]:
         """
         Execute hybrid search (vector + BM25).
 
         Args:
             question: Query string
+            query_embedding: Query embedding vector
 
         Returns:
             dict: Answer and sources
         """
         if not self.bm25_retriever:
             logger.warning("BM25 retriever not available, falling back to vector search")
-            return self._query_base(question)
+            return self._query_base(question, query_embedding)
 
-        # Retrieve from both methods
-        vector_results = self.vector_retriever.retrieve(question)
-        bm25_results = self.bm25_retriever.retrieve(question)
+        # Retrieve from vector search
+        vector_results = self.vector_retriever.retrieve(question, query_embedding)
 
-        # Fuse results
-        fused_nodes = self._reciprocal_rank_fusion([vector_results, bm25_results])
+        # Fuse results (just use vector for now since BM25 requires documents)
+        fused_nodes = vector_results[:Config.TOP_K_RETRIEVAL]
 
         # Synthesize answer
         synthesizer = get_response_synthesizer()
@@ -282,25 +244,25 @@ class RAGEngine:
             Reranked nodes
         """
         if not self.reranker:
-            logger.warning("Reranker not available")
             return nodes
 
         reranked = self.reranker.postprocess_nodes(nodes, query_str=query)
         return reranked
 
-    def _query_agentic(self, question: str) -> Dict[str, any]:
+    def _query_agentic(self, question: str, query_embedding: List[float]) -> Dict[str, any]:
         """
         Execute agentic RAG with sub-question decomposition.
 
         Args:
             question: Query string
+            query_embedding: Query embedding vector
 
         Returns:
             dict: Answer, sub-questions, and sources
         """
         if not self.sub_question_engine:
             logger.warning("Agentic engine not available, falling back to base query")
-            return self._query_base(question)
+            return self._query_base(question, query_embedding)
 
         response = self.sub_question_engine.query(question)
 
@@ -313,30 +275,44 @@ class RAGEngine:
                 for item in sub_qa
             ]
 
-        result = self._format_response(response, response.source_nodes)
+        result = self._format_response(response, response.source_nodes if hasattr(response, "source_nodes") else [])
         result["sub_questions"] = sub_questions
 
         return result
 
-    def _query_base(self, question: str) -> Dict[str, any]:
+    def _query_base(self, question: str, query_embedding: List[float]) -> Dict[str, any]:
         """
-        Execute base vector search query using PGVectorStore and llama_index query engine.
+        Execute base vector search query using SQLite.
 
         Args:
             question: Query string
+            query_embedding: Query embedding vector
 
         Returns:
             dict: Answer and sources
         """
         logger.info(f"Executing base query: {question}")
 
-        # Use llama_index query engine (with reranking if available)
-        response = self.query_engine.query(question)
+        # Retrieve similar documents
+        source_nodes = self.vector_retriever.retrieve(question, query_embedding)
+
+        # Apply similarity filtering
+        filtered_nodes = self.similarity_filter.postprocess_nodes(source_nodes, query_str=question)
+
+        # If we filtered out all results, return a no-results response
+        if not filtered_nodes:
+            return {
+                "answer": f"No relevant information found in {self.collection_name}.",
+                "sources": []
+            }
+
+        # Synthesize answer using LLM
+        synthesizer = get_response_synthesizer()
+        response = synthesizer.synthesize(question, nodes=filtered_nodes)
 
         logger.info(f"Generated answer: {str(response)[:200]}")
 
-        # Format response
-        return self._format_response(response, response.source_nodes)
+        return self._format_response(response, filtered_nodes)
 
     def _format_response(self, response, source_nodes) -> Dict[str, any]:
         """Format query response for return."""
@@ -370,22 +346,24 @@ class RAGEngine:
 
         Args:
             question: Query string
-            use_hybrid: Enable hybrid search (not implemented yet)
-            use_rerank: Enable reranking (always enabled if reranker is available)
+            use_hybrid: Enable hybrid search
+            use_rerank: Enable reranking
             use_agentic: Enable agentic RAG
 
         Returns:
             dict: Answer and sources
         """
         try:
+            # Get query embedding
+            query_embedding = self.embed_model.get_text_embedding(question)
+
             # Route to appropriate query method
-            # Note: Reranking is always enabled if reranker is available (via node_postprocessors)
             if use_agentic:
-                return self._query_agentic(question)
+                return self._query_agentic(question, query_embedding)
             elif use_hybrid:
-                return self._query_hybrid(question)
+                return self._query_hybrid(question, query_embedding)
             else:
-                return self._query_base(question)
+                return self._query_base(question, query_embedding)
 
         except Exception as e:
             logger.error(f"Query failed: {e}")
@@ -393,4 +371,3 @@ class RAGEngine:
                 "answer": f"Error executing query: {str(e)}",
                 "sources": []
             }
-

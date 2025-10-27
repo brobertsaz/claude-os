@@ -1,5 +1,5 @@
 """
-MCP Server for Code-Forge.
+MCP Server for Claude OS.
 Exposes RAG functionality via Model Context Protocol with HTTP transport.
 """
 
@@ -17,16 +17,17 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 import requests
-import psycopg2
 from typing import Optional
 
-from app.core.pg_manager import get_pg_manager
+from app.core.sqlite_manager import get_sqlite_manager
 from app.core.config import Config
 from app.core.kb_metadata import get_collection_stats, get_documents_metadata
 from app.core.kb_types import KBType
 from app.core.rag_engine import RAGEngine
 from app.core.agent_os_ingestion import AgentOSIngestion
 from app.core.agent_os_parser import AgentOSContentType
+from app.core.hooks import get_project_hook
+from app.core.file_watcher import get_global_watcher
 from functools import lru_cache
 import time
 from threading import Lock
@@ -44,7 +45,7 @@ RAG_ENGINE_CACHE_LOCK = Lock()
 RAG_ENGINE_CACHE_TTL = 3600  # 1 hour TTL with plenty of RAM
 
 # Initialize FastAPI
-app = FastAPI(title="Code-Forge MCP Server")
+app = FastAPI(title="Claude OS MCP Server")
 
 # Add CORS middleware
 app.add_middleware(
@@ -248,11 +249,11 @@ async def search_knowledge_base(kb_name: str, query: str, use_hybrid: bool = Fal
     try:
         start_time = time.time()
 
-        pg_manager = get_pg_manager()
-        if not pg_manager.collection_exists(kb_name):
+        db_manager = get_sqlite_manager()
+        if not db_manager.collection_exists(kb_name):
             return {"error": f"Knowledge base '{kb_name}' not found", "answer": "", "sources": []}
 
-        count = pg_manager.get_collection_count(kb_name)
+        count = db_manager.get_collection_count(kb_name)
         if count == 0:
             return {"error": f"Knowledge base '{kb_name}' is empty", "answer": "", "sources": []}
 
@@ -282,8 +283,8 @@ async def search_knowledge_base(kb_name: str, query: str, use_hybrid: bool = Fal
 async def list_knowledge_bases() -> List[Dict[str, any]]:
     """List all available knowledge bases with metadata."""
     try:
-        pg_manager = get_pg_manager()
-        kbs = pg_manager.list_collections()
+        db_manager = get_sqlite_manager()
+        kbs = db_manager.list_collections()
         logger.info(f"Listed {len(kbs)} knowledge bases")
         return kbs
     except Exception as e:
@@ -316,9 +317,9 @@ async def list_documents(kb_name: str) -> List[dict]:
 async def list_knowledge_bases_by_type(kb_type: str) -> List[Dict[str, any]]:
     """List knowledge bases filtered by type."""
     try:
-        pg_manager = get_pg_manager()
+        db_manager = get_sqlite_manager()
         kb_type_enum = KBType(kb_type)
-        kbs = pg_manager.list_collections_by_type(kb_type_enum)
+        kbs = db_manager.list_collections_by_type(kb_type_enum)
         logger.info(f"Listed {len(kbs)} knowledge bases of type {kb_type}")
         return kbs
     except Exception as e:
@@ -329,10 +330,10 @@ async def list_knowledge_bases_by_type(kb_type: str) -> List[Dict[str, any]]:
 async def create_knowledge_base(name: str, kb_type: str = "generic", description: str = "") -> dict:
     """Create a new knowledge base."""
     try:
-        pg_manager = get_pg_manager()
+        db_manager = get_sqlite_manager()
 
         # Check if already exists
-        if pg_manager.collection_exists(name):
+        if db_manager.collection_exists(name):
             return {
                 "success": False,
                 "error": f"Knowledge base '{name}' already exists"
@@ -340,7 +341,7 @@ async def create_knowledge_base(name: str, kb_type: str = "generic", description
 
         # Create collection
         kb_type_enum = KBType(kb_type)
-        success = pg_manager.create_collection(
+        success = db_manager.create_collection(
             name=name,
             kb_type=kb_type_enum,
             description=description
@@ -370,8 +371,8 @@ async def create_knowledge_base(name: str, kb_type: str = "generic", description
 async def ingest_agent_os_profile(kb_name: str, profile_path: str) -> dict:
     """Ingest an Agent OS profile into a knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         stats = agent_os_ingestion.ingest_profile(
             kb_name=kb_name,
@@ -392,8 +393,8 @@ async def ingest_agent_os_profile(kb_name: str, profile_path: str) -> dict:
 async def get_agent_os_stats(kb_name: str) -> dict:
     """Get statistics about Agent OS content in a knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         stats = agent_os_ingestion.get_profile_stats(kb_name)
         logger.info(f"Retrieved Agent OS stats for {kb_name}")
@@ -410,8 +411,8 @@ async def get_agent_os_stats(kb_name: str) -> dict:
 async def get_standards(kb_name: str, query: str = "") -> List[dict]:
     """Get coding standards from an Agent OS knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         results = agent_os_ingestion.search_by_type(
             kb_name=kb_name,
@@ -430,8 +431,8 @@ async def get_standards(kb_name: str, query: str = "") -> List[dict]:
 async def get_workflows(kb_name: str, query: str = "") -> List[dict]:
     """Get development workflows from an Agent OS knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         results = agent_os_ingestion.search_by_type(
             kb_name=kb_name,
@@ -450,8 +451,8 @@ async def get_workflows(kb_name: str, query: str = "") -> List[dict]:
 async def get_specs(kb_name: str, query: str = "") -> List[dict]:
     """Get feature specifications from an Agent OS knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         results = agent_os_ingestion.search_by_type(
             kb_name=kb_name,
@@ -470,8 +471,8 @@ async def get_specs(kb_name: str, query: str = "") -> List[dict]:
 async def get_product_context(kb_name: str) -> List[dict]:
     """Get product vision and context from an Agent OS knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        agent_os_ingestion = AgentOSIngestion(pg_manager)
+        db_manager = get_sqlite_manager()
+        agent_os_ingestion = AgentOSIngestion(db_manager)
 
         results = agent_os_ingestion.search_by_type(
             kb_name=kb_name,
@@ -525,11 +526,11 @@ async def api_create_knowledge_base(request: CreateKBRequest):
 async def api_delete_knowledge_base(kb_name: str):
     """REST API: Delete a knowledge base."""
     try:
-        pg_manager = get_pg_manager()
-        if not pg_manager.collection_exists(kb_name):
+        db_manager = get_sqlite_manager()
+        if not db_manager.collection_exists(kb_name):
             raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
-        success = pg_manager.delete_collection(kb_name)
+        success = db_manager.delete_collection(kb_name)
         if success:
             return {"success": True, "message": f"Knowledge base '{kb_name}' deleted"}
         else:
@@ -580,8 +581,8 @@ async def api_upload_document(kb_name: str, file: UploadFile = File(...)):
     from app.core.ingestion import ingest_file
 
     # Validate KB exists
-    pg_manager = get_pg_manager()
-    if not pg_manager.collection_exists(kb_name):
+    db_manager = get_sqlite_manager()
+    if not db_manager.collection_exists(kb_name):
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
     # Save uploaded file to temp location
@@ -619,8 +620,8 @@ async def api_import_directory(kb_name: str, directory_path: str):
     from app.core.ingestion import ingest_directory
 
     # Validate KB exists
-    pg_manager = get_pg_manager()
-    if not pg_manager.collection_exists(kb_name):
+    db_manager = get_sqlite_manager()
+    if not db_manager.collection_exists(kb_name):
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
     # Validate directory exists
@@ -649,15 +650,15 @@ async def api_import_directory(kb_name: str, directory_path: str):
 @app.delete("/api/kb/{kb_name}/documents/{filename}")
 async def api_delete_document(kb_name: str, filename: str):
     """REST API: Delete a document from a knowledge base by filename."""
-    pg_manager = get_pg_manager()
+    db_manager = get_sqlite_manager()
 
     # Validate KB exists
-    if not pg_manager.collection_exists(kb_name):
+    if not db_manager.collection_exists(kb_name):
         raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
     try:
         # Get the collection ID
-        conn = pg_manager.get_connection()
+        conn = db_manager.get_connection()
         try:
             with conn.cursor() as cur:
                 # Get collection ID
@@ -694,12 +695,562 @@ async def api_delete_document(kb_name: str, filename: str):
                     "kb_name": kb_name
                 }
         finally:
-            pg_manager.return_connection(conn)
+            db_manager.return_connection(conn)
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to delete document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# PROJECT MANAGEMENT ENDPOINTS (NEW - for Claude OS project integration)
+# ============================================================================
+
+class ProjectRequest(BaseModel):
+    """Request model for creating a project."""
+    name: str
+    path: str
+    description: Optional[str] = ""
+
+
+class ProjectKBFolderRequest(BaseModel):
+    """Request model for setting KB folder."""
+    mcp_type: str  # knowledge_docs, project_profile, project_index, project_memories
+    folder_path: str
+    auto_sync: bool = False
+
+
+class ProjectDocumentIngestRequest(BaseModel):
+    """Request model for ingesting a document into project MCP."""
+    mcp_type: str  # knowledge_docs, project_profile, project_index, project_memories
+    filename: str
+    content: str
+
+
+@app.get("/api/projects")
+async def api_list_projects():
+    """REST API: List all projects."""
+    try:
+        db_manager = get_sqlite_manager()
+        projects = db_manager.list_projects()
+        return {"projects": projects}
+    except Exception as e:
+        logger.error(f"Failed to list projects: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects")
+async def api_create_project(request: ProjectRequest):
+    """REST API: Create a new project with 4 required MCPs."""
+    try:
+        db_manager = get_sqlite_manager()
+
+        # Create project
+        project = db_manager.create_project(
+            name=request.name,
+            path=request.path,
+            description=request.description
+        )
+        logger.info(f"Created project: {request.name}")
+
+        # Create 4 required MCPs
+        mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        mcps_created = []
+
+        for i, mcp_type in enumerate(mcp_types):
+            kb_name = f"{request.name}-{mcp_type}"
+
+            # Create KB for this MCP type
+            kb = db_manager.create_collection(
+                name=kb_name,
+                kb_type=KBType.GENERIC,
+                description=f"{mcp_type.replace('_', ' ').title()} for {request.name}"
+            )
+
+            # Link KB to project
+            db_manager.assign_kb_to_project(
+                project["id"],
+                kb["id"],
+                mcp_type
+            )
+
+            mcps_created.append({
+                "mcp_type": mcp_type,
+                "kb_name": kb_name,
+                "kb_id": kb["id"]
+            })
+            logger.info(f"Created MCP {mcp_type} KB: {kb_name}")
+
+        return {
+            "project": project,
+            "mcps": mcps_created,
+            "message": f"Project '{request.name}' created with 4 required MCPs"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to create project: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}")
+async def api_get_project(project_id: int):
+    """REST API: Get project details with MCP assignments."""
+    try:
+        db_manager = get_sqlite_manager()
+        project = db_manager.get_project(project_id)
+
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Get MCP KBs for this project
+        project_kbs = db_manager.get_project_kbs(project_id)
+        project_folders = db_manager.get_kb_folders(project_id)
+
+        return {
+            "project": project,
+            "mcps": project_kbs,
+            "folders": project_folders
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get project: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/mcps")
+async def api_get_project_mcps(project_id: int):
+    """REST API: Get detailed MCP info for a project (KB names and IDs)."""
+    try:
+        db_manager = get_sqlite_manager()
+        project = db_manager.get_project(project_id)
+
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Get detailed MCP info with KB names (returns dict)
+        mcps_dict = db_manager.get_project_mcps_detailed(project_id)
+
+        # Convert to list format for frontend
+        mcps_list = []
+        for mcp_type, mcp_data in mcps_dict.items():
+            # Get KB slug
+            kb = db_manager.get_collection_by_id(mcp_data['kb_id'])
+            mcps_list.append({
+                "mcp_type": mcp_type,
+                "kb_id": mcp_data['kb_id'],
+                "kb_name": mcp_data['kb_name'],
+                "kb_slug": kb.get('slug', '') if kb else ''
+            })
+
+        return {
+            "project_id": project_id,
+            "project_name": project['name'],
+            "project_path": project['path'],
+            "mcps": mcps_list
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get project MCPs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/folders")
+async def api_set_kb_folder(project_id: int, request: ProjectKBFolderRequest):
+    """REST API: Set the folder path for a project's MCP KB."""
+    try:
+        db_manager = get_sqlite_manager()
+
+        # Verify project exists
+        project = db_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Verify MCP type is valid
+        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        if request.mcp_type not in valid_mcp_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid MCP type. Must be one of: {', '.join(valid_mcp_types)}"
+            )
+
+        # Verify folder exists
+        from pathlib import Path
+        folder_path = Path(request.folder_path)
+        if not folder_path.exists():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Folder does not exist: {request.folder_path}"
+            )
+
+        # Get the KB name for this MCP type
+        mcps = db_manager.get_project_mcps_detailed(project_id)
+        if request.mcp_type not in mcps:
+            raise HTTPException(
+                status_code=404,
+                detail=f"MCP type {request.mcp_type} not found for project {project_id}"
+            )
+
+        kb_name = mcps[request.mcp_type]['kb_name']
+
+        # Set folder for this MCP type
+        result = db_manager.set_kb_folder(
+            project_id,
+            request.mcp_type,
+            request.folder_path,
+            request.auto_sync
+        )
+
+        logger.info(f"Set {request.mcp_type} folder for project {project_id}: {request.folder_path} (auto_sync={request.auto_sync})")
+
+        # Automatically sync the folder contents
+        from app.core.ingestion import ingest_directory
+        sync_results = None
+        try:
+            logger.info(f"Auto-syncing folder {request.folder_path} to {kb_name}...")
+            results = ingest_directory(request.folder_path, kb_name)
+            successes = [r for r in results if r.get("status") == "success"]
+            failures = [r for r in results if r.get("status") == "error"]
+            sync_results = {
+                "total_files": len(results),
+                "successful": len(successes),
+                "failed": len(failures)
+            }
+            logger.info(f"Folder sync complete: {len(successes)}/{len(results)} files uploaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to sync folder: {e}")
+            # Don't fail the whole request if sync fails
+            sync_results = {
+                "error": str(e)
+            }
+
+        return {
+            "project_id": project_id,
+            "mcp_type": request.mcp_type,
+            "folder_path": request.folder_path,
+            "auto_sync": request.auto_sync,
+            "sync_results": sync_results,
+            "message": f"Folder configured for {request.mcp_type}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to set KB folder: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/folders")
+async def api_get_kb_folders(project_id: int):
+    """REST API: Get folder configurations for a project's MCPs."""
+    try:
+        db_manager = get_sqlite_manager()
+
+        # Verify project exists
+        project = db_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Get folder configurations
+        folders = db_manager.get_kb_folders(project_id)
+
+        return {
+            "project_id": project_id,
+            "folders": folders
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get KB folders: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/ingest-document")
+async def api_ingest_document(project_id: int, request: ProjectDocumentIngestRequest):
+    """REST API: Ingest a document directly into a project's MCP KB."""
+    try:
+        db_manager = get_sqlite_manager()
+
+        # Verify project exists
+        project = db_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Verify MCP type is valid
+        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        if request.mcp_type not in valid_mcp_types:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid MCP type. Must be one of: {', '.join(valid_mcp_types)}"
+            )
+
+        # Get the KB name for this MCP type
+        mcps = db_manager.get_project_mcps_detailed(project_id)
+        if request.mcp_type not in mcps:
+            raise HTTPException(
+                status_code=404,
+                detail=f"MCP type {request.mcp_type} not found for project {project_id}"
+            )
+
+        kb_name = mcps[request.mcp_type]['kb_name']
+
+        # Ingest the document into the KB
+        from app.core.ingestion import ingest_documents
+        try:
+            logger.info(f"Ingesting document {request.filename} to {kb_name} for project {project_id}...")
+            result = ingest_documents(
+                collection_name=kb_name,
+                documents=[request.content],
+                metadatas=[{
+                    "source": request.filename,
+                    "type": "text/markdown",
+                    "project_id": project_id
+                }]
+            )
+            logger.info(f"Document {request.filename} ingested successfully")
+
+            return {
+                "project_id": project_id,
+                "mcp_type": request.mcp_type,
+                "filename": request.filename,
+                "kb_name": kb_name,
+                "status": "success",
+                "message": f"Document {request.filename} ingested into {request.mcp_type}"
+            }
+        except Exception as e:
+            logger.error(f"Failed to ingest document {request.filename}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to ingest document: {str(e)}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to ingest document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/projects/{project_id}")
+async def api_delete_project(project_id: int):
+    """REST API: Delete a project and its associated KBs."""
+    try:
+        db_manager = get_sqlite_manager()
+
+        # Get project to verify it exists
+        project = db_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Get all KBs for this project
+        project_kbs = db_manager.get_project_kbs(project_id)
+
+        # Delete all KBs associated with this project
+        for mcp_type, kb_id in project_kbs.items():
+            # Get KB name to delete
+            collections = db_manager.list_collections()
+            for kb in collections:
+                if kb.get("id") == kb_id:
+                    db_manager.delete_collection(kb["name"])
+                    logger.info(f"Deleted KB {kb['name']} for project {project_id}")
+                    break
+
+        # Delete project (cascades to project_mcps and project_kb_folders)
+        # Note: SQLite doesn't have CASCADE by default, so we manually delete
+        conn = db_manager.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM project_kb_folders WHERE project_id = ?", (project_id,))
+            cursor.execute("DELETE FROM project_mcps WHERE project_id = ?", (project_id,))
+            cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+        logger.info(f"Deleted project {project_id}")
+
+        return {
+            "message": f"Project {project_id} and all associated KBs deleted",
+            "project_id": project_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete project: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# PROJECT HOOKS ENDPOINTS (for KB folder synchronization)
+# ============================================================================
+
+class HookRequest(BaseModel):
+    """Request model for configuring hooks."""
+    folder_path: str
+    file_patterns: Optional[List[str]] = None
+
+
+class SyncRequest(BaseModel):
+    """Request model for syncing KB folders."""
+    mcp_type: Optional[str] = None  # If None, sync all
+
+
+@app.post("/api/projects/{project_id}/hooks/{mcp_type}/enable")
+async def api_enable_hook(project_id: int, mcp_type: str, request: HookRequest):
+    """Enable automatic KB synchronization for a folder."""
+    try:
+        hook = get_project_hook(project_id)
+
+        # Enable hook
+        hook_config = hook.enable_kb_autosync(
+            mcp_type,
+            request.folder_path,
+            request.file_patterns
+        )
+
+        return {
+            "project_id": project_id,
+            "mcp_type": mcp_type,
+            "hook": hook_config,
+            "message": f"Hook enabled for {mcp_type}"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to enable hook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/hooks/{mcp_type}/disable")
+async def api_disable_hook(project_id: int, mcp_type: str):
+    """Disable automatic KB synchronization."""
+    try:
+        hook = get_project_hook(project_id)
+        hook.disable_kb_autosync(mcp_type)
+
+        return {
+            "project_id": project_id,
+            "mcp_type": mcp_type,
+            "message": f"Hook disabled for {mcp_type}"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to disable hook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/hooks/sync")
+async def api_sync_hooks(project_id: int, request: Optional[SyncRequest] = None):
+    """Manually sync KB folders for a project."""
+    try:
+        hook = get_project_hook(project_id)
+
+        if request and request.mcp_type:
+            # Sync specific MCP type
+            result = hook.sync_kb_folder(request.mcp_type)
+            return {
+                "project_id": project_id,
+                "sync_result": result
+            }
+        else:
+            # Sync all folders
+            results = hook.sync_all_folders()
+            return {
+                "project_id": project_id,
+                "sync_results": results
+            }
+
+    except Exception as e:
+        logger.error(f"Failed to sync hooks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/hooks")
+async def api_get_hooks_status(project_id: int):
+    """Get hook status for a project."""
+    try:
+        hook = get_project_hook(project_id)
+        status = hook.get_hook_status()
+
+        return {
+            "project_id": project_id,
+            "status": status
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get hooks status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# FILE WATCHER ENDPOINTS (for automatic folder synchronization)
+# ============================================================================
+
+@app.post("/api/watcher/start/{project_id}")
+async def api_start_watcher(project_id: int):
+    """Start file watcher for a project."""
+    try:
+        watcher = get_global_watcher()
+        watcher.start_project(project_id)
+
+        return {
+            "project_id": project_id,
+            "message": "File watcher started",
+            "status": watcher.get_status()
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to start watcher: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/watcher/stop/{project_id}")
+async def api_stop_watcher(project_id: int):
+    """Stop file watcher for a project."""
+    try:
+        watcher = get_global_watcher()
+        watcher.stop_project(project_id)
+
+        return {
+            "project_id": project_id,
+            "message": "File watcher stopped",
+            "status": watcher.get_status()
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to stop watcher: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/watcher/restart/{project_id}")
+async def api_restart_watcher(project_id: int):
+    """Restart file watcher for a project."""
+    try:
+        watcher = get_global_watcher()
+        watcher.restart_project(project_id)
+
+        return {
+            "project_id": project_id,
+            "message": "File watcher restarted",
+            "status": watcher.get_status()
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to restart watcher: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/watcher/status")
+async def api_watcher_status():
+    """Get file watcher status."""
+    try:
+        watcher = get_global_watcher()
+        return {"status": watcher.get_status()}
+    except Exception as e:
+        logger.error(f"Failed to get watcher status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -716,6 +1267,53 @@ async def api_list_ollama_models():
     except Exception as e:
         logger.error(f"Failed to list Ollama models: {e}")
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/browse-directory")
+async def api_browse_directory(path: str = None):
+    """REST API: Browse directories and return subdirectories."""
+    try:
+        from pathlib import Path
+        import os
+
+        # If no path provided or empty string, start from home directory
+        if not path or path.strip() == '':
+            path = str(Path.home())
+
+        # Normalize and validate path
+        dir_path = Path(path).expanduser().resolve()
+
+        # Security check: ensure path exists and is a directory
+        if not dir_path.exists():
+            raise HTTPException(status_code=404, detail=f"Directory not found: {path}")
+
+        if not dir_path.is_dir():
+            raise HTTPException(status_code=400, detail=f"Path is not a directory: {path}")
+
+        # Get subdirectories
+        subdirs = []
+        try:
+            for item in sorted(dir_path.iterdir()):
+                if item.is_dir() and not item.name.startswith('.'):
+                    subdirs.append({
+                        "name": item.name,
+                        "path": str(item),
+                        "is_dir": True
+                    })
+        except PermissionError:
+            raise HTTPException(status_code=403, detail=f"Permission denied: {path}")
+
+        return {
+            "current_path": str(dir_path),
+            "parent_path": str(dir_path.parent) if dir_path.parent != dir_path else None,
+            "subdirectories": subdirs
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to browse directory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Health check endpoint (detailed version at end of file)
@@ -738,8 +1336,8 @@ async def mcp_endpoint(request: Request):
 async def mcp_kb_endpoint(kb_slug: str, request: Request):
     """KB-specific MCP endpoint - only exposes tools for this KB."""
     # Get KB name from slug
-    pg_manager = get_pg_manager()
-    kb_name = pg_manager.get_kb_by_slug(kb_slug)
+    db_manager = get_sqlite_manager()
+    kb_name = db_manager.get_kb_by_slug(kb_slug)
 
     if not kb_name:
         return JSONResponse({
@@ -772,7 +1370,7 @@ async def handle_mcp_request(request: Request, kb_filter: Optional[str] = None) 
 
         # Handle MCP protocol methods
         if method == "initialize":
-            server_name = f"code-forge-{kb_filter}" if kb_filter else "code-forge"
+            server_name = f"claude-os-{kb_filter}" if kb_filter else "claude-os"
             return JSONResponse({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -947,16 +1545,16 @@ async def health_check():
 
     # Check PostgreSQL
     try:
-        pg_manager = get_pg_manager()
-        collections = pg_manager.list_collections()
+        db_manager = get_sqlite_manager()
+        collections = db_manager.list_collections()
 
         # Try to get schema version
-        conn = pg_manager.get_connection()
+        conn = db_manager.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
         table_count = cursor.fetchone()[0]
         cursor.close()
-        pg_manager.return_connection(conn)
+        db_manager.return_connection(conn)
 
         health_status["components"]["postgresql"] = {
             "status": "healthy",
@@ -1011,13 +1609,13 @@ async def health_check():
 
     # Check pgvector extension
     try:
-        pg_manager = get_pg_manager()
-        conn = pg_manager.get_connection()
+        db_manager = get_sqlite_manager()
+        conn = db_manager.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT extversion FROM pg_extension WHERE extname='vector';")
         result = cursor.fetchone()
         cursor.close()
-        pg_manager.return_connection(conn)
+        db_manager.return_connection(conn)
 
         if result:
             health_status["components"]["pgvector"] = {
@@ -1048,7 +1646,7 @@ async def health_check():
 
 def main():
     """Start the MCP server."""
-    logger.info(f"Starting Code-Forge MCP Server on {Config.MCP_SERVER_HOST}:{Config.MCP_SERVER_PORT}")
+    logger.info(f"Starting Claude OS MCP Server on {Config.MCP_SERVER_HOST}:{Config.MCP_SERVER_PORT}")
     logger.info(f"MCP endpoint: http://{Config.MCP_SERVER_HOST}:{Config.MCP_SERVER_PORT}/mcp")
 
     uvicorn.run(

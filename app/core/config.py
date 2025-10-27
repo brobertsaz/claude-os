@@ -1,5 +1,5 @@
 """
-Configuration management for Code-Forge.
+Configuration management for Claude OS.
 Centralizes all application settings with environment variable support.
 """
 
@@ -14,16 +14,15 @@ load_dotenv()
 
 
 class Config:
-    """Central configuration for Code-Forge application."""
+    """Central configuration for Claude OS application."""
 
     # Ollama Configuration
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:latest")  # Upgraded to faster 8B model
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
-    # ChromaDB Configuration
-    CHROMA_HOST: str = os.getenv("CHROMA_HOST", "chromadb")
-    CHROMA_PORT: int = int(os.getenv("CHROMA_PORT", "8000"))
+    # SQLite Database Configuration (replaces PostgreSQL)
+    SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", "data/claude-os.db")
 
     # MCP Server Configuration
     MCP_SERVER_HOST: str = os.getenv("MCP_SERVER_HOST", "0.0.0.0")
@@ -38,8 +37,8 @@ class Config:
     ]
 
     # RAG Configuration (Optimized for M4 Pro with 48GB RAM)
-    CHUNK_SIZE: int = 1536  # Larger chunks for better context
-    CHUNK_OVERLAP: int = 256  # More overlap for continuity
+    CHUNK_SIZE: int = 512  # Reduced to prevent Ollama crashes
+    CHUNK_OVERLAP: int = 128  # Proportional overlap
     TOP_K_RETRIEVAL: int = 20  # More chunks with plenty of RAM
     RERANK_TOP_N: int = 10  # More reranked results
     SIMILARITY_THRESHOLD: float = 0.25  # Lower threshold for broader matches
@@ -81,9 +80,11 @@ class Config:
         return cls.OLLAMA_HOST
 
     @classmethod
-    def get_chroma_url(cls) -> str:
-        """Get the full ChromaDB URL."""
-        return f"http://{cls.CHROMA_HOST}:{cls.CHROMA_PORT}"
+    def get_db_path(cls) -> str:
+        """Get the SQLite database path."""
+        db_path = Path(cls.SQLITE_DB_PATH)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        return str(db_path)
 
     @classmethod
     def get_mcp_url(cls) -> str:

@@ -1,6 +1,6 @@
-# 🚀 Sharing Code-Forge with Your Team
+# 🚀 Sharing Claude OS with Your Team
 
-This guide explains how to share Code-Forge with coworkers so they can run it on their own machines.
+This guide explains how to share Claude OS with coworkers so they can run it on their own machines.
 
 ## 📦 What Your Coworker Needs
 
@@ -28,7 +28,7 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
 1. **Push your code to the repo:**
    ```bash
    git add .
-   git commit -m "Add Code-Forge RAG system"
+   git commit -m "Add Claude OS RAG system"
    git push origin main
    ```
 
@@ -38,7 +38,7 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
    ```bash
    # Clone the repository
    git clone <your-repo-url>
-   cd code-forge
+   cd claude-os
 
    # Start the system
    docker compose up -d
@@ -61,14 +61,14 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
 1. **Create a ZIP of your project:**
    ```bash
    cd /Users/iamanmp/Projects
-   zip -r code-forge.zip code-forge \
-     -x "code-forge/data/*" \
-     -x "code-forge/.git/*" \
-     -x "code-forge/__pycache__/*" \
-     -x "code-forge/**/__pycache__/*"
+   zip -r claude-os.zip claude-os \
+     -x "claude-os/data/*" \
+     -x "claude-os/.git/*" \
+     -x "claude-os/__pycache__/*" \
+     -x "claude-os/**/__pycache__/*"
    ```
 
-2. **Share `code-forge.zip` via:**
+2. **Share `claude-os.zip` via:**
    - Email (if < 25MB)
    - Google Drive / Dropbox / OneDrive
    - Slack / Teams file sharing
@@ -76,8 +76,8 @@ That's it! No Python, Node.js, or other dependencies needed - Docker handles eve
 3. **Your coworker extracts and runs:**
    ```bash
    # Extract the ZIP
-   unzip code-forge.zip
-   cd code-forge
+   unzip claude-os.zip
+   cd claude-os
 
    # Start the system
    docker compose up -d

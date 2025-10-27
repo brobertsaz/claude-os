@@ -1,16 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link, Trash2, FolderOpen, Settings } from 'lucide-react';
 import { getKBStats, listDocuments, uploadDocument, deleteDocument, type KBStats } from '../lib/api';
+import DirectoryPicker from './DirectoryPicker';
+import axios from 'axios';
 
 interface KBManagementProps {
   kbName: string;
   kbSlug?: string;
   kbType?: string;
+  projectId?: number;
 }
 
-export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementProps) {
+export default function KBManagement({ kbName, kbSlug, kbType, projectId }: KBManagementProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadMessage, setUploadMessage] = useState('');
@@ -18,8 +21,78 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
   const [isBatchUpload, setIsBatchUpload] = useState(false);
   const [copiedMCP, setCopiedMCP] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ filename: string } | null>(null);
+  const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string>('');
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Determine if this MCP type allows manual uploads
+  const isCliManaged = kbType === 'project_index' || kbType === 'project_memories';
+  const allowsManualUpload = kbType === 'knowledge_docs' || kbType === 'project_profile';
+
+  // Fetch folder configuration for this MCP
+  const { data: folderConfig } = useQuery({
+    queryKey: ['project-folder', projectId, kbType],
+    queryFn: async () => {
+      if (!projectId || !kbType) return null;
+      try {
+        const response = await axios.get(`/api/projects/${projectId}/folders`);
+        return response.data.folders[kbType] || null;
+      } catch (error) {
+        console.error('[KBManagement] Failed to fetch folder config:', error);
+        return null;
+      }
+    },
+    enabled: !!projectId && !!kbType && allowsManualUpload,
+  });
+
+  // Update local state when folder config is loaded
+  useEffect(() => {
+    if (folderConfig) {
+      setSelectedFolder(folderConfig.folder_path || '');
+      setAutoSyncEnabled(folderConfig.auto_sync || false);
+    }
+  }, [folderConfig]);
+
+  // Save folder configuration mutation
+  const saveFolderMutation = useMutation({
+    mutationFn: async ({ folder_path, auto_sync }: { folder_path: string; auto_sync: boolean }) => {
+      if (!projectId || !kbType) throw new Error('Missing project ID or MCP type');
+      setUploadStatus('uploading');
+      setUploadMessage('⏳ Saving folder configuration and syncing files...');
+      const response = await axios.post(`/api/projects/${projectId}/folders`, {
+        mcp_type: kbType,
+        folder_path,
+        auto_sync,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['project-folder', projectId, kbType] });
+      queryClient.invalidateQueries({ queryKey: ['kb-stats', kbName] });
+      queryClient.invalidateQueries({ queryKey: ['kb-documents', kbName] });
+
+      setUploadStatus('success');
+      if (data.sync_results) {
+        if (data.sync_results.error) {
+          setUploadMessage(`⚠️ Folder saved but sync failed: ${data.sync_results.error}`);
+        } else {
+          setUploadMessage(
+            `✅ Folder saved! Synced ${data.sync_results.successful}/${data.sync_results.total_files} files successfully`
+          );
+        }
+      } else {
+        setUploadMessage('✅ Folder configuration saved');
+      }
+      setTimeout(() => setUploadStatus('idle'), 5000);
+    },
+    onError: (error: any) => {
+      setUploadStatus('error');
+      setUploadMessage(`❌ Failed to save: ${error.response?.data?.detail || error.message}`);
+      setTimeout(() => setUploadStatus('idle'), 5000);
+    },
+  });
 
   // Generate KB-specific MCP endpoint using slug (fallback to name if no slug)
   const slug = kbSlug || kbName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -274,8 +347,34 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
       >
         <h2 className="text-xl font-bold text-electric-teal mb-4 flex items-center gap-2">
           <Upload className="w-5 h-5" />
-          Upload Documents
+          {isCliManaged ? 'Documents (CLI Managed)' : 'Upload Documents'}
         </h2>
+
+        {/* CLI Managed Notice */}
+        {isCliManaged && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-blaze-orange/20 border border-blaze-orange/50 rounded-lg"
+          >
+            <div className="flex gap-3">
+              <Info className="w-5 h-5 text-blaze-orange flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-light-grey">
+                <p className="font-semibold text-white mb-2">🤖 CLI Managed MCP</p>
+                <p className="mb-2">
+                  This MCP is automatically managed by the Claude OS CLI. Documents are added/updated automatically based on your project activity.
+                </p>
+                <p className="text-xs text-light-grey/70">
+                  <strong className="text-white">{kbType === 'project_index' ? 'Project Index:' : 'Project Memories:'}</strong>
+                  {' '}
+                  {kbType === 'project_index'
+                    ? 'Automatically indexes your codebase structure, files, and symbols.'
+                    : 'Stores conversation history, decisions, and context from CLI interactions.'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Agent OS Help Text */}
         {kbType === 'AGENT_OS' && (
@@ -311,59 +410,155 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
           </motion.div>
         )}
 
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-electric-teal/30 rounded-lg p-12 text-center hover:border-electric-teal/60 transition-colors cursor-pointer"
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-            accept=".txt,.md,.pdf,.py,.js,.ts,.tsx,.jsx,.json,.yaml,.yml,.html,.css,.cpp,.c,.h,.java,.go,.rs,.rb,.php,.sh,.sql"
-          />
-
-          {selectedFiles.length === 0 ? (
-            <>
-              <FileText className="w-12 h-12 text-electric-teal/50 mx-auto mb-4" />
-              <p className="text-light-grey mb-2">Drag & drop files here, or click to browse</p>
-              <p className="text-sm text-light-grey/60">Supports: .txt, .md, .pdf, .py, .js, .ts, and more</p>
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-12 h-12 text-electric-teal mx-auto mb-4" />
-              <p className="text-white mb-2">{selectedFiles.length} file(s) selected</p>
-              <div className="text-sm text-light-grey space-y-1">
-                {selectedFiles.map((file, idx) => (
-                  <div key={idx}>{file.name}</div>
-                ))}
+        {/* Directory Sync Section - only for knowledge_docs and project_profile */}
+        {allowsManualUpload && (
+          <>
+            <div className="mb-6 space-y-4">
+              {/* Folder Selection */}
+              <div className="bg-cool-blue/10 border border-cool-blue/30 rounded-lg p-4">
+                <label className="block text-sm font-semibold text-electric-teal mb-3 flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4" />
+                  Sync Folder (Optional)
+                </label>
+                <p className="text-xs text-light-grey mb-3">
+                  Select a folder to automatically sync files into this knowledge base
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={selectedFolder}
+                    readOnly
+                    placeholder="Click 'Browse' to select a folder"
+                    className="input flex-1 bg-cool-blue/10 cursor-not-allowed"
+                  />
+                  <button
+                    onClick={() => setShowDirectoryPicker(true)}
+                    className="btn-secondary px-4 whitespace-nowrap hover:bg-electric-teal/30 transition-colors"
+                  >
+                    Browse
+                  </button>
+                  {selectedFolder && (
+                    <button
+                      onClick={() => saveFolderMutation.mutate({ folder_path: selectedFolder, auto_sync: autoSyncEnabled })}
+                      disabled={saveFolderMutation.isPending}
+                      className="btn-primary px-4 whitespace-nowrap flex items-center gap-2"
+                    >
+                      {saveFolderMutation.isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Syncing...
+                        </>
+                      ) : (
+                        'Save & Sync'
+                      )}
+                    </button>
+                  )}
+                </div>
+                {selectedFolder && (
+                  <p className="text-xs text-electric-teal mt-2">✓ Folder set: {selectedFolder}</p>
+                )}
               </div>
-            </>
-          )}
-        </div>
 
-        {selectedFiles.length > 0 && (
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={handleUpload}
-              disabled={uploadStatus === 'uploading'}
-              className="btn-primary flex-1"
+              {/* Auto-Sync Toggle */}
+              {selectedFolder && (
+                <div className="bg-blaze-orange/10 border border-blaze-orange/30 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings className="w-4 h-4 text-blaze-orange" />
+                      <label className="text-sm font-semibold text-white">
+                        Auto-Sync
+                      </label>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newValue = !autoSyncEnabled;
+                        setAutoSyncEnabled(newValue);
+                        saveFolderMutation.mutate({ folder_path: selectedFolder, auto_sync: newValue });
+                      }}
+                      disabled={saveFolderMutation.isPending}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        autoSyncEnabled ? 'bg-electric-teal' : 'bg-cool-blue/30'
+                      } ${saveFolderMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          autoSyncEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-xs text-light-grey mt-2">
+                    {autoSyncEnabled
+                      ? '✓ Files in this folder will be automatically indexed when they change'
+                      : 'Enable to automatically index files when they change'}
+                  </p>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-cool-blue/30"></div>
+                <span className="text-xs text-light-grey">OR</span>
+                <div className="flex-1 h-px bg-cool-blue/30"></div>
+              </div>
+            </div>
+
+            {/* Manual File Upload */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-electric-teal/30 rounded-lg p-12 text-center hover:border-electric-teal/60 transition-colors cursor-pointer"
             >
-              {uploadStatus === 'uploading' ? 'Uploading...' : 'Upload Files'}
-            </button>
-            <button
-              onClick={() => setSelectedFiles([])}
-              className="btn-secondary"
-            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                accept=".txt,.md,.pdf,.py,.js,.ts,.tsx,.jsx,.json,.yaml,.yml,.html,.css,.cpp,.c,.h,.java,.go,.rs,.rb,.php,.sh,.sql"
+              />
+
+              {selectedFiles.length === 0 ? (
+                <>
+                  <FileText className="w-12 h-12 text-electric-teal/50 mx-auto mb-4" />
+                  <p className="text-light-grey mb-2">Drag & drop files here, or click to browse</p>
+                  <p className="text-sm text-light-grey/60">Supports: .txt, .md, .pdf, .py, .js, .ts, and more</p>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-12 h-12 text-electric-teal mx-auto mb-4" />
+                  <p className="text-white mb-2">{selectedFiles.length} file(s) selected</p>
+                  <div className="text-sm text-light-grey space-y-1">
+                    {selectedFiles.map((file, idx) => (
+                      <div key={idx}>{file.name}</div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {selectedFiles.length > 0 && (
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={handleUpload}
+                  disabled={uploadStatus === 'uploading'}
+                  className="btn-primary flex-1"
+                >
+                  {uploadStatus === 'uploading' ? 'Uploading...' : 'Upload Files'}
+                </button>
+                <button
+                  onClick={() => setSelectedFiles([])}
+                  className="btn-secondary"
+                >
               Clear
             </button>
           </div>
         )}
+          </>
+        )}
 
-        {uploadStatus !== 'idle' && (
+        {uploadStatus !== 'idle' && allowsManualUpload && (
           <div className={`mt-4 p-4 rounded-lg ${
             uploadStatus === 'success' ? 'bg-electric-teal/20 border border-electric-teal/50' :
             uploadStatus === 'error' ? 'bg-blaze-orange/20 border border-blaze-orange/50' :
@@ -432,15 +627,17 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
                   transition={{ delay: idx * 0.05 }}
                   className="p-5 bg-gradient-to-br from-cool-blue/10 to-electric-teal/5 border-2 border-electric-teal/30 rounded-xl hover:border-electric-teal/60 hover:shadow-xl hover:shadow-electric-teal/20 hover:-translate-y-1 transition-all duration-300 relative group"
                 >
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => setDeleteConfirm({ filename: doc.filename })}
-                    disabled={deleteMutation.isPending}
-                    className="absolute top-3 right-3 p-2 bg-blaze-orange/20 hover:bg-blaze-orange/40 text-blaze-orange rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-50"
-                    title="Delete document"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Delete Button - only for manual upload types */}
+                  {allowsManualUpload && (
+                    <button
+                      onClick={() => setDeleteConfirm({ filename: doc.filename })}
+                      disabled={deleteMutation.isPending}
+                      className="absolute top-3 right-3 p-2 bg-blaze-orange/20 hover:bg-blaze-orange/40 text-blaze-orange rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:opacity-50"
+                      title="Delete document"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <div className="text-center">
                     {/* Large emoji icon */}
@@ -532,6 +729,20 @@ export default function KBManagement({ kbName, kbSlug, kbType }: KBManagementPro
           </motion.div>
         </motion.div>
       )}
+
+      {/* Directory Picker Modal */}
+      <AnimatePresence>
+        {showDirectoryPicker && (
+          <DirectoryPicker
+            initialPath={selectedFolder}
+            onSelect={(path) => {
+              setSelectedFolder(path);
+              setShowDirectoryPicker(false);
+            }}
+            onClose={() => setShowDirectoryPicker(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

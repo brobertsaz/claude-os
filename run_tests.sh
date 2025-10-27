@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Code-Forge Test Runner
+# Claude OS Test Runner
 # This script runs the test suite with proper environment setup
 
 set -e  # Exit on error
@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}================================${NC}"
-echo -e "${GREEN}Code-Forge Test Suite${NC}"
+echo -e "${GREEN}Claude OS Test Suite${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
 

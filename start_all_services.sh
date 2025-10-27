@@ -9,7 +9,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}=================================================="
-echo "🚀 Code-Forge Native Services Startup"
+echo "🚀 Claude OS - Starting All Services"
 echo "=================================================${NC}"
 echo ""
 
@@ -30,6 +30,7 @@ check_port() {
 # Function to wait for a service to be ready
 wait_for_port() {
     local port=$1
+    local service=$2
     local max_attempts=30
     local attempt=0
 
@@ -48,27 +49,19 @@ wait_for_port() {
     fi
 }
 
-# ===== 1. Check PostgreSQL =====
-echo -e "${YELLOW}1. Checking PostgreSQL...${NC}"
-if check_port 5432; then
-    echo -e "   ${GREEN}✓ PostgreSQL is running on port 5432${NC}"
-else
-    echo -e "   ${RED}✗ PostgreSQL is not running!${NC}"
-    echo "   Please start PostgreSQL first"
-    echo "   On macOS: brew services start postgresql"
-    exit 1
-fi
-echo ""
-
-# ===== 2. Check/Start Ollama =====
-echo -e "${YELLOW}2. Checking Ollama...${NC}"
+# ===== 1. Check Ollama =====
+echo -e "${YELLOW}1. Checking Ollama...${NC}"
 if check_port 11434; then
     echo -e "   ${GREEN}✓ Ollama is running on port 11434${NC}"
 else
-    echo -e "   ${YELLOW}⚠ Ollama is not running, starting...${NC}"
+    echo -e "   ${YELLOW}⚠ Ollama is not running, attempting to start...${NC}"
     brew services start ollama > /dev/null 2>&1 || true
     echo -n "   Waiting for Ollama to start"
-    wait_for_port 11434
+    if wait_for_port 11434 "Ollama"; then
+        :
+    else
+        echo -e "   ${YELLOW}⚠ Could not verify Ollama is running${NC}"
+    fi
 fi
 
 # Verify models are available
@@ -78,15 +71,15 @@ for model in llama3.1:latest nomic-embed-text:latest; do
         echo -n "."
     else
         echo -e "\n   ${YELLOW}⚠ Model $model not found, pulling...${NC}"
-        ollama pull $model > /dev/null
+        ollama pull $model > /dev/null 2>&1 || true
         echo -n "   "
     fi
 done
 echo -e " ${GREEN}✓${NC}"
 echo ""
 
-# ===== 3. Setup Python Environment =====
-echo -e "${YELLOW}3. Setting up Python environment...${NC}"
+# ===== 2. Setup Python Environment =====
+echo -e "${YELLOW}2. Setting up Python environment...${NC}"
 if [ ! -d "venv" ]; then
     echo "   Creating virtual environment..."
     python3 -m venv venv
@@ -96,8 +89,54 @@ pip install -q --upgrade pip setuptools wheel 2>/dev/null || true
 echo -e "   ${GREEN}✓ Python environment ready${NC}"
 echo ""
 
-# ===== 4. Start MCP Server =====
-echo -e "${YELLOW}4. Starting MCP Server...${NC}"
+# ===== 3. Ensure data directory exists =====
+echo -e "${YELLOW}3. Checking data directory...${NC}"
+if [ ! -d "data" ]; then
+    mkdir -p data
+    echo -e "   ${GREEN}✓ Created data/ directory${NC}"
+else
+    echo -e "   ${GREEN}✓ data/ directory exists${NC}"
+fi
+
+if [ ! -d "logs" ]; then
+    mkdir -p logs
+    echo -e "   ${GREEN}✓ Created logs/ directory${NC}"
+else
+    echo -e "   ${GREEN}✓ logs/ directory exists${NC}"
+fi
+echo ""
+
+# ===== 4. Check Redis =====
+echo -e "${YELLOW}4. Checking Redis...${NC}"
+if redis-cli ping &> /dev/null; then
+    echo -e "   ${GREEN}✓ Redis is running${NC}"
+else
+    echo -e "   ${YELLOW}⚠ Redis is not running, attempting to start...${NC}"
+    brew services start redis > /dev/null 2>&1 || redis-server --daemonize yes > /dev/null 2>&1 || true
+    sleep 2
+    if redis-cli ping &> /dev/null; then
+        echo -e "   ${GREEN}✓ Redis started successfully${NC}"
+    else
+        echo -e "   ${RED}❌ Could not start Redis${NC}"
+        echo "   Please start Redis manually: redis-server"
+    fi
+fi
+echo ""
+
+# ===== 5. Start RQ Workers (Real-Time Learning System) =====
+echo -e "${YELLOW}5. Starting RQ Workers (Real-Time Learning)...${NC}"
+if check_port 6379; then
+    nohup python -m rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler > "$PROJECT_DIR/logs/rq_workers.log" 2>&1 &
+    RQ_PID=$!
+    echo "   RQ Workers PID: $RQ_PID (logging to logs/rq_workers.log)"
+    echo -e "   ${GREEN}✓ RQ workers started${NC}"
+else
+    echo -e "   ${YELLOW}⚠ Redis not available, skipping RQ workers${NC}"
+fi
+echo ""
+
+# ===== 6. Start MCP Server =====
+echo -e "${YELLOW}6. Starting MCP Server...${NC}"
 if check_port 8051; then
     echo -e "   ${YELLOW}⚠ Port 8051 already in use, killing existing process...${NC}"
     lsof -i :8051 | grep -v COMMAND | awk '{print $2}' | xargs kill -9 2>/dev/null || true
@@ -107,14 +146,19 @@ fi
 cd "$PROJECT_DIR/mcp_server"
 nohup python server.py > "$PROJECT_DIR/logs/mcp_server.log" 2>&1 &
 MCP_PID=$!
-echo "   Server PID: $MCP_PID"
+echo "   Server PID: $MCP_PID (logging to logs/mcp_server.log)"
 echo -n "   Waiting for server to start"
-wait_for_port 8051
+if wait_for_port 8051 "MCP Server"; then
+    :
+else
+    echo -e "   ${YELLOW}⚠ Could not verify server is running${NC}"
+    echo "   Check logs with: tail -f logs/mcp_server.log"
+fi
 cd "$PROJECT_DIR"
 echo ""
 
-# ===== 5. Start React Frontend =====
-echo -e "${YELLOW}5. Starting React Frontend...${NC}"
+# ===== 7. Start React Frontend =====
+echo -e "${YELLOW}7. Starting React Frontend...${NC}"
 if check_port 5173; then
     echo -e "   ${YELLOW}⚠ Port 5173 already in use, killing existing process...${NC}"
     lsof -i :5173 | grep -v COMMAND | awk '{print $2}' | xargs kill -9 2>/dev/null || true
@@ -124,9 +168,14 @@ fi
 cd "$PROJECT_DIR/frontend"
 nohup npm run dev -- --host 0.0.0.0 > "$PROJECT_DIR/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
-echo "   Frontend PID: $FRONTEND_PID"
+echo "   Frontend PID: $FRONTEND_PID (logging to logs/frontend.log)"
 echo -n "   Waiting for frontend to start"
-wait_for_port 5173
+if wait_for_port 5173 "Frontend"; then
+    :
+else
+    echo -e "   ${YELLOW}⚠ Could not verify frontend is running${NC}"
+    echo "   Check logs with: tail -f logs/frontend.log"
+fi
 cd "$PROJECT_DIR"
 echo ""
 
@@ -136,19 +185,39 @@ echo "✅ All Services Started Successfully!"
 echo "=================================================${NC}"
 echo ""
 echo -e "${GREEN}📡 Service URLs:${NC}"
-echo "   Frontend:    http://localhost:5173"
-echo "   MCP Server:  http://localhost:8051"
-echo "   API:         http://localhost:8051/api"
+echo "   🎨 Frontend:    http://localhost:5173"
+echo "   🔌 API Server:  http://localhost:8051"
+echo "   📚 API Docs:    http://localhost:8051/docs"
+echo ""
+echo -e "${GREEN}🔧 Ollama:${NC}"
+echo "   Host:    http://localhost:11434"
+echo "   Models:  llama3.1:latest, nomic-embed-text:latest"
+echo ""
+echo -e "${GREEN}💾 Databases:${NC}"
+echo "   SQLite:  data/claude-os.db"
+echo "   Redis:   localhost:6379"
+echo ""
+echo -e "${GREEN}🤖 Real-Time Learning System:${NC}"
+echo "   RQ Workers: listening on 3 queues"
+echo "   Queues: claude-os:learning, prompts, ingest"
+echo "   Status: Active & always learning!"
 echo ""
 echo -e "${GREEN}📝 Log Files:${NC}"
-echo "   MCP Server:  logs/mcp_server.log"
-echo "   Frontend:    logs/frontend.log"
+echo "   MCP Server:   logs/mcp_server.log"
+echo "   Frontend:     logs/frontend.log"
+echo "   RQ Workers:   logs/rq_workers.log"
 echo ""
 echo -e "${GREEN}🛑 To Stop All Services:${NC}"
 echo "   ./stop_all_services.sh"
 echo ""
+echo -e "${GREEN}🔄 To Restart All Services:${NC}"
+echo "   ./restart_services.sh"
+echo ""
 echo -e "${YELLOW}💡 Tips:${NC}"
 echo "   - Frontend will auto-reload on code changes"
-echo "   - MCP Server may need restart for Python changes"
-echo "   - View logs with: tail -f logs/mcp_server.log"
+echo "   - View logs: tail -f logs/mcp_server.log"
+echo "   - Backup DB: cp data/claude-os.db data/claude-os.db.backup"
+echo "   - Restart MCP: kill $MCP_PID && ./start_all_services.sh"
+echo ""
+echo -e "${GREEN}🚀 Enjoy building with Claude OS!${NC}"
 echo ""

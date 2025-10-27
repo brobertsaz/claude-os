@@ -43,7 +43,7 @@ You: "Show me my memories about Block deprecation"
 - Usage: Just say "Remember:" and I handle it
 - Already seeded with 3 memories from today
 
-### Code-Forge Knowledge Base
+### Claude OS Knowledge Base
 - Status: 130 documents indexed (495 chunks)
 - Content: 82 services, 286 models, 138 migrations, 50 controllers
 - Updates: Automatically via git hooks
@@ -97,7 +97,7 @@ You: "Show me my memories about Block deprecation"
 4. **MEMORY_MCP_GUIDE.md** (405+ lines)
 5. **CLAUDE_OS_VISION.md** (464+ lines)
 
-All committed to Code-Forge.
+All committed to Claude OS.
 
 ---
 

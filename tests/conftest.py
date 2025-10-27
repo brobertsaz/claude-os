@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for Code-Forge tests.
+Pytest configuration and shared fixtures for Claude OS tests.
 """
 
 import os

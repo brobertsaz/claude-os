@@ -158,9 +158,9 @@ Tags: MemoryMCP, System, Infrastructure, Claude, Features
 Content: Why Memory MCP exists, advantages over KB, how it works
 ```
 
-### 3. Code-Forge TIER 1 Extraction
+### 3. Claude OS TIER 1 Extraction
 ```
-Title: Code-Forge TIER 1 Extraction Complete
+Title: Claude OS TIER 1 Extraction Complete
 Tags: CodeForge, PISTN, KnowledgeBase, AutoIndexing, MCP
 Content: 130 documents indexed, git hook auto-updating, 495 chunks
 ```
@@ -221,9 +221,9 @@ System components:
 
 #### Memory 3: Knowledge Extraction
 ```
-Title: Code-Forge TIER 1 Extraction Complete
+Title: Claude OS TIER 1 Extraction Complete
 
-PISTN Code-Forge indexing:
+PISTN Claude OS indexing:
 ✓ 82 service classes indexed
 ✓ 286 models indexed
 ✓ 138 migrations indexed
@@ -252,7 +252,7 @@ You: "What did we accomplish yesterday?"
    - No search required - instant context recall
    - Works across all sessions
 
-3. **Code-Forge Updates**
+3. **Claude OS Updates**
    - Tier 1 PISTN extraction: 130 docs, 495 chunks
    - Git hook auto-updates on commits
 
@@ -372,7 +372,7 @@ echo '{"action":"all","params":{}}' | python3 ~/.claude/mcp-servers/memory/serve
 Memory MCP is part of a complete **knowledge system for PISTN development**:
 
 ```
-Code-Forge KB          ← Searchable codebase knowledge
+Claude OS KB          ← Searchable codebase knowledge
     +
 Memory MCP             ← Recent project context
     +

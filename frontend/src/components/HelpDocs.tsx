@@ -9,8 +9,8 @@ export default function HelpDocs() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold gradient-text mb-2">Code-Forge Documentation</h1>
-        <p className="text-light-grey">Everything you need to know about using Code-Forge</p>
+        <h1 className="text-3xl font-bold gradient-text mb-2">Claude OS Documentation</h1>
+        <p className="text-light-grey">Everything you need to know about using Claude OS</p>
       </motion.div>
 
       {/* Quick Start */}
@@ -164,7 +164,7 @@ export default function HelpDocs() {
           <div className="p-2 bg-cool-blue/10 rounded border border-electric-teal/20 text-center">.go</div>
           <div className="p-2 bg-cool-blue/10 rounded border border-electric-teal/20 text-center">.rs</div>
         </div>
-        <p className="text-sm text-light-grey mt-4">And many more! Code-Forge automatically extracts text from PDFs and processes markdown with enhanced structure preservation.</p>
+        <p className="text-sm text-light-grey mt-4">And many more! Claude OS automatically extracts text from PDFs and processes markdown with enhanced structure preservation.</p>
       </motion.div>
 
       {/* MCP Integration */}
@@ -178,7 +178,7 @@ export default function HelpDocs() {
           <MessageSquare className="w-6 h-6" />
           MCP Integration
         </h2>
-        <p className="text-light-grey mb-4">Code-Forge exposes 12 MCP tools for AI agents to interact with your knowledge bases:</p>
+        <p className="text-light-grey mb-4">Claude OS exposes 12 MCP tools for AI agents to interact with your knowledge bases:</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-6">
           <div className="p-3 bg-cool-blue/10 rounded border border-electric-teal/20">
             <code className="text-electric-teal">list_knowledge_bases</code>
@@ -254,7 +254,7 @@ export default function HelpDocs() {
               <p className="text-sm text-white mb-2"><strong>Option 2: Global Endpoint</strong></p>
               <p className="text-sm text-light-grey mb-3">Add all knowledge bases at once:</p>
               <div className="bg-deep-night rounded-lg p-4 border border-electric-teal/30">
-                <code className="text-electric-teal text-sm">claude mcp add code-forge http://localhost:8051/mcp</code>
+                <code className="text-electric-teal text-sm">claude mcp add claude-os http://localhost:8051/mcp</code>
               </div>
               <p className="text-xs text-light-grey mt-2">
                 This exposes all KBs through a single endpoint with tools like <code className="text-electric-teal">search_knowledge_base</code> that require a <code className="text-electric-teal">kb_name</code> parameter.

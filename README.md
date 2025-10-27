@@ -1,14 +1,14 @@
-# Code-Forge
+# Claude OS
 
 ```text
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║   ██████╗ ██████╗ ██████╗ ███████╗    ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
-║  ██╔════╝██╔═══██╗██╔══██╗██╔════╝    ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
-║  ██║     ██║   ██║██║  ██║█████╗      █████╗  ██║   ██║██████╔╝██║  ███╗█████╗
-║  ██║     ██║   ██║██║  ██║██╔══╝      ██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
-║  ╚██████╗╚██████╔╝██████╔╝███████╗    ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
-║   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+║  ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗    ██████╗ ███████╗
+║ ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝   ██╔═══██╗██╔════╝
+║ ██║     ██║     ███████║██║   ██║██║  ██║█████╗     ██║   ██║███████╗
+║ ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝     ██║   ██║╚════██║
+║ ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗   ╚██████╔╝███████║
+║  ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═════╝ ╚══════╝
 ║                                                               ║
 ║           Localized Multi-Knowledge-Base RAG System           ║
 ║                    with MCP Integration                       ║
@@ -16,20 +16,20 @@
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-> **Production-grade RAG system** with PostgreSQL + pgvector, Ollama LLMs, and Model Context Protocol. Runs 100% locally on your machine.
+> **Production-grade RAG system** with SQLite vector search, Ollama LLMs, and Model Context Protocol. Runs 100% locally on your machine.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![PostgreSQL 16+](https://img.shields.io/badge/PostgreSQL-16+-green.svg)](https://www.postgresql.org/)
+[![SQLite](https://img.shields.io/badge/SQLite-3.0+-green.svg)](https://www.sqlite.org/)
 [![Ollama](https://img.shields.io/badge/Ollama-Latest-pink.svg)](https://ollama.ai/)
 
 ---
 
-## 🚀 What is Code-Forge?
+## 🚀 What is Claude OS?
 
-**Code-Forge** is a **localized RAG (Retrieval-Augmented Generation) system** designed to make AI assistants deeply knowledgeable about your codebase and documentation. It combines:
+**Claude OS** is a **localized RAG (Retrieval-Augmented Generation) system** designed to make AI assistants deeply knowledgeable about your codebase and documentation. It combines:
 
-- **🗄️ PostgreSQL + pgvector** - Vector database for semantic search
+- **🗄️ SQLite + sqlite-vec** - Lightweight vector database for semantic search
 - **🤖 Ollama** - Local LLMs (llama3.1) with no API keys needed
 - **🔌 MCP Integration** - Claude Desktop integration via Model Context Protocol
 - **⚡ React UI** - Modern dashboard for managing knowledge bases
@@ -52,22 +52,12 @@
 
 Before running the setup, ensure you have:
 
-1. **PostgreSQL 16+** (macOS)
-   ```bash
-   # Install via Homebrew
-   brew install postgresql@16
-   brew services start postgresql@16
-
-   # Verify
-   psql --version
-   ```
-
-2. **Python 3.11+**
+1. **Python 3.11+**
    ```bash
    python3 --version
    ```
 
-3. **Node.js 16+** (for React frontend)
+2. **Node.js 16+** (for React frontend)
    ```bash
    node --version
    ```
@@ -77,7 +67,7 @@ Before running the setup, ensure you have:
 1. **Clone the repository**
    ```bash
    git clone <repo-url>
-   cd code-forge
+   cd claude-os
    ```
 
 2. **Run the setup script** (handles Ollama, Python, models)
@@ -87,11 +77,10 @@ Before running the setup, ensure you have:
    ```
 
    This will:
-   - ✅ Check PostgreSQL is installed and running
-   - ✅ Create the `codeforge` database automatically
    - ✅ Install/start Ollama
    - ✅ Download LLM models (5-10 GB total)
    - ✅ Setup Python environment
+   - ✅ Initialize SQLite database
 
 3. **Start services**
    ```bash
@@ -201,10 +190,10 @@ Once added as MCP server, Claude can query automatically when working on your pr
 └───────┬────────────┘
         │
 ┌───────▼────────────────────────────────────────┐
-│   PostgreSQL + pgvector (Local Database)       │
+│   SQLite + sqlite-vec (Local Database)         │
 │  • knowledge_bases                             │
 │  • documents (with embeddings)                 │
-│  • Full ACID compliance                        │
+│  • Single-file database                        │
 └────────────────────────────────────────────────┘
         │
         └─────────────────────┐
@@ -226,28 +215,16 @@ Once added as MCP server, Claude can query automatically when working on your pr
 The system uses sensible defaults, but you can customize via environment variables:
 
 ```bash
-# PostgreSQL
-POSTGRES_HOST=localhost          # Default: localhost
-POSTGRES_PORT=5432              # Default: 5432
-POSTGRES_DB=codeforge           # Default: codeforge
-POSTGRES_USER=$USER             # Default: current user
-POSTGRES_PASSWORD=              # Default: empty (no password)
+# SQLite Database
+SQLITE_DB_PATH=data/claude-os.db  # Default: data/claude-os.db
 
 # Ollama
 OLLAMA_HOST=http://localhost:11434  # Default: localhost:11434
+OLLAMA_MODEL=llama3.1:latest        # Default: llama3.1:latest
 
 # MCP Server
 MCP_SERVER_HOST=0.0.0.0         # Default: 0.0.0.0
 MCP_SERVER_PORT=8051            # Default: 8051
-```
-
-### PostgreSQL Password (if needed)
-
-If your PostgreSQL requires a password:
-
-```bash
-export POSTGRES_PASSWORD="your_password"
-./start_all_services.sh
 ```
 
 ---
@@ -261,21 +238,21 @@ export POSTGRES_PASSWORD="your_password"
 - CPU usage: 12 cores (M4 Pro, leaves 2 for system)
 
 **Why it's fast:**
-- 33-56% faster than Docker containers
 - Direct GPU acceleration (no virtualization)
-- Efficient vector search in PostgreSQL
+- Efficient vector search in SQLite
 - Optimized RAG engine with caching
+- Single-file database with minimal overhead
 
 ---
 
 ## 📁 Project Structure
 
 ```
-code-forge/
+claude-os/
 ├── app/                    # Backend application
 │   ├── core/              # Core modules
 │   │   ├── config.py      # Configuration management
-│   │   ├── pg_manager.py  # PostgreSQL interface
+│   │   ├── sqlite_manager.py  # SQLite interface
 │   │   ├── rag_engine.py  # RAG logic
 │   │   └── ...
 │   ├── db/                # Database schemas
@@ -301,20 +278,17 @@ code-forge/
 
 ## 🐛 Troubleshooting
 
-### PostgreSQL Connection Issues
+### Database Issues
+
+The SQLite database is automatically created at `data/claude-os.db`. If you encounter issues:
 
 ```bash
-# Check if PostgreSQL is running
-brew services list | grep postgresql
-
-# Start PostgreSQL if stopped
-brew services start postgresql@16
-
 # Check if database exists
-psql -h localhost -U $USER -l | grep codeforge
+ls -lh data/claude-os.db
 
-# If database doesn't exist, create it
-createdb -h localhost -U $USER codeforge
+# Remove and recreate (WARNING: deletes all data)
+rm data/claude-os.db
+# Restart the server to recreate
 ```
 
 ### Ollama Issues

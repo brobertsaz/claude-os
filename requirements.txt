@@ -2,13 +2,13 @@
 llama-index>=0.10.0
 llama-index-llms-ollama>=0.1.0
 llama-index-embeddings-ollama>=0.1.0
-llama-index-vector-stores-postgres>=0.1.0
 
-# Vector Database
-psycopg2-binary>=2.9.9
-pgvector>=0.2.0
-sqlalchemy>=2.0.0
+# Vector Database (SQLite-based)
+sqlite-vec>=0.1.0
 numpy>=1.24.0
+
+# File system watching
+watchdog>=3.0.0
 
 # Document Processing
 pymupdf>=1.23.0
@@ -26,6 +26,10 @@ pydantic>=2.0.0
 # Utilities
 python-dotenv>=1.0.0
 requests>=2.31.0
+
+# Real-time Learning System
+redis>=5.0.0  # Redis client for pub/sub and caching
+rq>=1.14.0    # Job queue (Python equivalent of Sidekiq)
 
 # Testing
 pytest>=7.4.0

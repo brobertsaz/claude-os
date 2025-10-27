@@ -27,15 +27,15 @@ export default function Welcome() {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             <img
-              src="/assets/hero.png"
-              alt="Code-Forge Hero"
+              src="/assets/claude-os-hero.png"
+              alt="Claude OS Hero"
               className="mx-auto max-w-2xl w-full drop-shadow-[0_0_50px_rgba(0,255,255,0.6)]"
             />
           </motion.div>
 
           {/* Subtitle */}
           <p className="text-2xl text-electric-teal mb-8">
-            Production-Grade RAG System with PostgreSQL + pgvector
+            Claude OS: AI-Assisted Development with Persistent Context
           </p>
 
           {/* CTA Button */}
@@ -60,8 +60,8 @@ export default function Welcome() {
         >
           <FeatureCard
             icon={<Database className="w-8 h-8" />}
-            title="PostgreSQL + pgvector"
-            description="ACID-compliant vector database with production-grade reliability"
+            title="SQLite + Vector Embeddings"
+            description="Single-file database with zero external dependencies"
             delay={0.1}
           />
           <FeatureCard
@@ -72,14 +72,14 @@ export default function Welcome() {
           />
           <FeatureCard
             icon={<Zap className="w-8 h-8" />}
-            title="MCP Integration"
-            description="Expose knowledge bases to AI agents via Model Context Protocol"
+            title="Project Management"
+            description="Organize code with 4 required MCPs: docs, profile, index, memories"
             delay={0.3}
           />
           <FeatureCard
             icon={<BookOpen className="w-8 h-8" />}
-            title="Multi-KB Architecture"
-            description="Isolated knowledge bases per project with type-aware organization"
+            title="Persistent Context"
+            description="Remember context across sessions with Memory MCP"
             delay={0.4}
           />
           <FeatureCard
@@ -90,8 +90,8 @@ export default function Welcome() {
           />
           <FeatureCard
             icon={<Zap className="w-8 h-8" />}
-            title="High-Tech UI"
-            description="Electric teal & blaze orange design that looks fucking amazing"
+            title="Beautiful UI"
+            description="Modern design with electric teal & vibrant colors"
             delay={0.6}
           />
         </motion.div>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Code-Forge now supports **KB-specific MCP endpoints** that allow you to connect individual knowledge bases to Claude Desktop, rather than exposing all KBs through a single global endpoint.
+Claude OS now supports **KB-specific MCP endpoints** that allow you to connect individual knowledge bases to Claude Desktop, rather than exposing all KBs through a single global endpoint.
 
 ## Architecture
 
@@ -85,7 +85,7 @@ http://localhost:8051/mcp/kb/pistn-agent-os (KB-specific, using slug)
 3. **KB-scoped tool filtering:**
    - When `kb_filter` is set, only 3 tools are exposed: `search`, `get_stats`, `list_documents`
    - Tool calls automatically inject the `kb_name` parameter
-   - Server name includes KB name: `code-forge-{kb_name}`
+   - Server name includes KB name: `claude-os-{kb_name}`
 
 ### Frontend Changes
 

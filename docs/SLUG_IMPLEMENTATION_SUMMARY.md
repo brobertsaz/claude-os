@@ -147,7 +147,7 @@ curl -X POST http://localhost:8051/mcp/kb/pistn \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 
-✅ Response: {"serverInfo":{"name":"code-forge-Pistn"}}
+✅ Response: {"serverInfo":{"name":"claude-os-Pistn"}}
 ```
 
 **Test 2: Pistn Agent OS (slug with hyphen)**
@@ -194,7 +194,7 @@ claude mcp add pistn-agent-os http://localhost:8051/mcp/kb/pistn-agent-os
 
 ### Finding Slugs in UI
 
-1. Open Code-Forge UI at `http://localhost:5173`
+1. Open Claude OS UI at `http://localhost:5173`
 2. Select a knowledge base
 3. Go to **KB Management** tab
 4. Look for the **MCP Integration** section

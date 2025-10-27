@@ -1,4 +1,4 @@
-# Deleting Documents from Code-Forge MCP
+# Deleting Documents from Claude OS MCP
 
 **When you need to remove previously uploaded documents from a knowledge base.**
 
@@ -156,8 +156,8 @@ The endpoint might not have loaded properly. Restart the MCP server:
 pkill -f "uvicorn.*8051"
 
 # Restart
-source /Users/iamanmp/Projects/code-forge/venv/bin/activate
-python /Users/iamanmp/Projects/code-forge/mcp_server/server.py > /tmp/mcp_server.log 2>&1 &
+source /Users/iamanmp/Projects/claude-os/venv/bin/activate
+python /Users/iamanmp/Projects/claude-os/mcp_server/server.py > /tmp/mcp_server.log 2>&1 &
 
 # Wait for startup
 sleep 3

@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Code-Forge Design Guide colors
+        // Claude OS Design Guide colors
         'deep-night': '#0A0E1A',
         'electric-teal': '#00FFFF',
         'blaze-orange': '#FF8C00',

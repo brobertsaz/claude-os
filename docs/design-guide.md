@@ -1,11 +1,11 @@
-# Code-Forge Design Guide: Enhanced High-Contrast Palette
+# Claude OS Design Guide: Enhanced High-Contrast Palette
 
 ## Concept
 A dynamic, modern, and high-tech aesthetic, emphasizing extreme clarity and energetic innovation. The colors evoke digital craftsmanship and cutting-edge technology, with a deliberate focus on high contrast to ensure visual impact and accessibility.
 
 ## Primary Color Palette
 
-Here are the core colors that define the Code-Forge brand, designed for maximum brightness and contrast:
+Here are the core colors that define the Claude OS brand, designed for maximum brightness and contrast:
 
 1.  ### **Deep Night (Background)**
     * **Hex:** `#0A0E1A`

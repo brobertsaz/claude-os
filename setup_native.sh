@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Setting up Code-Forge MCP Server - NATIVE (No Docker)"
+echo "🚀 Claude OS Setup - NATIVE (No Docker, No PostgreSQL)"
 echo "=================================================="
 echo ""
 
@@ -11,91 +11,60 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     exit 1
 fi
 
-echo "Step 1: Checking PostgreSQL installation..."
-if ! command -v psql &> /dev/null; then
-    echo "  ❌ PostgreSQL not found. Please install it first:"
+echo "Step 1: Checking Ollama installation..."
+if ! command -v ollama &> /dev/null; then
+    echo "  ❌ Ollama not found. Please install it first:"
     echo ""
     echo "  Option A: Via Homebrew (recommended)"
-    echo "    brew install postgresql@16"
-    echo "    brew services start postgresql@16"
+    echo "    brew install ollama"
+    echo "    brew services start ollama"
     echo ""
-    echo "  Option B: Download from https://www.postgresql.org/download/macosx/"
+    echo "  Option B: Download from https://ollama.ai"
     echo ""
     exit 1
 fi
 
-PSQL_VERSION=$(psql --version | cut -d' ' -f3)
-echo "  ✅ PostgreSQL $PSQL_VERSION found"
+OLLAMA_VERSION=$(ollama --version 2>/dev/null | cut -d' ' -f2)
+echo "  ✅ Ollama found"
 
-# Check if PostgreSQL is running
-if ! pg_isready -h localhost &> /dev/null; then
-    echo "  ⚠️  PostgreSQL is not running. Starting..."
-    brew services start postgresql@16 2>/dev/null || true
-    sleep 2
-fi
-
-# Create database if it doesn't exist
-echo "  Setting up 'codeforge' database..."
-if ! psql -h localhost -U "$USER" -l 2>/dev/null | grep -q "codeforge"; then
-    createdb -h localhost -U "$USER" codeforge 2>/dev/null || true
-    echo "  ✅ Database 'codeforge' created"
-else
-    echo "  ✅ Database 'codeforge' already exists"
-fi
-
-# Test connection
-if psql -h localhost -U "$USER" -d codeforge -c "SELECT 1" > /dev/null 2>&1; then
-    echo "  ✅ PostgreSQL connection verified"
-else
-    echo "  ⚠️  Could not connect to PostgreSQL as user '$USER'"
-    echo "  You may need to set POSTGRES_PASSWORD environment variable"
-fi
-
-echo ""
-echo "Step 2: Installing Ollama for macOS (Apple Silicon optimized)..."
-# Download Ollama for macOS
-if ! command -v ollama &> /dev/null; then
-    echo "  Downloading Ollama..."
-    # For Apple Silicon Mac
-    curl -L "https://ollama.ai/download/Ollama-arm64.zip" -o /tmp/Ollama.zip
-    unzip -o /tmp/Ollama.zip -d /Applications/
-    rm /tmp/Ollama.zip
-
-    # Create symlink for CLI access
-    sudo ln -sf /Applications/Ollama.app/Contents/Resources/ollama /usr/local/bin/ollama 2>/dev/null || true
-
-    echo "  ✅ Ollama installed successfully"
-else
-    echo "  ✅ Ollama already installed at $(which ollama)"
-fi
-
-echo ""
-echo "Step 3: Starting Ollama service..."
-# Start Ollama in the background
-# Check if already running
-if ! pgrep -x "ollama" > /dev/null; then
-    # Start Ollama daemon
-    launchctl stop com.ollama.ollama 2>/dev/null || true
-    sleep 1
-    launchctl start com.ollama.ollama 2>/dev/null || true
-
-    # Also try direct command
-    nohup ollama serve > ~/.ollama/logs.txt 2>&1 &
+# Check if Ollama is running
+echo "  Checking if Ollama is running..."
+if ! curl -s http://localhost:11434/api/tags &> /dev/null; then
+    echo "  ⚠️  Ollama is not running. Starting..."
+    brew services start ollama 2>/dev/null || true
     sleep 3
-    echo "  ✅ Ollama started (check with: ollama list)"
+fi
+
+if curl -s http://localhost:11434/api/tags &> /dev/null; then
+    echo "  ✅ Ollama is running on port 11434"
 else
-    echo "  ✅ Ollama already running"
+    echo "  ⚠️  Could not verify Ollama is running"
 fi
 
 echo ""
-echo "Step 4: Pulling required models..."
-echo "  This may take a few minutes for llama3.1:latest (8B)..."
-ollama pull llama3.1:latest
-ollama pull nomic-embed-text:latest
+echo "Step 2: Pulling required models..."
+echo "  This may take a few minutes (first time only)..."
+
+# Pull llama3.1 model
+if ! ollama list | grep -q "llama3.1"; then
+    echo "  📥 Pulling llama3.1:latest (8B model)..."
+    ollama pull llama3.1:latest
+else
+    echo "  ✅ llama3.1:latest already available"
+fi
+
+# Pull embedding model
+if ! ollama list | grep -q "nomic-embed-text"; then
+    echo "  📥 Pulling nomic-embed-text (embeddings)..."
+    ollama pull nomic-embed-text:latest
+else
+    echo "  ✅ nomic-embed-text already available"
+fi
+
 echo "  ✅ Models ready"
 
 echo ""
-echo "Step 5: Setting up Python environment..."
+echo "Step 3: Setting up Python environment..."
 
 # Check Python version
 if ! command -v python3 &> /dev/null; then
@@ -116,38 +85,84 @@ fi
 source venv/bin/activate
 
 echo "  Installing Python dependencies..."
-pip install -q --upgrade pip
+pip install -q --upgrade pip setuptools wheel
 pip install -q -r requirements.txt
 
 echo "  ✅ Python environment ready"
 
 echo ""
-echo "Step 6: Updating configuration..."
+echo "Step 4: Creating data directory..."
 
-# Update rag_engine.py to use localhost
-sed -i '' 's|base_url=Config.OLLAMA_HOST|base_url="http://localhost:11434"|g' app/core/rag_engine.py
+# Create data directory for SQLite database
+if [ ! -d "data" ]; then
+    mkdir -p data
+    echo "  ✅ Created data/ directory"
+else
+    echo "  ✅ data/ directory already exists"
+fi
 
-# Also ensure we're using the right model
-sed -i '' 's|model="llama3.1:latest"|model="llama3.1:latest"|g' app/core/rag_engine.py
+# Create logs directory
+if [ ! -d "logs" ]; then
+    mkdir -p logs
+    echo "  ✅ Created logs/ directory"
+else
+    echo "  ✅ logs/ directory already exists"
+fi
 
-echo "  ✅ Configuration updated"
+echo ""
+echo "Step 5: Initializing SQLite database..."
+
+# The database will be created automatically on first run
+# But we can verify the schema will be set up
+if [ -f "app/db/schema.sqlite" ]; then
+    echo "  ✅ SQLite schema file found"
+    echo "  💾 Database will be created at: data/claude-os.db"
+else
+    echo "  ⚠️  Schema file not found, but database will auto-initialize"
+fi
+
+echo ""
+echo "Step 6: Setting up Node.js frontend..."
+
+# Check if Node is installed
+if ! command -v node &> /dev/null; then
+    echo "  ⚠️  Node.js not found. Install from https://nodejs.org"
+    echo "  Frontend setup skipped (you can set it up later)"
+else
+    NODE_VERSION=$(node --version)
+    echo "  ✅ Node.js $NODE_VERSION found"
+
+    if [ -d "frontend" ]; then
+        echo "  Installing frontend dependencies..."
+        cd frontend
+        npm install > /dev/null 2>&1 || true
+        cd ..
+        echo "  ✅ Frontend dependencies ready"
+    fi
+fi
 
 echo ""
 echo "=================================================="
-echo "✅ Setup Complete!"
+echo "✅ Claude OS Setup Complete!"
 echo "=================================================="
 echo ""
-echo "To start the MCP server, run:"
+echo "🎯 Next Steps:"
 echo ""
-echo "  source venv/bin/activate"
-echo "  cd mcp_server"
-echo "  python server.py"
+echo "1. Start Claude OS:"
+echo "   ./start_all_services.sh"
 echo ""
-echo "The MCP server will be available at: http://localhost:8051"
+echo "2. Access the UI:"
+echo "   Frontend: http://localhost:5173"
+echo "   API:      http://localhost:8051"
 echo ""
-echo "To check Ollama status:"
-echo "  ollama list          # Show loaded models"
-echo "  ollama ps            # Show running models"
-echo "  ollama serve         # Start Ollama manually"
+echo "3. Manage services:"
+echo "   Restart: ./restart_services.sh"
+echo "   Stop:    ./stop_all_services.sh"
 echo ""
-echo "Your M4 Pro will now use full Metal GPU acceleration! 🚀"
+echo "📚 Database:"
+echo "   Type:     SQLite (single file)"
+echo "   Location: data/claude-os.db"
+echo "   Backup:   cp data/claude-os.db data/claude-os.db.backup"
+echo ""
+echo "🚀 You're all set! Let's build something amazing!"
+echo ""

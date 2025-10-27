@@ -2,7 +2,7 @@
 Agent OS Parser Module
 
 Parses Agent OS profile directory structures and extracts structured content
-for ingestion into Code-Forge knowledge bases.
+for ingestion into Claude OS knowledge bases.
 
 Agent OS Structure:
 - standards/ - Coding standards and best practices

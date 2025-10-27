@@ -1,6 +1,6 @@
-# Native Code-Forge Setup (No Docker)
+# Native Claude OS Setup (No Docker)
 
-This guide covers running Code-Forge natively on your M4 Pro Mac with Metal GPU acceleration.
+This guide covers running Claude OS natively on your M4 Pro Mac with Metal GPU acceleration.
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ Once all prerequisites are installed and running:
 
 ```bash
 # From the project directory
-cd ~/Projects/code-forge
+cd ~/Projects/claude-os
 
 # Start all services
 ./start_all_services.sh

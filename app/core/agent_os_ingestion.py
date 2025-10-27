@@ -1,7 +1,7 @@
 """
 Agent OS Ingestion Module
 
-Handles ingestion of Agent OS profiles into Code-Forge knowledge bases.
+Handles ingestion of Agent OS profiles into Claude OS knowledge bases.
 Integrates with ChromaManager to store parsed Agent OS content.
 """
 
@@ -12,7 +12,7 @@ from pathlib import Path
 from llama_index.embeddings.ollama import OllamaEmbedding
 
 from app.core.agent_os_parser import AgentOSParser, AgentOSDocument, AgentOSContentType
-from app.core.pg_manager import PostgresManager
+from app.core.sqlite_manager import SQLiteManager
 from app.core.config import Config
 
 logger = logging.getLogger(__name__)
@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 class AgentOSIngestion:
     """Handles ingestion of Agent OS profiles into knowledge bases."""
 
-    def __init__(self, db_manager: PostgresManager):
+    def __init__(self, db_manager: SQLiteManager):
         """
         Initialize Agent OS ingestion.
 
         Args:
-            db_manager: PostgresManager instance for storage
+            db_manager: SQLiteManager instance for storage
         """
         self.db_manager = db_manager
         self.parser = AgentOSParser()
