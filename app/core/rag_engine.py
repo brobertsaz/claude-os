@@ -322,10 +322,33 @@ class RAGEngine:
             logger.info(f"Generated answer: {str(response)[:200]}")
 
             return self._format_response(response, filtered_nodes)
-        except AttributeError as e:
-            logger.error(f"Attribute error during synthesis: {e}")
-            # Fallback: return documents without LLM synthesis
-            return self._format_response(f"Retrieved {len(filtered_nodes)} relevant documents", filtered_nodes)
+        except (AttributeError, Exception) as e:
+            logger.error(f"Error during synthesis: {e}, using fallback generation")
+            # Fallback: generate answer from top documents
+            answer = self._generate_fallback_answer(question, filtered_nodes[:5])  # Use top 5 docs
+            return self._format_response(answer, filtered_nodes)
+
+    def _generate_fallback_answer(self, question: str, top_nodes: List) -> str:
+        """Generate a basic answer from top documents when LLM synthesis fails."""
+        if not top_nodes:
+            return f"No relevant information found for: {question}"
+
+        # Build answer from top sources
+        answer_parts = [f"Based on the available documentation:\n"]
+
+        for i, node in enumerate(top_nodes[:3], 1):  # Use top 3 documents
+            text_preview = node.text[:300] if hasattr(node, "text") else ""
+            if text_preview:
+                # Get filename if available
+                filename = "Document"
+                if hasattr(node, "metadata") and node.metadata:
+                    filename = node.metadata.get("filename", "Document")
+
+                answer_parts.append(f"\n{i}. From {filename}:")
+                answer_parts.append(f"   {text_preview.strip()}...")
+
+        answer_parts.append(f"\n\nFor complete information, see the sources below.")
+        return "".join(answer_parts)
 
     def _format_response(self, response, source_nodes) -> Dict[str, any]:
         """Format query response for return."""
