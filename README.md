@@ -50,51 +50,195 @@
 
 ### Prerequisites
 
-Before running the setup, ensure you have:
+**You MUST have these installed first:**
 
-1. **Python 3.11+**
+1. **Python 3.11+** (required)
    ```bash
    python3 --version
    ```
+   - macOS: `brew install python@3.11`
+   - Linux: `sudo apt-get install python3.11`
+   - Windows: Download from https://www.python.org/downloads/
 
-2. **Node.js 16+** (for React frontend)
+2. **Git** (required)
+   ```bash
+   git --version
+   ```
+   - macOS: `brew install git`
+   - Linux: `sudo apt-get install git`
+   - Windows: Download from https://git-scm.com/
+
+3. **Node.js 16+** (optional, for React frontend)
    ```bash
    node --version
    ```
+   - macOS: `brew install node`
+   - Linux: `sudo apt-get install nodejs`
+   - Windows: Download from https://nodejs.org/
 
-### Installation
+---
 
-1. **Clone the repository**
-   ```bash
-   git clone <repo-url>
-   cd claude-os
-   ```
+### One-Line Installer ✨
 
-2. **Run the setup script** (handles Ollama, Python, models)
-   ```bash
-   chmod +x setup_native.sh
-   ./setup_native.sh
-   ```
+**Once you have Python 3.11+ and Git, run this command:**
 
-   This will:
-   - ✅ Install/start Ollama
-   - ✅ Download LLM models (5-10 GB total)
-   - ✅ Setup Python environment
-   - ✅ Initialize SQLite database
+```bash
+curl -fsSL https://raw.githubusercontent.com/brobertsaz/claude-os/main/setup.sh | bash
+```
 
-3. **Start services**
-   ```bash
-   ./start_all_services.sh
-   ```
+**The script will automatically:**
+- ✅ Install Ollama (if needed) + download LLM models
+- ✅ Install Redis (if needed) for caching/queues
+- ✅ Set up Python virtual environment
+- ✅ Install all Python dependencies
+- ✅ Create SQLite database
+- ✅ Install frontend dependencies (if Node.js present)
 
-   This starts:
-   - **MCP Server** (port 8051) - Backend RAG engine
-   - **React UI** (port 5173) - Web dashboard
-   - **Ollama** (port 11434) - LLM service
+**Then start services:**
+```bash
+./start_all_services.sh
+```
 
-4. **Access the UI**
-   - Open http://localhost:5173 in your browser
-   - Start uploading documents to create knowledge bases
+**Done!** Visit http://localhost:5173 to start using Claude OS.
+
+### Installation (Step by Step)
+
+**Step 1: Install Prerequisites** (one-time only)
+
+Choose your OS:
+
+**macOS:**
+```bash
+# Install Python 3.11
+brew install python@3.11
+
+# Install Git
+brew install git
+
+# Optional: Install Node.js for frontend
+brew install node
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+# Install Python 3.11
+sudo apt-get update
+sudo apt-get install python3.11 python3.11-venv
+
+# Install Git
+sudo apt-get install git
+
+# Optional: Install Node.js for frontend
+sudo apt-get install nodejs npm
+```
+
+**Verify installation:**
+```bash
+python3 --version  # Should be 3.11+
+git --version      # Should exist
+```
+
+---
+
+**Step 2: Run the Installer**
+
+Once you have Python 3.11+ and Git:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/brobertsaz/claude-os/main/setup.sh | bash
+```
+
+This automatically installs:
+- ✅ **Ollama** - LLM engine (auto-installed if missing)
+- ✅ **Redis** - Cache & queues (auto-installed if missing)
+- ✅ **Python dependencies** - All required packages
+- ✅ **SQLite database** - Local vector store
+- ✅ **Frontend** - React UI (if Node.js present)
+
+The script will download ~5-10 GB of LLM models (llama3.1, embeddings).
+
+---
+
+**Step 3: Start Services**
+
+```bash
+./start_all_services.sh
+```
+
+This starts:
+- 🔌 **MCP Server** (port 8051) - Backend RAG engine
+- 🎨 **React UI** (port 5173) - Web dashboard
+- 🤖 **Ollama** (port 11434) - LLM service
+- 💾 **Redis** (port 6379) - Cache & queues
+- 🧠 **RQ Workers** - Real-time learning system
+
+---
+
+**Step 4: Access the Application**
+
+Open your browser and visit:
+- **Frontend:** http://localhost:5173
+- **API Docs:** http://localhost:8051/docs
+
+Start uploading documents to create knowledge bases!
+
+---
+
+## 🎯 Initialize Your Project (The Magic Sauce ✨)
+
+Once Claude OS is running, follow these 3 simple steps to make Claude an expert on your codebase:
+
+### Step 1: Create a Project in Claude OS UI
+
+1. **Open the UI** - Visit http://localhost:5173 in your browser
+2. **Click "Create Project"** button
+3. **Fill in the form:**
+   - **Project Name** - e.g., "my-awesome-app"
+   - **Project Path** - Select your project directory (e.g., `/Users/you/Projects/my-awesome-app`)
+   - **Description** - (optional) Brief description of your project
+
+4. **Click "Create Project"**
+
+Your project is now registered in Claude OS!
+
+### Step 2: Get Your Project ID
+
+After creating your project, you'll see it listed in the Projects view. The **Project ID** is displayed right on the project card (e.g., `#1`, `#2`, etc.).
+
+Simply note the number - that's your project ID!
+
+**Example:**
+- If you see `#1` on your project card, your project ID is `1`
+- If you see `#3` on your project card, your project ID is `3`
+
+### Step 3: Initialize Project with Claude Code
+
+This is where the magic happens! The initialization will:
+- ✅ Analyze your entire codebase (5 minutes)
+- ✅ Generate coding standards & architecture docs
+- ✅ Index 50 key files (~800 code chunks)
+- ✅ Set up Git hooks for auto-indexing
+- ✅ Create 4 Knowledge Bases automatically
+
+**In Claude Code, run:**
+
+```bash
+/initialize-project [project-id]
+```
+
+**Example:**
+```bash
+/initialize-project 1
+```
+
+**What happens:**
+- Claude analyzes your project structure, patterns, and conventions
+- Generates `CODING_STANDARDS.md`, `ARCHITECTURE.md`, `DEVELOPMENT_PRACTICES.md`
+- Creates semantic indexes for instant retrieval
+- Installs Git hooks to keep knowledge up-to-date
+
+**After 5 minutes:**
+✅ Claude is now an expert on your project!
 
 ---
 
@@ -245,6 +389,191 @@ MCP_SERVER_PORT=8051            # Default: 8051
 
 ---
 
+## 🛠️ Scripts Guide
+
+Claude OS includes comprehensive shell scripts for setup, service management, and testing. Here's what each one does:
+
+### Installation & Setup
+
+#### `./setup.sh` - Complete Setup ⭐ **USE THIS ONE**
+```bash
+./setup.sh
+```
+**This is the standard setup script that 99% of users need.**
+
+**Prerequisites (must be installed first):**
+- ✅ Python 3.11+ (required - script will fail if missing)
+- ✅ Git (required - script will fail if missing)
+- ⚠️ Node.js 16+ (optional - script skips frontend if missing)
+
+**What it automatically installs:**
+- ✅ **Ollama** - Downloads and starts if not installed
+- ✅ **Redis** - Installs and starts if not present
+- ✅ **Python virtual environment** - Isolated environment
+- ✅ **Python dependencies** - All packages from `requirements.txt`
+- ✅ **LLM models** - llama3.1 and nomic-embed-text (~5-10 GB)
+- ✅ **SQLite database** - Local vector store
+- ✅ **Frontend dependencies** - npm packages (if Node.js present)
+
+**Supported platforms:** macOS & Linux
+
+**When to use:**
+- ✅ **First-time setup (recommended for 99% of users)**
+- ✅ You have Python 3.11+ and Git already installed
+- ✅ You don't have Ollama or Redis yet
+- ✅ You want a complete, automated setup
+- ✅ You're on any Unix system (macOS/Linux)
+
+---
+
+#### `./setup_native.sh` - Fast macOS Setup (Advanced Users Only)
+```bash
+./setup_native.sh
+```
+**This is an optional lightweight setup for macOS users who already have Ollama installed via Homebrew.**
+
+**What it does:**
+- ✅ Verifies Ollama is already installed via Homebrew (fails if not)
+- ✅ Pulls required LLM models (llama3.1, nomic-embed-text)
+- ✅ Sets up Python virtual environment
+- ✅ Installs Python dependencies
+- ✅ Creates data/ and logs/ directories
+- ✅ Initializes SQLite database
+- ⚠️ Does NOT install Redis
+
+**When to use (rare):**
+- ⚠️ Only if you already have **Ollama installed via `brew install ollama`**
+- ⚠️ You're on macOS only
+- ⚠️ You already have Redis running separately
+
+**Note:** Most users should use `./setup.sh` instead. Only use this if you know what you're doing.
+
+---
+
+### Service Management
+
+#### `./start_all_services.sh` - Start Everything
+```bash
+./start_all_services.sh
+```
+**Starts:**
+- 🔌 **MCP Server** (port 8051) - Backend RAG engine
+- 🎨 **React Frontend** (port 5173) - Web dashboard
+- 🤖 **RQ Workers** - Real-time learning system
+- 💾 **Redis** - Cache & message queue
+- 🧠 **Ollama** - LLM service
+
+**Features:**
+- Automatic health checks for all services
+- Creates required directories if missing
+- Checks that ports are free
+- Logs all services to `logs/` directory
+- Shows service URLs and PIDs
+
+**Output:**
+```
+Service URLs:
+  🎨 Frontend:    http://localhost:5173
+  🔌 API Server:  http://localhost:8051
+  📚 API Docs:    http://localhost:8051/docs
+
+Log Files:
+  MCP Server:   logs/mcp_server.log
+  Frontend:     logs/frontend.log
+  RQ Workers:   logs/rq_workers.log
+```
+
+---
+
+#### `./stop_all_services.sh` - Stop All Services
+```bash
+./stop_all_services.sh
+```
+**Stops:**
+- 🔌 MCP Server (port 8051)
+- 🎨 React Frontend (port 5173)
+- 🤖 RQ Workers (real-time learning)
+- 💾 Redis
+
+**Note:** Ollama is preserved (may be used by other apps)
+
+---
+
+#### `./restart_services.sh` - Restart Everything
+```bash
+./restart_services.sh
+```
+**Does:**
+1. Stops all services gracefully
+2. Waits for ports to be released (3 second delay)
+3. Starts all services fresh
+
+**Use when:** Code changes aren't reflected or services need a clean restart
+
+---
+
+#### `./start_mcp_server.sh` - Start Only MCP Server
+```bash
+./start_mcp_server.sh
+```
+**Starts:**
+- 🔌 MCP Server (port 8051)
+
+**Checks:**
+- ✅ Ollama is running
+- ✅ SQLite database exists
+- ✅ Python environment is ready
+
+**Use when:** You only need the backend API (e.g., for testing)
+
+---
+
+#### `./start_redis_workers.sh` - Start RQ Workers
+```bash
+./start_redis_workers.sh
+```
+**Starts:**
+- 🤖 RQ Workers for real-time learning system
+- Listening on queues: `claude-os:learning`, `claude-os:prompts`, `claude-os:ingest`
+- Scheduler for periodic tasks
+
+**Checks:**
+- ✅ Redis is running
+- ✅ Python virtual environment exists
+- ✅ RQ dependencies are installed
+
+**Use when:** Running the real-time learning system separately
+
+---
+
+### Testing
+
+#### `./run_tests.sh` - Run Test Suite
+```bash
+./run_tests.sh [OPTIONS]
+```
+
+**Options:**
+```bash
+./run_tests.sh                    # Run all tests
+./run_tests.sh --unit             # Unit tests only
+./run_tests.sh --integration      # Integration tests only
+./run_tests.sh --vector           # Vector DB tests
+./run_tests.sh --rag              # RAG engine tests
+./run_tests.sh --api              # API endpoint tests
+./run_tests.sh --coverage         # Generate coverage report
+./run_tests.sh --verbose          # Detailed output
+./run_tests.sh --unit --coverage  # Combine options
+```
+
+**Features:**
+- Validates PostgreSQL connection
+- Creates test database if needed
+- Shows test configuration
+- Generates HTML coverage report (with `--coverage`)
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -267,9 +596,10 @@ claude-os/
 │   ├── server.py         # FastAPI + MCP endpoints
 │   └── ...
 ├── migrations/           # Database migrations
-├── setup_native.sh       # Installation script
-├── start_all_services.sh # Start all services
-├── stop_all_services.sh  # Stop all services
+├── data/                 # SQLite database (auto-created)
+│   └── claude-os.db
+├── logs/                 # Service logs (auto-created)
+├── .sh scripts           # Utility scripts (see Scripts Guide above)
 ├── requirements.txt      # Python dependencies
 └── README.md             # This file
 ```
