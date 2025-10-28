@@ -56,7 +56,7 @@ class SimpleVectorRetriever:
                 results["distances"][0]
             ):
                 # Convert distance back to similarity score (1 - distance)
-                similarity = 1 - distance
+                similarity = float(1 - distance)  # Convert numpy float to Python float
 
                 node = TextNode(
                     text=content,
