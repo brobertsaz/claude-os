@@ -58,11 +58,15 @@ class SimpleVectorRetriever:
                 # Convert distance back to similarity score (1 - distance)
                 similarity = float(1 - distance)  # Convert numpy float to Python float
 
+                # Store similarity score in metadata since TextNode doesn't have a score attribute
+                if metadata is None:
+                    metadata = {}
+                metadata["similarity_score"] = similarity
+
                 node = TextNode(
                     text=content,
                     id_=doc_id,
-                    metadata=metadata,
-                    score=similarity  # Pass score during initialization for Pydantic validation
+                    metadata=metadata
                 )
                 nodes.append(node)
 
@@ -318,14 +322,18 @@ class RAGEngine:
         """Format query response for return."""
         sources = []
         for node in source_nodes:
-            # Convert score to Python float for JSON serialization
-            score = node.score if hasattr(node, "score") else None
+            # Retrieve score from metadata (stored during node creation)
+            metadata = node.metadata if hasattr(node, "metadata") else {}
+            score = metadata.get("similarity_score") if metadata else None
             if score is not None:
                 score = float(score)
 
+            # Return metadata without the internal similarity_score
+            display_metadata = {k: v for k, v in metadata.items() if k != "similarity_score"} if metadata else {}
+
             sources.append({
                 "text": node.text,
-                "metadata": node.metadata if hasattr(node, "metadata") else {},
+                "metadata": display_metadata,
                 "score": score
             })
 
