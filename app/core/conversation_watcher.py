@@ -18,52 +18,52 @@ class ConversationWatcher:
     # Trigger patterns - what we listen for
     TRIGGERS = {
         "switching": {
-            "pattern": r"switching from (.+?) to (.+?)(?:\.|,|$)",
+            "pattern": r"switching from\s+(\w+(?:\.\w+)?(?:\s+\w+)*?)\s+to\s+(\w+(?:\.\w+)?(?:\s+\w+)*?)(?=\s+(?:for|in|to|and|but|as|\.))",
             "confidence": 0.95,
             "description": "Technology/library switch detected"
         },
         "decided_to_use": {
-            "pattern": r"decided to (?:use|adopt|switch to) (.+?)(?:\.|,|$)",
+            "pattern": r"decided to\s+(?:use|adopt|switch to)\s+(\w+(?:\s+\w+)?)(?=\s+(?:for|in)|[\.,]|\s*$)",
             "confidence": 0.90,
             "description": "New technology decision"
         },
         "no_longer": {
-            "pattern": r"no longer (?:using|use) (.+?)(?:\.|,|$)",
+            "pattern": r"no longer\s+(?:using|use)\s+(\w+(?:\s+\w+)?)(?=\s+(?:in|with|and|but|as|because|for)|\.|,|\s*$)",
             "confidence": 0.85,
             "description": "Deprecated technology"
         },
         "now_using": {
-            "pattern": r"now using (.+?)(?:\.|,|$)",
+            "pattern": r"now using\s+(\w+(?:\s+\w+)*)(?=\s+(?:for|in|and|but|as|\.))",
             "confidence": 0.85,
             "description": "Current technology"
         },
         "implement_change": {
-            "pattern": r"implement(?:ing)? (?:this )?change",
+            "pattern": r"implement(?:ing)?\s+(?:this\s+)?change",
             "confidence": 0.80,
             "description": "Implementation decision"
         },
         "performance_issue": {
-            "pattern": r"(.+?) is (?:too )?slow|performance issue with (.+?)",
+            "pattern": r"(?:(?:The|A|An)\s+)?(\w+(?:\s+\w+)*?)\s+(?:is|are)\s+(?:too\s+)?slow",
             "confidence": 0.85,
             "description": "Performance concern identified"
         },
         "bug_fixed": {
-            "pattern": r"(?:fixed|found) (?:a )?bug in (.+?)",
+            "pattern": r"(?:fixed|found)\s+(?:a\s+)?bug in\s+([\w\s]+?)(?=\.|,|$)",
             "confidence": 0.80,
             "description": "Bug discovery/fix"
         },
         "architecture_change": {
-            "pattern": r"refactor(?:ing)? (.+?) to (.+?)",
+            "pattern": r"refactor(?:ing)?\s+([\w\s]+?)\s+to\s+([\w\s]+?)(?=\.|,|$)",
             "confidence": 0.85,
             "description": "Architecture refactoring"
         },
         "rejected_idea": {
-            "pattern": r"(?:decided against|don't use|avoid|skip) (.+?)",
+            "pattern": r"(?:decided against|don't use|avoid|skip)\s+([\w\s]+?)(?=\s+(?:in|for)|\.|\s*$)",
             "confidence": 0.75,
             "description": "Rejected technology/approach"
         },
         "edge_case": {
-            "pattern": r"(?:beware|watch out|edge case|gotcha).*?(.+?)(?:\.|,|$)",
+            "pattern": r"(?:beware|watch out|edge case|gotcha).*?([\w\s]+?)(?=\.|,|$)",
             "confidence": 0.80,
             "description": "Edge case/gotcha identified"
         },
@@ -92,11 +92,21 @@ class ConversationWatcher:
             matches = list(re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE))
 
             for match in matches:
+                # For performance_issue and other patterns with optional articles,
+                # reconstruct the text field to exclude articles if present
+                matched_text = match.group(0)
+                groups = match.groups()
+
+                # If pattern has optional article at start, remove it from displayed text
+                if trigger_name == "performance_issue" and matched_text.startswith(("The ", "A ", "An ")):
+                    article_end = matched_text.find(" ") + 1
+                    matched_text = matched_text[article_end:]
+
                 detection = {
-                    "id": self._generate_id(trigger_name, match.group(0)),
+                    "id": self._generate_id(trigger_name, matched_text),
                     "trigger": trigger_name,
-                    "text": match.group(0),
-                    "groups": match.groups(),
+                    "text": matched_text,
+                    "groups": groups,
                     "confidence": trigger_config["confidence"],
                     "description": trigger_config["description"],
                     "timestamp": datetime.now().isoformat(),

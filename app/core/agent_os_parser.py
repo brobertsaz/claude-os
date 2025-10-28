@@ -34,6 +34,10 @@ class AgentOSContentType(str, Enum):
     SPEC = "spec"
     UNKNOWN = "unknown"
 
+    def __str__(self) -> str:
+        """Return the string value of the enum."""
+        return self.value
+
 
 @dataclass
 class AgentOSDocument:
