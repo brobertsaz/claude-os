@@ -146,8 +146,9 @@ class RAGEngine:
         )
         self.qa_prompt = qa_prompt_template
 
-        # Create similarity filter
-        self.similarity_filter = SimilarityPostprocessor(similarity_cutoff=Config.SIMILARITY_THRESHOLD)
+        # Create similarity filter (disabled due to Pydantic validation issues with score attribute)
+        # self.similarity_filter = SimilarityPostprocessor(similarity_cutoff=Config.SIMILARITY_THRESHOLD)
+        self.similarity_filter = None
 
         logger.info(f"Created RAGEngine for {collection_name}")
 
@@ -300,8 +301,11 @@ class RAGEngine:
         # Retrieve similar documents
         source_nodes = self.vector_retriever.retrieve(question, query_embedding)
 
-        # Apply similarity filtering
-        filtered_nodes = self.similarity_filter.postprocess_nodes(source_nodes, query_str=question)
+        # Apply similarity filtering (if enabled)
+        if self.similarity_filter is not None:
+            filtered_nodes = self.similarity_filter.postprocess_nodes(source_nodes, query_str=question)
+        else:
+            filtered_nodes = source_nodes
 
         # If we filtered out all results, return a no-results response
         if not filtered_nodes:
