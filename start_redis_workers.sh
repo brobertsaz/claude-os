@@ -54,7 +54,7 @@ echo -e "${YELLOW}5. Starting RQ workers...${NC}"
 echo -e "${GREEN}🚀 Worker queues: claude-os:learning, claude-os:prompts, claude-os:ingest${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop${NC}\n"
 
-python3 -m rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler
+rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler
 
 # Cleanup on exit
 trap 'echo -e "\n${GREEN}👋 Redis workers stopped${NC}"' EXIT
