@@ -38,14 +38,7 @@ jobs:
 
     - name: Initialize SQLite database
       run: |
-        python3 << 'EOF'
-import os
-from app.core.sqlite_manager import get_sqlite_manager
-
-# Initialize the database
-db = get_sqlite_manager()
-print("✅ SQLite database initialized for testing")
-EOF
+        python3 -c "from app.core.sqlite_manager import get_sqlite_manager; db = get_sqlite_manager(); print('✅ SQLite database initialized for testing')"
 
     - name: Run unit tests
       env:
