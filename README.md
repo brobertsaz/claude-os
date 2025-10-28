@@ -214,31 +214,39 @@ Simply note the number - that's your project ID!
 ### Step 3: Initialize Project with Claude Code
 
 This is where the magic happens! The initialization will:
-- ✅ Analyze your entire codebase (5 minutes)
+- ✅ Analyze your entire codebase (~5 minutes)
 - ✅ Generate coding standards & architecture docs
 - ✅ Index 50 key files (~800 code chunks)
 - ✅ Set up Git hooks for auto-indexing
 - ✅ Create 4 Knowledge Bases automatically
 
-**In Claude Code, run:**
+**Open Claude Code and copy-paste this command** (replace `1` with your project ID):
 
-```bash
-/initialize-project [project-id]
 ```
-
-**Example:**
-```bash
 /initialize-project 1
 ```
 
-**What happens:**
-- Claude analyzes your project structure, patterns, and conventions
-- Generates `CODING_STANDARDS.md`, `ARCHITECTURE.md`, `DEVELOPMENT_PRACTICES.md`
-- Creates semantic indexes for instant retrieval
-- Installs Git hooks to keep knowledge up-to-date
+**⚠️ Important:** Replace `1` with your actual project ID from Step 2
 
-**After 5 minutes:**
+**Examples:**
+- If your project ID is `1`: `/initialize-project 1`
+- If your project ID is `2`: `/initialize-project 2`
+- If your project ID is `3`: `/initialize-project 3`
+
+**What happens after you run it:**
+1. Claude analyzes your project structure, patterns, and conventions (takes ~5 minutes)
+2. Generates 3 documentation files:
+   - `CODING_STANDARDS.md` - Your code style
+   - `ARCHITECTURE.md` - Your system design
+   - `DEVELOPMENT_PRACTICES.md` - How you build software
+3. Creates semantic indexes for 50 key files (~800+ code chunks)
+4. Installs Git hooks to auto-update knowledge on commits
+5. Creates 4 Knowledge Bases for use with Claude Desktop
+
+**When it's done:**
 ✅ Claude is now an expert on your project!
+✅ Ask Claude about your codebase and it will know the answers
+✅ Every git commit automatically updates Claude's knowledge
 
 ---
 
