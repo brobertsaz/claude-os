@@ -22,7 +22,9 @@ class Config:
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
     # SQLite Database Configuration (replaces PostgreSQL)
-    SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", "data/claude-os.db")
+    # Always use absolute path to avoid issues when running from different directories
+    _default_db_path = str(Path(__file__).parent.parent.parent / "data" / "claude-os.db")
+    SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", _default_db_path)
 
     # MCP Server Configuration
     MCP_SERVER_HOST: str = os.getenv("MCP_SERVER_HOST", "0.0.0.0")

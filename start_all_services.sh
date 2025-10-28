@@ -126,7 +126,7 @@ echo ""
 # ===== 5. Start RQ Workers (Real-Time Learning System) =====
 echo -e "${YELLOW}5. Starting RQ Workers (Real-Time Learning)...${NC}"
 if check_port 6379; then
-    nohup python -m rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler > "$PROJECT_DIR/logs/rq_workers.log" 2>&1 &
+    nohup "$PROJECT_DIR/venv/bin/python3" -m rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler > "$PROJECT_DIR/logs/rq_workers.log" 2>&1 &
     RQ_PID=$!
     echo "   RQ Workers PID: $RQ_PID (logging to logs/rq_workers.log)"
     echo -e "   ${GREEN}✓ RQ workers started${NC}"
@@ -144,7 +144,7 @@ if check_port 8051; then
 fi
 
 cd "$PROJECT_DIR/mcp_server"
-nohup python server.py > "$PROJECT_DIR/logs/mcp_server.log" 2>&1 &
+nohup env SQLITE_DB_PATH="$PROJECT_DIR/data/claude-os.db" "$PROJECT_DIR/venv/bin/python3" server.py > "$PROJECT_DIR/logs/mcp_server.log" 2>&1 &
 MCP_PID=$!
 echo "   Server PID: $MCP_PID (logging to logs/mcp_server.log)"
 echo -n "   Waiting for server to start"

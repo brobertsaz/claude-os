@@ -21,6 +21,7 @@
 ## Prerequisites
 
 ### Required Software
+
 ```bash
 # macOS (using Homebrew)
 brew install python@3.11
@@ -38,6 +39,7 @@ npm --version          # Should be 9+
 ```
 
 ### Ollama Models
+
 ```bash
 # Pull required models
 ollama pull llama3.1:latest
@@ -52,12 +54,14 @@ ollama list
 ## Initial Setup
 
 ### 1. Clone and Navigate
+
 ```bash
 git clone <your-repo-url> code-forge
 cd code-forge
 ```
 
 ### 2. Python Environment
+
 ```bash
 # Create virtual environment
 python3 -m venv venv
@@ -71,6 +75,7 @@ pip install -r requirements.txt
 ```
 
 ### 3. Frontend Setup
+
 ```bash
 cd frontend
 npm install
@@ -78,6 +83,7 @@ cd ..
 ```
 
 ### 4. Initialize Databases
+
 ```bash
 # Create data directory
 mkdir -p data logs
@@ -86,6 +92,7 @@ mkdir -p data logs
 ```
 
 ### 5. Configure Claude Code
+
 ```bash
 # Install Claude Code (if not already installed)
 npm install -g @anthropic/claude-code
@@ -98,6 +105,7 @@ mkdir -p ~/.claude/mcp-servers/project_profile
 ```
 
 ### 6. Start All Services
+
 ```bash
 # Make scripts executable
 chmod +x start_all_services.sh
@@ -113,10 +121,13 @@ chmod +x restart_services.sh
 ## Service Management Commands
 
 ### 🚀 **Start All Services**
+
 ```bash
 ./start_all_services.sh
 ```
+
 **What it does:**
+
 1. Checks/starts Ollama (port 11434)
 2. Sets up Python virtual environment
 3. Creates data/logs directories
@@ -126,6 +137,7 @@ chmod +x restart_services.sh
 7. Starts React Frontend (port 5173)
 
 **Output:**
+
 ```
 🚀 Claude OS - Starting All Services
 ==================================================
@@ -148,10 +160,13 @@ chmod +x restart_services.sh
 ```
 
 ### 🛑 **Stop All Services**
+
 ```bash
 ./stop_all_services.sh
 ```
+
 **What it does:**
+
 - Stops MCP Server (port 8051)
 - Stops React Frontend (port 5173)
 - Stops RQ Workers
@@ -159,10 +174,13 @@ chmod +x restart_services.sh
 - Preserves all data
 
 ### 🔄 **Restart All Services**
+
 ```bash
 ./restart_services.sh
 ```
+
 **What it does:**
+
 - Gracefully stops all services
 - Waits for ports to be released
 - Starts all services fresh
@@ -172,6 +190,7 @@ chmod +x restart_services.sh
 ## Claude Code Commands
 
 ### Working with Memory
+
 ```bash
 # In your Claude Code session
 
@@ -188,6 +207,7 @@ chmod +x restart_services.sh
 ### Working with Skills
 
 #### Analyze Project Skill
+
 ```bash
 # Run the analyze-project skill
 /analyze-project
@@ -200,6 +220,7 @@ chmod +x restart_services.sh
 ```
 
 #### Creating Custom Skills
+
 ```bash
 # Skills directory
 ~/.claude/skills/your-skill-name/
@@ -215,6 +236,7 @@ chmod +x restart_services.sh
 ## Real-Time Learning Commands
 
 ### Monitor Learning System
+
 ```bash
 # Check if RQ workers are running
 ps aux | grep "rq worker"
@@ -231,6 +253,7 @@ redis-cli
 ```
 
 ### Test Real-Time Learning
+
 ```bash
 # Run the test suite
 cd /Users/iamanmp/Projects/code-forge
@@ -247,6 +270,7 @@ All tests passed!
 ```
 
 ### Trigger Learning Manually
+
 ```python
 # In Python
 from app.core.redis_config import publish_conversation
@@ -264,6 +288,7 @@ publish_conversation({
 ## Project Analysis Commands
 
 ### Initial Project Setup
+
 ```bash
 # From project root
 cd ~/.claude/skills/analyze-project
@@ -277,6 +302,7 @@ python3 analyze_project.py
 ```
 
 ### Manual Re-indexing
+
 ```bash
 # Force re-index of project
 cd ~/.claude/skills/analyze-project
@@ -287,6 +313,7 @@ python3 incremental_indexer.py 4 /Users/you/myproject http://localhost:8051 30
 ```
 
 ### Git Hook Management
+
 ```bash
 # Check if git hooks are installed
 cat .git/hooks/post-commit
@@ -303,6 +330,7 @@ cat .claude-os/.index_state
 ## Memory & Knowledge Base Commands
 
 ### MCP Server API
+
 ```bash
 # Check MCP server health
 curl http://localhost:8051/health
@@ -326,6 +354,7 @@ curl -X POST http://localhost:8051/ingest \
 ```
 
 ### Memory MCP Commands
+
 ```bash
 # List all memories
 ls ~/.claude/mcp-servers/memory/*.md
@@ -338,6 +367,7 @@ cat ~/.claude/mcp-servers/memory/*.md > memories_backup.md
 ```
 
 ### Knowledge Base Queries
+
 ```bash
 # Using SQLite directly
 sqlite3 data/claude-os.db
@@ -360,6 +390,7 @@ WHERE content LIKE '%authentication%';
 ### Service Issues
 
 #### MCP Server Won't Start
+
 ```bash
 # Check if port is in use
 lsof -i :8051
@@ -372,6 +403,7 @@ tail -f logs/mcp_server.log
 ```
 
 #### Frontend Won't Start
+
 ```bash
 # Check port 5173
 lsof -i :5173
@@ -384,6 +416,7 @@ npm run dev
 ```
 
 #### Redis Issues
+
 ```bash
 # Test Redis
 redis-cli ping
@@ -396,6 +429,7 @@ brew services restart redis
 ```
 
 #### RQ Workers Not Processing
+
 ```bash
 # Check worker status
 ps aux | grep "rq worker"
@@ -408,6 +442,7 @@ python -m rq worker claude-os:learning claude-os:prompts claude-os:ingest --with
 ### Database Issues
 
 #### Reset SQLite Database
+
 ```bash
 # Backup existing
 cp data/claude-os.db data/claude-os.db.backup
@@ -418,6 +453,7 @@ rm data/claude-os.db
 ```
 
 #### Clear Redis Cache
+
 ```bash
 redis-cli FLUSHALL
 ```
@@ -425,6 +461,7 @@ redis-cli FLUSHALL
 ### Ollama Issues
 
 #### Models Not Found
+
 ```bash
 # Re-pull models
 ollama pull llama3.1:latest
@@ -435,6 +472,7 @@ ollama list
 ```
 
 #### Ollama Not Responding
+
 ```bash
 # Restart Ollama
 brew services restart ollama
@@ -448,6 +486,7 @@ ollama serve
 ## Daily Workflows
 
 ### Morning Startup
+
 ```bash
 # 1. Start all services
 ./start_all_services.sh
@@ -460,6 +499,7 @@ ollama serve
 ```
 
 ### During Development
+
 ```bash
 # Save important decisions
 "Remember: We decided to cache API responses for 5 minutes"
@@ -474,6 +514,7 @@ ollama serve
 ```
 
 ### Before Major Changes
+
 ```bash
 # 1. Create a checkpoint
 "Remember: Checkpoint before refactoring auth system - Oct 27"
@@ -485,6 +526,7 @@ ollama serve
 ```
 
 ### End of Day
+
 ```bash
 # 1. Summarize progress
 "Remember: Today we completed the user dashboard and fixed 3 bugs"
@@ -497,6 +539,7 @@ ollama serve
 ```
 
 ### Project Handoff
+
 ```bash
 # Export all knowledge
 sqlite3 data/claude-os.db .dump > knowledge_export.sql
@@ -513,6 +556,7 @@ tar -czf memories.tar.gz ~/.claude/mcp-servers/memory/
 ## Environment Variables
 
 ### Optional Configuration
+
 ```bash
 # Create .env file
 cat > .env << EOF
@@ -539,6 +583,7 @@ EOF
 ## Claude Config Example
 
 ### ~/.claude/claude_macos.json
+
 ```json
 {
   "mcpServers": {
@@ -595,6 +640,7 @@ KEY DIRECTORIES
 ## Getting Help
 
 ### Check System Status
+
 ```bash
 # Quick health check
 curl http://localhost:8051/health
@@ -604,6 +650,7 @@ curl http://localhost:8051/health
 ```
 
 ### View Logs
+
 ```bash
 # All logs at once
 tail -f logs/*.log
@@ -614,6 +661,7 @@ tail -f logs/rq_workers.log
 ```
 
 ### Common Issues
+
 - **"Port already in use"** → Use `./restart_services.sh`
 - **"Model not found"** → Run `ollama pull llama3.1:latest`
 - **"Redis not connected"** → Run `redis-server --daemonize yes`

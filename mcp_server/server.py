@@ -789,6 +789,9 @@ async def api_create_project(request: ProjectRequest):
             "message": f"Project '{request.name}' created with 4 required MCPs"
         }
 
+    except ValueError as e:
+        logger.error(f"Failed to create project: {e}")
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to create project: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1008,7 +1011,7 @@ async def api_ingest_document(project_id: int, request: ProjectDocumentIngestReq
                 collection_name=kb_name,
                 documents=[request.content],
                 metadatas=[{
-                    "source": request.filename,
+                    "filename": request.filename,
                     "type": "text/markdown",
                     "project_id": project_id
                 }]
@@ -1290,18 +1293,53 @@ async def api_browse_directory(path: str = None):
         if not dir_path.is_dir():
             raise HTTPException(status_code=400, detail=f"Path is not a directory: {path}")
 
-        # Get subdirectories
+        # Get subdirectories with robust error handling
         subdirs = []
         try:
-            for item in sorted(dir_path.iterdir()):
-                if item.is_dir() and not item.name.startswith('.'):
-                    subdirs.append({
-                        "name": item.name,
-                        "path": str(item),
-                        "is_dir": True
-                    })
-        except PermissionError:
-            raise HTTPException(status_code=403, detail=f"Permission denied: {path}")
+            # Collect items first to handle iteration errors
+            items = []
+            try:
+                items = list(dir_path.iterdir())
+            except PermissionError:
+                raise HTTPException(status_code=403, detail=f"Permission denied: {path}")
+
+            # Sort items with error handling for broken symlinks
+            def safe_sort_key(item):
+                try:
+                    return str(item).lower()
+                except Exception as e:
+                    logger.warning(f"Error sorting item {item}: {e}")
+                    return ""
+
+            sorted_items = sorted(items, key=safe_sort_key)
+
+            # Process each item with individual error handling
+            for item in sorted_items:
+                try:
+                    # Skip hidden files/directories
+                    if item.name.startswith('.'):
+                        continue
+
+                    # Check if it's a directory (this can fail for broken symlinks)
+                    if item.is_dir():
+                        subdirs.append({
+                            "name": item.name,
+                            "path": str(item),
+                            "is_dir": True
+                        })
+                except (OSError, PermissionError) as e:
+                    # Skip items that cause errors (broken symlinks, permission issues, etc.)
+                    logger.warning(f"Skipping item {item.name} in {dir_path}: {e}")
+                    continue
+                except Exception as e:
+                    # Catch any other unexpected errors and skip the item
+                    logger.warning(f"Unexpected error processing item {item.name} in {dir_path}: {e}")
+                    continue
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error iterating directory {dir_path}: {e}")
+            raise HTTPException(status_code=500, detail=f"Error reading directory: {str(e)}")
 
         return {
             "current_path": str(dir_path),
