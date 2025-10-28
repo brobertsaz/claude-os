@@ -269,14 +269,7 @@ After running `/initialize-project`, Claude OS automatically creates **4 MCPs (M
 3. **🗂️ project_index** - Code structure and file index
 4. **💾 project_memories** - Persistent memory and insights
 
-These MCPs are immediately available and can be added to Claude CLI using the URLs shown in the Project Setup modal.
-
-**To add them to Claude CLI:**
-- Open the Project Setup modal (⚙️ settings icon on your project card)
-- Copy the MCP URLs displayed
-- Run `claude mcp add` with the URLs
-
-Your project knowledge is now available in Claude CLI! 🚀
+The `/initialize-project` command will show you the MCP URLs to add them to Claude CLI. Your project knowledge is immediately available! 🚀
 
 ---
 
