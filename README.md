@@ -260,40 +260,21 @@ This is where the magic happens! The initialization will:
 
 ---
 
-## 🔌 MCP Integration with Claude Desktop
+## 🔌 Auto-Generated MCPs
 
-To use your knowledge bases with Claude Desktop:
+After running `/initialize-project`, Claude OS automatically creates **4 MCPs (Model Context Protocol endpoints)** for your project:
 
-### Option 1: Via CLI (Easiest)
+1. **📚 knowledge_docs** - Your project documentation
+2. **📋 project_profile** - Project analysis and overview
+3. **🗂️ project_index** - Code structure and file index
+4. **💾 project_memories** - Persistent memory and insights
 
-```bash
-# Add PISTN knowledge base to Claude Desktop
-claude mcp add pistn http://localhost:8051/mcp/kb/pistn
+These MCPs are immediately available and can be added to Claude Desktop using the URLs shown in the Project Setup modal.
 
-# Add PISTN Agent OS knowledge base
-claude mcp add pistn-agent-os http://localhost:8051/mcp/kb/pistn-agent-os
-```
-
-Then in Claude Desktop, your knowledge bases are available as built-in tools. Ask Claude about your codebase directly!
-
-### Option 2: Manual Configuration
-
-Edit `~/.claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "pistn": {
-      "url": "http://localhost:8051/mcp/kb/pistn"
-    },
-    "pistn-agent-os": {
-      "url": "http://localhost:8051/mcp/kb/pistn-agent-os"
-    }
-  }
-}
-```
-
-Then restart Claude Desktop.
+**To add them to Claude Desktop:**
+- Open the Project Setup modal (⚙️ settings icon on your project card)
+- Copy the MCP URLs displayed
+- Use `claude mcp add` commands or configure manually
 
 ---
 
