@@ -314,13 +314,18 @@ class RAGEngine:
                 "sources": []
             }
 
-        # Synthesize answer using LLM
-        synthesizer = get_response_synthesizer()
-        response = synthesizer.synthesize(question, nodes=filtered_nodes)
+        try:
+            # Synthesize answer using LLM
+            synthesizer = get_response_synthesizer()
+            response = synthesizer.synthesize(question, nodes=filtered_nodes)
 
-        logger.info(f"Generated answer: {str(response)[:200]}")
+            logger.info(f"Generated answer: {str(response)[:200]}")
 
-        return self._format_response(response, filtered_nodes)
+            return self._format_response(response, filtered_nodes)
+        except AttributeError as e:
+            logger.error(f"Attribute error during synthesis: {e}")
+            # Fallback: return documents without LLM synthesis
+            return self._format_response(f"Retrieved {len(filtered_nodes)} relevant documents", filtered_nodes)
 
     def _format_response(self, response, source_nodes) -> Dict[str, any]:
         """Format query response for return."""
