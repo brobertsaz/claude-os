@@ -31,7 +31,7 @@
 
 - **🗄️ SQLite + sqlite-vec** - Lightweight vector database for semantic search
 - **🤖 Ollama** - Local LLMs (llama3.1) with no API keys needed
-- **🔌 MCP Integration** - Claude Desktop integration via Model Context Protocol
+- **🔌 MCP Integration** - Claude CLI integration via Model Context Protocol
 - **⚡ React UI** - Modern dashboard for managing knowledge bases
 - **📚 Multi-KB Support** - Separate knowledge bases for different projects
 - **🧠 Advanced RAG** - Hybrid search, reranking, and agentic modes
@@ -41,7 +41,7 @@
 ✅ Making Claude deeply familiar with your codebase
 ✅ Private, secure knowledge base (never leaves your machine)
 ✅ Team collaboration (share with coworkers easily)
-✅ Integration with Claude Desktop via MCP
+✅ Integration with Claude CLI via MCP
 ✅ Building AI-assisted development workflows
 
 ---
@@ -251,7 +251,7 @@ This is where the magic happens! The initialization will:
    - `DEVELOPMENT_PRACTICES.md` - How you build software
 3. Creates semantic indexes for 50 key files (~800+ code chunks)
 4. Installs Git hooks to auto-update knowledge on commits
-5. Creates 4 Knowledge Bases for use with Claude Desktop
+5. Creates 4 Knowledge Bases for use with Claude CLI
 
 **When it's done:**
 ✅ Claude is now an expert on your project!
@@ -260,7 +260,7 @@ This is where the magic happens! The initialization will:
 
 ---
 
-## 🔌 Auto-Generated MCPs
+## 🔌 Auto-Generated MCPs for Claude CLI
 
 After running `/initialize-project`, Claude OS automatically creates **4 MCPs (Model Context Protocol endpoints)** for your project:
 
@@ -269,12 +269,14 @@ After running `/initialize-project`, Claude OS automatically creates **4 MCPs (M
 3. **🗂️ project_index** - Code structure and file index
 4. **💾 project_memories** - Persistent memory and insights
 
-These MCPs are immediately available and can be added to Claude Desktop using the URLs shown in the Project Setup modal.
+These MCPs are immediately available and can be added to Claude CLI using the URLs shown in the Project Setup modal.
 
-**To add them to Claude Desktop:**
+**To add them to Claude CLI:**
 - Open the Project Setup modal (⚙️ settings icon on your project card)
 - Copy the MCP URLs displayed
-- Use `claude mcp add` commands or configure manually
+- Run `claude mcp add` with the URLs
+
+Your project knowledge is now available in Claude CLI! 🚀
 
 ---
 
@@ -304,8 +306,8 @@ These MCPs are immediately available and can be added to Claude Desktop using th
 2. Type your question
 3. View answer with source citations
 
-**Via Claude Desktop:**
-Once added as MCP server, Claude can query automatically when working on your project.
+**Via Claude CLI:**
+Once added as MCP server, Claude CLI can query your knowledge bases automatically when working on your project.
 
 ---
 
@@ -313,7 +315,7 @@ Once added as MCP server, Claude can query automatically when working on your pr
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Claude Desktop                      │
+│              Claude CLI                         │
 │         (or any MCP client)                      │
 └───────────────────┬─────────────────────────────┘
                     │ MCP HTTP
