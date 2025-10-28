@@ -1,0 +1,103 @@
+-- SQLite Schema for Code-Forge
+-- Replaces PostgreSQL with single-file SQLite database with vector support
+
+-- Enable foreign keys
+PRAGMA foreign_keys = ON;
+
+-- Knowledge Bases (Collections)
+CREATE TABLE IF NOT EXISTS knowledge_bases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    kb_type TEXT NOT NULL DEFAULT 'generic',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT DEFAULT '{}'  -- JSON string
+);
+
+CREATE INDEX IF NOT EXISTS idx_kb_name ON knowledge_bases(name);
+CREATE INDEX IF NOT EXISTS idx_kb_slug ON knowledge_bases(slug);
+CREATE INDEX IF NOT EXISTS idx_kb_type ON knowledge_bases(kb_type);
+CREATE INDEX IF NOT EXISTS idx_kb_created_at ON knowledge_bases(created_at);
+
+-- Documents with vector embeddings (using sqlite-vec extension)
+-- sqlite-vec stores embeddings in a special format for efficient similarity search
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kb_id INTEGER NOT NULL,
+    doc_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    embedding BLOB,  -- sqlite-vec binary format for 768-dim vectors
+    metadata TEXT DEFAULT '{}',  -- JSON string
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(kb_id, doc_id),
+    FOREIGN KEY (kb_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_kb_id ON documents(kb_id);
+CREATE INDEX IF NOT EXISTS idx_doc_doc_id ON documents(doc_id);
+
+-- Agent OS specific content (optional)
+CREATE TABLE IF NOT EXISTS agent_os_content (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kb_id INTEGER NOT NULL,
+    content_type TEXT NOT NULL,  -- standard, agent, workflow, command, product, spec
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    file_path TEXT,
+    metadata TEXT DEFAULT '{}',  -- JSON string
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(kb_id, content_type, name),
+    FOREIGN KEY (kb_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_aos_kb_id ON agent_os_content(kb_id);
+CREATE INDEX IF NOT EXISTS idx_aos_content_type ON agent_os_content(content_type);
+CREATE INDEX IF NOT EXISTS idx_aos_name ON agent_os_content(name);
+
+-- Projects (new - for Claude OS project management)
+CREATE TABLE IF NOT EXISTS projects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    path TEXT UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT DEFAULT '{}'  -- JSON: config, hooks, folder mappings
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_name ON projects(name);
+CREATE INDEX IF NOT EXISTS idx_project_path ON projects(path);
+
+-- Project MCP Assignments (links projects to their 4 required MCPs)
+CREATE TABLE IF NOT EXISTS project_mcps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL,
+    kb_id INTEGER NOT NULL,
+    mcp_type TEXT NOT NULL,  -- knowledge_docs, project_profile, project_index, project_memories
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(project_id, mcp_type),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (kb_id) REFERENCES knowledge_bases(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pmcp_project_id ON project_mcps(project_id);
+CREATE INDEX IF NOT EXISTS idx_pmcp_kb_id ON project_mcps(kb_id);
+CREATE INDEX IF NOT EXISTS idx_pmcp_type ON project_mcps(mcp_type);
+
+-- Project Folder Configuration (for selecting KB folders)
+CREATE TABLE IF NOT EXISTS project_kb_folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL,
+    mcp_type TEXT NOT NULL,  -- knowledge_docs, project_profile, etc.
+    folder_path TEXT NOT NULL,
+    auto_sync INTEGER DEFAULT 0,  -- 0 = disabled, 1 = enabled
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(project_id, mcp_type),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pkf_project_id ON project_kb_folders(project_id);
+CREATE INDEX IF NOT EXISTS idx_pkf_mcp_type ON project_kb_folders(mcp_type);
