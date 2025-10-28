@@ -58,9 +58,9 @@ def check_ollama_health() -> Dict[str, any]:
         }
 
 
-def check_postgres_health() -> Dict[str, any]:
+def check_sqlite_health() -> Dict[str, any]:
     """
-    Check PostgreSQL service health.
+    Check SQLite database health.
 
     Returns:
         dict: Status information with 'status' and optional 'error'
@@ -68,29 +68,30 @@ def check_postgres_health() -> Dict[str, any]:
     try:
         from app.core.sqlite_manager import get_sqlite_manager
 
-        pg_manager = get_sqlite_manager()
+        db_manager = get_sqlite_manager()
         # Try to list collections as a health check
-        collections = pg_manager.list_collections()
+        collections = db_manager.list_collections()
 
         return {
             "status": "healthy",
             "collections": len(collections)
         }
     except Exception as e:
-        logger.warning(f"PostgreSQL connection failed: {e}")
+        logger.warning(f"SQLite database check failed: {e}")
         return {
             "status": "unhealthy",
-            "error": "Connection refused - is PostgreSQL running?"
+            "error": f"Database access failed: {str(e)}"
         }
 
 
-# Backwards compatibility alias
-check_chroma_health = check_postgres_health
+# Backwards compatibility aliases
+check_postgres_health = check_sqlite_health
+check_chroma_health = check_sqlite_health
 
 
 def wait_for_services(max_retries: int = 30, delay: int = 2) -> bool:
     """
-    Wait for both Ollama and PostgreSQL services to become healthy.
+    Wait for both Ollama and SQLite services to become healthy.
 
     Args:
         max_retries: Maximum number of retry attempts
@@ -103,16 +104,16 @@ def wait_for_services(max_retries: int = 30, delay: int = 2) -> bool:
 
     for attempt in range(1, max_retries + 1):
         ollama_status = check_ollama_health()
-        postgres_status = check_postgres_health()
+        sqlite_status = check_sqlite_health()
 
-        if ollama_status["status"] == "healthy" and postgres_status["status"] == "healthy":
+        if ollama_status["status"] == "healthy" and sqlite_status["status"] == "healthy":
             logger.info(f"All services healthy after {attempt} attempts")
             return True
 
         logger.info(
             f"Attempt {attempt}/{max_retries}: "
             f"Ollama={ollama_status['status']}, "
-            f"PostgreSQL={postgres_status['status']}"
+            f"SQLite={sqlite_status['status']}"
         )
 
         if attempt < max_retries:

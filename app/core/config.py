@@ -5,7 +5,7 @@ Centralizes all application settings with environment variable support.
 
 import os
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from dotenv import load_dotenv
 
@@ -13,13 +13,33 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class Config:
+class ConfigMeta(type):
+    """Metaclass to make Config class attributes immutable."""
+
+    def __setattr__(cls, name: str, value: Any) -> None:
+        """Prevent modification of configuration class attributes."""
+        raise AttributeError(f"Configuration attribute '{name}' is read-only and cannot be modified")
+
+
+class Config(metaclass=ConfigMeta):
     """Central configuration for Claude OS application."""
 
     # Ollama Configuration
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:latest")  # Upgraded to faster 8B model
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+
+    # Model Configuration
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "llama3.1")
+
+    # Context and Retrieval Configuration
+    MAX_CONTEXT_LENGTH: int = int(os.getenv("MAX_CONTEXT_LENGTH", "4096"))
+    SIMILARITY_TOP_K: int = int(os.getenv("SIMILARITY_TOP_K", "20"))
+
+    # Reranking Configuration
+    RERANK_MODEL: str = os.getenv("RERANK_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384")
+    RERANK_TOP_K: int = int(os.getenv("RERANK_TOP_K", "10"))
 
     # SQLite Database Configuration (replaces PostgreSQL)
     # Always use absolute path to avoid issues when running from different directories
@@ -82,11 +102,85 @@ class Config:
         return cls.OLLAMA_HOST
 
     @classmethod
+    def get_ollama_host(cls) -> str:
+        """Get the Ollama host."""
+        host = os.getenv("OLLAMA_HOST") or ""
+        return host if host else cls.OLLAMA_HOST
+
+    @classmethod
     def get_db_path(cls) -> str:
         """Get the SQLite database path."""
-        db_path = Path(cls.SQLITE_DB_PATH)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        return str(db_path)
+        db_path_env = os.getenv("SQLITE_DB_PATH") or ""
+        if not db_path_env:
+            # Return default path
+            default_path = str(Path(__file__).parent.parent.parent / "data" / "claude-os.db")
+            try:
+                Path(default_path).parent.mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError):
+                pass  # Directory creation failed, but we'll return the path anyway
+            return default_path
+        # Return the exact path as provided, without trying to create directories
+        return db_path_env
+
+    @classmethod
+    def get_embedding_model(cls) -> str:
+        """Get the embedding model."""
+        model = os.getenv("EMBEDDING_MODEL") or ""
+        return model if model else cls.EMBEDDING_MODEL
+
+    @classmethod
+    def get_llm_model(cls) -> str:
+        """Get the LLM model."""
+        model = os.getenv("LLM_MODEL") or ""
+        return model if model else cls.LLM_MODEL
+
+    @classmethod
+    def get_max_context_length(cls) -> int:
+        """Get the max context length."""
+        try:
+            length_str = os.getenv("MAX_CONTEXT_LENGTH") or ""
+            if not length_str:
+                return cls.MAX_CONTEXT_LENGTH
+            length = int(length_str)
+            if length <= 0:
+                raise ValueError("Invalid MAX_CONTEXT_LENGTH: must be greater than 0")
+            return length
+        except ValueError as e:
+            raise ValueError("Invalid MAX_CONTEXT_LENGTH: must be a positive integer") from e
+
+    @classmethod
+    def get_similarity_top_k(cls) -> int:
+        """Get the similarity top K."""
+        try:
+            top_k_str = os.getenv("SIMILARITY_TOP_K") or ""
+            if not top_k_str:
+                return cls.SIMILARITY_TOP_K
+            top_k = int(top_k_str)
+            if top_k <= 0:
+                raise ValueError("Invalid SIMILARITY_TOP_K: must be greater than 0")
+            return top_k
+        except ValueError as e:
+            raise ValueError("Invalid SIMILARITY_TOP_K: must be a positive integer") from e
+
+    @classmethod
+    def get_rerank_model(cls) -> str:
+        """Get the rerank model."""
+        model = os.getenv("RERANK_MODEL") or ""
+        return model if model else cls.RERANK_MODEL
+
+    @classmethod
+    def get_rerank_top_k(cls) -> int:
+        """Get the rerank top K."""
+        try:
+            top_k_str = os.getenv("RERANK_TOP_K") or ""
+            if not top_k_str:
+                return cls.RERANK_TOP_K
+            top_k = int(top_k_str)
+            if top_k <= 0:
+                raise ValueError("Invalid RERANK_TOP_K: must be greater than 0")
+            return top_k
+        except ValueError as e:
+            raise ValueError("Invalid RERANK_TOP_K: must be a positive integer") from e
 
     @classmethod
     def get_mcp_url(cls) -> str:
