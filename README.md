@@ -335,6 +335,12 @@ curl http://localhost:8051/health
 
 ## 📖 Additional Documentation
 
+### Core Features
+- **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns from your conversations automatically
+- **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning system usage guide
+- **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory across sessions
+
+### Technical Documentation
 - **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup guide
 - **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why we chose native Ollama
 - **[PERFORMANCE_TEST_RESULTS.md](PERFORMANCE_TEST_RESULTS.md)** - Benchmark results
