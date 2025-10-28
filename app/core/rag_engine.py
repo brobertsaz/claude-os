@@ -61,9 +61,9 @@ class SimpleVectorRetriever:
                 node = TextNode(
                     text=content,
                     id_=doc_id,
-                    metadata=metadata
+                    metadata=metadata,
+                    score=similarity  # Pass score during initialization for Pydantic validation
                 )
-                node.score = similarity
                 nodes.append(node)
 
         return nodes
