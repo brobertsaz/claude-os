@@ -78,26 +78,29 @@
 
 ---
 
-### One-Line Installer ✨
+### Quick Install (3 Steps)
 
-**Once you have Python 3.11+ and Git, run this command:**
+**Once you have Python 3.11+ and Git, run these commands:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/brobertsaz/claude-os/main/setup.sh | bash
+# 1. Clone the repository
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+
+# 2. Run the setup script
+./setup.sh
+
+# 3. Start all services
+./start_all_services.sh
 ```
 
-**The script will automatically:**
+**The setup script will automatically:**
 - ✅ Install Ollama (if needed) + download LLM models
 - ✅ Install Redis (if needed) for caching/queues
 - ✅ Set up Python virtual environment
 - ✅ Install all Python dependencies
 - ✅ Create SQLite database
 - ✅ Install frontend dependencies (if Node.js present)
-
-**Then start services:**
-```bash
-./start_all_services.sh
-```
 
 **Done!** Visit http://localhost:5173 to start using Claude OS.
 
@@ -140,12 +143,19 @@ git --version      # Should exist
 
 ---
 
-**Step 2: Run the Installer**
-
-Once you have Python 3.11+ and Git:
+**Step 2: Clone the Repository**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/brobertsaz/claude-os/main/setup.sh | bash
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+```
+
+---
+
+**Step 3: Run the Installer**
+
+```bash
+./setup.sh
 ```
 
 This automatically installs:
@@ -159,7 +169,7 @@ The script will download ~5-10 GB of LLM models (llama3.1, embeddings).
 
 ---
 
-**Step 3: Start Services**
+**Step 4: Start Services**
 
 ```bash
 ./start_all_services.sh
@@ -174,7 +184,7 @@ This starts:
 
 ---
 
-**Step 4: Access the Application**
+**Step 5: Access the Application**
 
 Open your browser and visit:
 - **Frontend:** http://localhost:5173
