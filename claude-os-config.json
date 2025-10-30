@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Pistn",
+    "primary_kb": "Pistn-project_memories",
+    "profile_kb": "Pistn-project_profile",
+    "index_kb": "Pistn-project_index",
+    "docs_kb": "Pistn-knowledge_docs",
+    "default_save_category": "Pattern"
+  },
+  "session": {
+    "auto_search_on_start": true,
+    "max_memories_to_load": 5,
+    "search_days_back": 14,
+    "include_pattern_search": true,
+    "proactive_suggestions": true,
+    "auto_git_context": true,
+    "track_statistics": true
+  },
+  "memory_management": {
+    "auto_recommend_saves": true,
+    "save_session_summaries": true,
+    "pattern_detection_enabled": true,
+    "blocker_tracking_enabled": true,
+    "suggest_consolidation": true
+  },
+  "preferences": {
+    "verbose_session_output": true,
+    "show_memory_confirmations": true,
+    "icon_style": "emoji",
+    "show_statistics": true,
+    "proactive_pattern_suggestions": true
+  },
+  "search": {
+    "default_use_hybrid": true,
+    "default_use_rerank": true,
+    "default_use_agentic": false,
+    "include_kb_recommendations": true
+  },
+  "intelligence": {
+    "learn_from_patterns": true,
+    "detect_similar_problems": true,
+    "suggest_related_memories": true,
+    "track_decision_history": true,
+    "build_pattern_library": true
+  }
+}

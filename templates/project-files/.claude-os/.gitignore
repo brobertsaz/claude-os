@@ -1,0 +1,10 @@
+# Claude OS State Files - These should NOT be committed
+claude-os-state.json
+.index_state
+.commit_count
+
+# Hooks can be committed if they're project-specific
+# hooks.json
+
+# Project profile can be committed
+# project-profile/

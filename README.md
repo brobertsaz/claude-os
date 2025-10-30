@@ -1,86 +1,117 @@
 # Claude OS
 
-```text
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║  ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗    ██████╗ ███████╗
-║ ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝   ██╔═══██╗██╔════╝
-║ ██║     ██║     ███████║██║   ██║██║  ██║█████╗     ██║   ██║███████╗
-║ ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝     ██║   ██║╚════██║
-║ ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗   ╚██████╔╝███████║
-║  ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝    ╚═════╝ ╚══════╝
-║                                                               ║
-║           Localized Multi-Knowledge-Base RAG System           ║
-║                    with MCP Integration                       ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
-```
+<p align="center">
+  <img src="frontend/public/assets/claude-os-hero.png" alt="Claude OS Hero" width="800"/>
+</p>
 
-> **Production-grade RAG system** with SQLite vector search, Ollama LLMs, and Model Context Protocol. Runs 100% locally on your machine.
+<p align="center">
+  <strong>AI Memory & Knowledge Base System for Claude Code</strong><br>
+  Share with your team • Initialize projects in seconds • Never lose context again
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![SQLite](https://img.shields.io/badge/SQLite-3.0+-green.svg)](https://www.sqlite.org/)
-[![Ollama](https://img.shields.io/badge/Ollama-Latest-pink.svg)](https://ollama.ai/)
+<p align="center">
+  <a href="#license"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
+  <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/SQLite-3.0+-green.svg" alt="SQLite"></a>
+  <a href="https://ollama.ai/"><img src="https://img.shields.io/badge/Ollama-Latest-pink.svg" alt="Ollama"></a>
+</p>
 
 ---
 
 ## 🚀 What is Claude OS?
 
-**Claude OS** is a **localized RAG (Retrieval-Augmented Generation) system** designed to make AI assistants deeply knowledgeable about your codebase and documentation. It combines:
+**Claude OS** is **Claude Code's personal memory system** - making AI the best coding assistant in the universe by remembering everything across sessions.
 
-- **🗄️ SQLite + sqlite-vec** - Lightweight vector database for semantic search
-- **🤖 Ollama** - Local LLMs (llama3.1) with no API keys needed
-- **🔌 MCP Integration** - Claude CLI integration via Model Context Protocol
-- **⚡ React UI** - Modern dashboard for managing knowledge bases
-- **📚 Multi-KB Support** - Separate knowledge bases for different projects
-- **🧠 Advanced RAG** - Hybrid search, reranking, and agentic modes
+### The Problem
 
-### Perfect For
+You work with Claude Code on a feature, close the terminal, come back tomorrow... and Claude forgot everything. You explain the same architecture. You reference the same files. You repeat yourself constantly.
 
-✅ Making Claude deeply familiar with your codebase
-✅ Private, secure knowledge base (never leaves your machine)
-✅ Team collaboration (share with coworkers easily)
-✅ Integration with Claude CLI via MCP
-✅ Building AI-assisted development workflows
+### The Solution
+
+**Claude OS gives Claude persistent memory:**
+
+- 📝 **Remembers decisions** across all sessions
+- 🔍 **Searches past work** automatically at session start
+- 📚 **Indexes your docs** and makes them searchable
+- 🧠 **Learns patterns** that improve over time
+- 🤝 **Shares with your team** - one install, unlimited projects
+
+### Key Features
+
+✅ **One-Command Project Init** - `/claude-os-init` and you're done
+✅ **Automatic Context Loading** - Starts every session with relevant memories
+✅ **Session Management** - Track work, save progress, resume later
+✅ **Documentation Ingestion** - Auto-indexes your docs during setup
+✅ **Team Sharing** - `./install.sh` for coworkers, works instantly
+✅ **100% Local** - Never leaves your machine, fully private
+✅ **Template System** - Commands and skills shared via symlinks
 
 ---
 
-## ⚡ Quick Start (5-10 minutes)
+## ⚡ Quick Start for Coworkers
+
+**Your coworker shared Claude OS with you? Here's the 3-minute setup:**
+
+### Step 1: Clone and Install
+
+```bash
+# Clone the repository
+git clone https://github.com/your-team/claude-os.git
+cd claude-os
+
+# Run the installer (handles everything)
+./install.sh
+```
+
+The installer will:
+- ✅ Set up Python environment
+- ✅ Install all dependencies
+- ✅ Configure MCP server
+- ✅ Symlink commands and skills to `~/.claude/`
+- ✅ Create start script
+
+### Step 2: Start Claude OS
+
+```bash
+./start.sh
+```
+
+This starts the MCP server at `http://localhost:8051`
+
+### Step 3: Initialize Your First Project
+
+```bash
+cd /path/to/your/project
+```
+
+In Claude Code, run:
+```
+/claude-os-init
+```
+
+Answer the questions (project name, tech stack, docs path, etc.) and **you're done!**
+
+**What you get:**
+- ✅ 4 knowledge bases created (memories, profile, index, docs)
+- ✅ Documentation auto-indexed
+- ✅ Codebase analyzed
+- ✅ CLAUDE.md file with all context
+- ✅ Ready to code with AI memory!
+
+---
+
+## 🎯 For First-Time Setup (Original Creator)
 
 ### Prerequisites
 
-**You MUST have these installed first:**
+**Required:**
+- Python 3.11+ (`python3 --version`)
+- Git (`git --version`)
 
-1. **Python 3.11+** (required)
-   ```bash
-   python3 --version
-   ```
-   - macOS: `brew install python@3.11`
-   - Linux: `sudo apt-get install python3.11`
-   - Windows: Download from https://www.python.org/downloads/
+**Optional:**
+- Node.js 16+ (for React UI)
 
-2. **Git** (required)
-   ```bash
-   git --version
-   ```
-   - macOS: `brew install git`
-   - Linux: `sudo apt-get install git`
-   - Windows: Download from https://git-scm.com/
-
-3. **Node.js 16+** (optional, for React frontend)
-   ```bash
-   node --version
-   ```
-   - macOS: `brew install node`
-   - Linux: `sudo apt-get install nodejs`
-   - Windows: Download from https://nodejs.org/
-
----
-
-### Quick Install (3 Steps)
-
-**Once you have Python 3.11+ and Git, run these commands:**
+### Installation
 
 ```bash
 # 1. Clone the repository
@@ -94,213 +125,143 @@ cd claude-os
 ./start_all_services.sh
 ```
 
-**The setup script will automatically:**
-- ✅ Install Ollama (if needed) + download LLM models
-- ✅ Install Redis (if needed) for caching/queues
-- ✅ Set up Python virtual environment
-- ✅ Install all Python dependencies
-- ✅ Create SQLite database
-- ✅ Install frontend dependencies (if Node.js present)
+**The setup script automatically installs:**
+- ✅ Ollama (if not present) + LLM models
+- ✅ Redis (if not present) for caching/queues
+- ✅ Python virtual environment
+- ✅ All Python dependencies
+- ✅ SQLite database
+- ✅ Frontend dependencies (if Node.js present)
 
-**Done!** Visit http://localhost:5173 to start using Claude OS.
+**Visit** http://localhost:5173 to use the web UI.
 
-### Installation (Step by Step)
+### Consolidate Your Files (First Time Only)
 
-**Step 1: Install Prerequisites** (one-time only)
-
-Choose your OS:
-
-**macOS:**
-```bash
-# Install Python 3.11
-brew install python@3.11
-
-# Install Git
-brew install git
-
-# Optional: Install Node.js for frontend
-brew install node
-```
-
-**Linux (Ubuntu/Debian):**
-```bash
-# Install Python 3.11
-sudo apt-get update
-sudo apt-get install python3.11 python3.11-venv
-
-# Install Git
-sudo apt-get install git
-
-# Optional: Install Node.js for frontend
-sudo apt-get install nodejs npm
-```
-
-**Verify installation:**
-```bash
-python3 --version  # Should be 3.11+
-git --version      # Should exist
-```
-
----
-
-**Step 2: Clone the Repository**
+If you've been using Claude OS and have scattered commands/skills, run the consolidation script:
 
 ```bash
-git clone https://github.com/brobertsaz/claude-os.git
-cd claude-os
+./cli/claude-os-consolidate.sh
 ```
+
+This moves all commands from `~/.claude/commands/` to `templates/commands/` and creates symlinks.
+
+**Then commit to git:**
+```bash
+git add templates/ cli/ install.sh SHARING_GUIDE.md
+git commit -m "Add packaging system for sharing"
+git push
+```
+
+Now your team can clone and use `./install.sh`!
 
 ---
 
-**Step 3: Run the Installer**
+## 🎨 The `/claude-os-init` Command
+
+**Initialize any project with Claude OS in under 2 minutes:**
+
+### What It Does
 
 ```bash
-./setup.sh
+cd /your/project
 ```
 
-This automatically installs:
-- ✅ **Ollama** - LLM engine (auto-installed if missing)
-- ✅ **Redis** - Cache & queues (auto-installed if missing)
-- ✅ **Python dependencies** - All required packages
-- ✅ **SQLite database** - Local vector store
-- ✅ **Frontend** - React UI (if Node.js present)
-
-The script will download ~5-10 GB of LLM models (llama3.1, embeddings).
-
----
-
-**Step 4: Start Services**
-
-```bash
-./start_all_services.sh
+In Claude Code:
+```
+/claude-os-init
 ```
 
-This starts:
-- 🔌 **MCP Server** (port 8051) - Backend RAG engine
-- 🎨 **React UI** (port 5173) - Web dashboard
-- 🤖 **Ollama** (port 11434) - LLM service
-- 💾 **Redis** (port 6379) - Cache & queues
-- 🧠 **RQ Workers** - Real-time learning system
+The command will:
+
+1. **Ask Questions Interactively:**
+   - Project name (auto-detects from folder)
+   - Tech stack (Ruby on Rails, Python, Node.js, etc.)
+   - Database (PostgreSQL, MySQL, etc.)
+   - Development environment (Docker, Local, etc.)
+   - Brief description
+   - Documentation directory to ingest (optional)
+
+2. **Create Project in Claude OS:**
+   - Calls API to create project
+   - Creates 4 knowledge bases automatically:
+     - `{project}-project_memories` - Claude's memory
+     - `{project}-project_profile` - Architecture & standards
+     - `{project}-project_index` - Codebase index
+     - `{project}-knowledge_docs` - Your documentation
+
+3. **Set Up Project Structure:**
+   ```
+   your-project/
+   ├── CLAUDE.md           # Auto-loaded every session!
+   ├── .claude/            # Commands, skills, agents
+   │   ├── ARCHITECTURE.md
+   │   ├── CODING_STANDARDS.md
+   │   └── DEVELOPMENT_PRACTICES.md
+   └── .claude-os/         # Config and state (git-ignored)
+       ├── config.json
+       └── hooks.json
+   ```
+
+4. **Ingest Documentation:**
+   - Scans your docs directory
+   - Uploads all files to `{project}-knowledge_docs`
+   - Creates vector embeddings for search
+
+5. **Analyze Codebase:**
+   - Runs `initialize-project` skill
+   - Generates coding standards
+   - Documents architecture
+   - Indexes key files
+
+6. **Ready to Code:**
+   - Claude now knows your project
+   - Memory persists across sessions
+   - Context auto-loads on session start
 
 ---
 
-**Step 5: Access the Application**
+## 🧠 How Claude OS Works
 
-Open your browser and visit:
-- **Frontend:** http://localhost:5173
-- **API Docs:** http://localhost:8051/docs
+### Session Workflow
 
-Start uploading documents to create knowledge bases!
+**Every Claude Code session automatically:**
 
----
+1. **Checks for Active Session**
+   - Reads `claude-os-state.json`
+   - Prompts: Continue working? Start something new?
 
-## 🎯 Initialize Your Project (The Magic Sauce ✨)
+2. **Loads Context**
+   - Searches `{project}-project_memories` for recent work
+   - Loads relevant patterns and decisions
+   - Shows what it remembers
 
-Once Claude OS is running, follow these 3 simple steps to make Claude an expert on your codebase:
+3. **Works With Memory**
+   - Saves insights with `/claude-os-remember`
+   - Searches memories with `/claude-os-search`
+   - References past decisions automatically
 
-### Step 1: Create a Project in Claude OS UI
+4. **Ends Session**
+   - Saves session summary
+   - Updates memories
+   - Tracks what was accomplished
 
-1. **Open the UI** - Visit http://localhost:5173 in your browser
-2. **Click "Create Project"** button
-3. **Fill in the form:**
-   - **Project Name** - e.g., "my-awesome-app"
-   - **Project Path** - Select your project directory (e.g., `/Users/you/Projects/my-awesome-app`)
-   - **Description** - (optional) Brief description of your project
+### Available Commands
 
-4. **Click "Create Project"**
+All these work in any initialized project:
 
-Your project is now registered in Claude OS!
+- **`/claude-os-init`** - Initialize new project
+- **`/claude-os-search [query]`** - Search memories & docs
+- **`/claude-os-remember [content]`** - Quick save to memories
+- **`/claude-os-save [title]`** - Full-featured save with KB selection
+- **`/claude-os-list`** - List all knowledge bases
+- **`/claude-os-session [action]`** - Manage development sessions
+- **`/claude-os-triggers`** - Manage trigger phrases
 
-### Step 2: Get Your Project ID
+### Available Skills
 
-After creating your project, you'll see it listed in the Projects view. The **Project ID** is displayed right on the project card (e.g., `#1`, `#2`, etc.).
-
-Simply note the number - that's your project ID!
-
-**Example:**
-- If you see `#1` on your project card, your project ID is `1`
-- If you see `#3` on your project card, your project ID is `3`
-
-### Step 3: Initialize Project with Claude Code
-
-This is where the magic happens! The initialization will:
-- ✅ Analyze your entire codebase (~5 minutes)
-- ✅ Generate coding standards & architecture docs
-- ✅ Index 50 key files (~800 code chunks)
-- ✅ Set up Git hooks for auto-indexing
-- ✅ Create 4 Knowledge Bases automatically
-
-**Open Claude Code and copy-paste this command** (replace `1` with your project ID):
-
-```
-/initialize-project 1
-```
-
-**⚠️ Important:** Replace `1` with your actual project ID from Step 2
-
-**Examples:**
-- If your project ID is `1`: `/initialize-project 1`
-- If your project ID is `2`: `/initialize-project 2`
-- If your project ID is `3`: `/initialize-project 3`
-
-**What happens after you run it:**
-1. Claude analyzes your project structure, patterns, and conventions (takes ~5 minutes)
-2. Generates 3 documentation files:
-   - `CODING_STANDARDS.md` - Your code style
-   - `ARCHITECTURE.md` - Your system design
-   - `DEVELOPMENT_PRACTICES.md` - How you build software
-3. Creates semantic indexes for 50 key files (~800+ code chunks)
-4. Installs Git hooks to auto-update knowledge on commits
-5. Creates 4 Knowledge Bases for use with Claude CLI
-
-**When it's done:**
-✅ Claude is now an expert on your project!
-✅ Ask Claude about your codebase and it will know the answers
-✅ Every git commit automatically updates Claude's knowledge
-
----
-
-## 🔌 Auto-Generated MCPs for Claude CLI
-
-After running `/initialize-project`, Claude OS automatically creates **4 MCPs (Model Context Protocol endpoints)** for your project:
-
-1. **📚 knowledge_docs** - Your project documentation
-2. **📋 project_profile** - Project analysis and overview
-3. **🗂️ project_index** - Code structure and file index
-4. **💾 project_memories** - Persistent memory and insights
-
-The `/initialize-project` command will show you the MCP URLs to add them to Claude CLI. Your project knowledge is immediately available! 🚀
-
----
-
-## 📚 Managing Knowledge Bases
-
-### Create a Knowledge Base
-
-1. Visit http://localhost:5173
-2. Click "Create Knowledge Base"
-3. Choose type:
-   - **GENERIC** - General documentation
-   - **CODE** - Source code repositories
-   - **DOCUMENTATION** - Technical docs
-   - **AGENT_OS** - Spec-driven development
-
-### Upload Documents
-
-1. Select a knowledge base
-2. Click "Upload Documents"
-3. Choose files (supports .md, .txt, .pdf, .py, .js, .ts, .json, .yaml)
-4. Watch as documents are indexed
-
-### Query the Knowledge Base
-
-**Via Web UI:**
-1. Select a KB from the dropdown
-2. Type your question
-3. View answer with source citations
-
-**Via Claude CLI:**
-Once added as MCP server, Claude CLI can query your knowledge bases automatically when working on your project.
+- **`initialize-project`** - Analyze codebase and generate standards
+- **`remember-this`** - Auto-save when you say "remember this:"
+- **`memory`** - Simple memory management
 
 ---
 
@@ -308,8 +269,8 @@ Once added as MCP server, Claude CLI can query your knowledge bases automaticall
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Claude CLI                         │
-│         (or any MCP client)                      │
+│              Claude Code CLI                     │
+│         (with Claude OS integration)             │
 └───────────────────┬─────────────────────────────┘
                     │ MCP HTTP
 ┌───────────────────▼─────────────────────────────┐
@@ -322,13 +283,14 @@ Once added as MCP server, Claude CLI can query your knowledge bases automaticall
 ┌───────▼────────────┐  ┌────────▼──────────┐
 │   RAG Engine       │  │  React UI         │
 │  (llama-index)     │  │  (Port 5173)      │
-│  • Vector Search   │  │                   │
-│  • Hybrid Search   │  └────────────────────┘
-│  • Reranking       │
-└───────┬────────────┘
+│  • Vector Search   │  │  • Project Mgmt   │
+│  • Hybrid Search   │  │  • KB Browser     │
+│  • Reranking       │  │  • Doc Upload     │
+└───────┬────────────┘  └───────────────────┘
         │
 ┌───────▼────────────────────────────────────────┐
 │   SQLite + sqlite-vec (Local Database)         │
+│  • projects                                     │
 │  • knowledge_bases                             │
 │  • documents (with embeddings)                 │
 │  • Single-file database                        │
@@ -344,13 +306,137 @@ Once added as MCP server, Claude CLI can query your knowledge bases automaticall
                     └────────────────┘
 ```
 
+### Template System
+
+```
+claude-os/
+├── templates/              # Shared with all projects
+│   ├── commands/          # Slash commands (symlinked to ~/.claude/)
+│   │   ├── claude-os-init.md
+│   │   ├── claude-os-search.md
+│   │   └── ...
+│   ├── skills/            # Skills (symlinked to ~/.claude/)
+│   │   ├── initialize-project/
+│   │   ├── remember-this/
+│   │   └── memory/
+│   └── project-files/     # Files created during /claude-os-init
+│       ├── CLAUDE.md.template
+│       └── .claude-os/
+│           ├── config.json.template
+│           └── hooks.json.template
+├── cli/                   # CLI tools
+│   └── claude-os-consolidate.sh
+├── install.sh             # One-command setup for coworkers
+└── start.sh               # Start services
+```
+
+**Benefits:**
+- ✅ Update once, all projects benefit
+- ✅ Symlinks mean instant updates
+- ✅ Easy to share with team
+- ✅ Consistent across projects
+
+---
+
+## 📚 Managing Knowledge Bases
+
+### Via Web UI
+
+1. **Visit** http://localhost:5173
+2. **Create Knowledge Base:**
+   - Click "Create Knowledge Base"
+   - Choose type (Generic, Code, Documentation, Agent_OS)
+3. **Upload Documents:**
+   - Select KB from dropdown
+   - Drag & drop files or click upload
+   - Supports .md, .txt, .pdf, .py, .js, .ts, .json, .yaml
+4. **Query:**
+   - Type question in search box
+   - View answer with source citations
+
+### Via CLI
+
+```bash
+# Search your project memories
+/claude-os-search "how did we implement authentication?"
+
+# Save a quick insight
+/claude-os-remember "Fixed bug in user controller by adding validation"
+
+# Full-featured save
+/claude-os-save "Authentication Pattern" my-app-project_profile Architecture
+```
+
+### Auto-Created KBs
+
+When you run `/claude-os-init`, you get 4 knowledge bases:
+
+1. **`{project}-project_memories`**
+   - Claude's memory for decisions, patterns, solutions
+   - Automatically saved during sessions
+   - Searched at session start
+
+2. **`{project}-project_profile`**
+   - Architecture, coding standards, practices
+   - Generated by `initialize-project` skill
+   - Updated as project evolves
+
+3. **`{project}-project_index`**
+   - Automated codebase index
+   - Tracks file structure
+   - Updates on git commits (with hooks)
+
+4. **`{project}-knowledge_docs`**
+   - Your documentation
+   - Auto-ingested during init
+   - Add more via UI or CLI
+
+---
+
+## 🤝 Team Collaboration
+
+### Sharing Claude OS
+
+**Step 1: Package for sharing**
+```bash
+cd /path/to/claude-os
+./cli/claude-os-consolidate.sh  # Move files to templates/
+git add templates/ cli/ install.sh
+git commit -m "Ready for team sharing"
+git push
+```
+
+**Step 2: Share repo URL with team**
+
+Send teammates:
+- Repo URL
+- Link to `SHARING_GUIDE.md` in the repo
+
+**Step 3: They install (3 minutes)**
+```bash
+git clone <your-repo-url>
+cd claude-os
+./install.sh
+./start.sh
+```
+
+Done! They can now use `/claude-os-init` on any project.
+
+### Per-Project Setup
+
+Each team member:
+1. Runs `/claude-os-init` in their project
+2. Gets their own knowledge bases
+3. CLAUDE.md is committed to git (shared)
+4. .claude-os/ state is git-ignored (personal)
+
+**Result:** Team shares context via CLAUDE.md, but each person has their own AI memory.
+
 ---
 
 ## ⚙️ Configuration
 
 ### Environment Variables
-
-The system uses sensible defaults, but you can customize via environment variables:
 
 ```bash
 # SQLite Database
@@ -365,15 +451,38 @@ MCP_SERVER_HOST=0.0.0.0         # Default: 0.0.0.0
 MCP_SERVER_PORT=8051            # Default: 8051
 ```
 
+### Project Configuration
+
+Each project has `.claude-os/config.json`:
+
+```json
+{
+  "project_name": "my-app",
+  "claude_os_url": "http://localhost:8051",
+  "knowledge_bases": {
+    "memories": "my-app-project_memories",
+    "profile": "my-app-project_profile",
+    "index": "my-app-project_index",
+    "docs": "my-app-knowledge_docs"
+  },
+  "docs_settings": {
+    "watch_paths": ["./docs", "./knowledge_docs"],
+    "auto_ingest_patterns": ["*.md", "*.txt", "*.pdf"]
+  },
+  "tech_stack": "Ruby on Rails",
+  "database": "MySQL"
+}
+```
+
 ---
 
 ## 📊 Performance
 
-**Native Ollama Setup (Current)**
+**Native Ollama Setup:**
 - Response time: ~40 seconds per query
 - GPU acceleration: Full Metal GPU on Apple Silicon
 - Memory usage: 8-10GB (models + context)
-- CPU usage: 12 cores (M4 Pro, leaves 2 for system)
+- CPU usage: 12 cores (M4 Pro)
 
 **Why it's fast:**
 - Direct GPU acceleration (no virtualization)
@@ -385,186 +494,108 @@ MCP_SERVER_PORT=8051            # Default: 8051
 
 ## 🛠️ Scripts Guide
 
-Claude OS includes comprehensive shell scripts for setup, service management, and testing. Here's what each one does:
-
 ### Installation & Setup
 
-#### `./setup.sh` - Complete Setup ⭐ **USE THIS ONE**
+#### `./install.sh` - Team Member Setup ⭐
+```bash
+./install.sh
+```
+**For coworkers joining the team:**
+- ✅ Creates `~/.claude/` directories
+- ✅ Symlinks all commands and skills
+- ✅ Sets up Python environment
+- ✅ Installs dependencies
+- ✅ Configures MCP server
+
+#### `./setup.sh` - First-Time Setup
 ```bash
 ./setup.sh
 ```
-**This is the standard setup script that 99% of users need.**
+**For the original creator:**
+- ✅ Installs Ollama + Redis (if needed)
+- ✅ Downloads LLM models (~5-10 GB)
+- ✅ Sets up Python environment
+- ✅ Creates database
 
-**Prerequisites (must be installed first):**
-- ✅ Python 3.11+ (required - script will fail if missing)
-- ✅ Git (required - script will fail if missing)
-- ⚠️ Node.js 16+ (optional - script skips frontend if missing)
-
-**What it automatically installs:**
-- ✅ **Ollama** - Downloads and starts if not installed
-- ✅ **Redis** - Installs and starts if not present
-- ✅ **Python virtual environment** - Isolated environment
-- ✅ **Python dependencies** - All packages from `requirements.txt`
-- ✅ **LLM models** - llama3.1 and nomic-embed-text (~5-10 GB)
-- ✅ **SQLite database** - Local vector store
-- ✅ **Frontend dependencies** - npm packages (if Node.js present)
-
-**Supported platforms:** macOS & Linux
-
-**When to use:**
-- ✅ **First-time setup (recommended for 99% of users)**
-- ✅ You have Python 3.11+ and Git already installed
-- ✅ You don't have Ollama or Redis yet
-- ✅ You want a complete, automated setup
-- ✅ You're on any Unix system (macOS/Linux)
-
----
-
-#### `./setup_native.sh` - Fast macOS Setup (Advanced Users Only)
+#### `./cli/claude-os-consolidate.sh` - Organize Files
 ```bash
-./setup_native.sh
+./cli/claude-os-consolidate.sh
 ```
-**This is an optional lightweight setup for macOS users who already have Ollama installed via Homebrew.**
-
-**What it does:**
-- ✅ Verifies Ollama is already installed via Homebrew (fails if not)
-- ✅ Pulls required LLM models (llama3.1, nomic-embed-text)
-- ✅ Sets up Python virtual environment
-- ✅ Installs Python dependencies
-- ✅ Creates data/ and logs/ directories
-- ✅ Initializes SQLite database
-- ⚠️ Does NOT install Redis
-
-**When to use (rare):**
-- ⚠️ Only if you already have **Ollama installed via `brew install ollama`**
-- ⚠️ You're on macOS only
-- ⚠️ You already have Redis running separately
-
-**Note:** Most users should use `./setup.sh` instead. Only use this if you know what you're doing.
-
----
+**One-time consolidation:**
+- Moves commands to `templates/`
+- Moves skills to `templates/`
+- Creates symlinks
+- Prepares for git commit
 
 ### Service Management
 
-#### `./start_all_services.sh` - Start Everything
+#### `./start.sh` or `./start_all_services.sh` - Start Everything
 ```bash
-./start_all_services.sh
+./start.sh
 ```
 **Starts:**
-- 🔌 **MCP Server** (port 8051) - Backend RAG engine
-- 🎨 **React Frontend** (port 5173) - Web dashboard
-- 🤖 **RQ Workers** - Real-time learning system
-- 💾 **Redis** - Cache & message queue
-- 🧠 **Ollama** - LLM service
+- 🔌 MCP Server (port 8051)
+- 🎨 React Frontend (port 5173)
+- 🤖 RQ Workers
+- 💾 Redis
+- 🧠 Ollama
 
-**Features:**
-- Automatic health checks for all services
-- Creates required directories if missing
-- Checks that ports are free
-- Logs all services to `logs/` directory
-- Shows service URLs and PIDs
-
-**Output:**
-```
-Service URLs:
-  🎨 Frontend:    http://localhost:5173
-  🔌 API Server:  http://localhost:8051
-  📚 API Docs:    http://localhost:8051/docs
-
-Log Files:
-  MCP Server:   logs/mcp_server.log
-  Frontend:     logs/frontend.log
-  RQ Workers:   logs/rq_workers.log
-```
-
----
-
-#### `./stop_all_services.sh` - Stop All Services
+#### `./stop_all_services.sh` - Stop All
 ```bash
 ./stop_all_services.sh
 ```
-**Stops:**
-- 🔌 MCP Server (port 8051)
-- 🎨 React Frontend (port 5173)
-- 🤖 RQ Workers (real-time learning)
-- 💾 Redis
 
-**Note:** Ollama is preserved (may be used by other apps)
-
----
-
-#### `./restart_services.sh` - Restart Everything
+#### `./restart_services.sh` - Restart
 ```bash
 ./restart_services.sh
 ```
-**Does:**
-1. Stops all services gracefully
-2. Waits for ports to be released (3 second delay)
-3. Starts all services fresh
-
-**Use when:** Code changes aren't reflected or services need a clean restart
 
 ---
 
-#### `./start_mcp_server.sh` - Start Only MCP Server
+## 🐛 Troubleshooting
+
+### "Command not found: /claude-os-init"
+
+Symlinks weren't created. Re-run:
 ```bash
-./start_mcp_server.sh
-```
-**Starts:**
-- 🔌 MCP Server (port 8051)
-
-**Checks:**
-- ✅ Ollama is running
-- ✅ SQLite database exists
-- ✅ Python environment is ready
-
-**Use when:** You only need the backend API (e.g., for testing)
-
----
-
-#### `./start_redis_workers.sh` - Start RQ Workers
-```bash
-./start_redis_workers.sh
-```
-**Starts:**
-- 🤖 RQ Workers for real-time learning system
-- Listening on queues: `claude-os:learning`, `claude-os:prompts`, `claude-os:ingest`
-- Scheduler for periodic tasks
-
-**Checks:**
-- ✅ Redis is running
-- ✅ Python virtual environment exists
-- ✅ RQ dependencies are installed
-
-**Use when:** Running the real-time learning system separately
-
----
-
-### Testing
-
-#### `./run_tests.sh` - Run Test Suite
-```bash
-./run_tests.sh [OPTIONS]
+cd /path/to/claude-os
+./install.sh
 ```
 
-**Options:**
+### "Connection refused to localhost:8051"
+
+Claude OS server isn't running:
 ```bash
-./run_tests.sh                    # Run all tests
-./run_tests.sh --unit             # Unit tests only
-./run_tests.sh --integration      # Integration tests only
-./run_tests.sh --vector           # Vector DB tests
-./run_tests.sh --rag              # RAG engine tests
-./run_tests.sh --api              # API endpoint tests
-./run_tests.sh --coverage         # Generate coverage report
-./run_tests.sh --verbose          # Detailed output
-./run_tests.sh --unit --coverage  # Combine options
+cd /path/to/claude-os
+./start.sh
 ```
 
-**Features:**
-- Validates PostgreSQL connection
-- Creates test database if needed
-- Shows test configuration
-- Generates HTML coverage report (with `--coverage`)
+### "Project already exists"
+
+Project name is taken. Choose a different name or delete via UI at http://localhost:5173
+
+### Port Already in Use
+
+```bash
+# Find process on port 8051
+lsof -i :8051
+
+# Kill if needed
+kill -9 <PID>
+```
+
+### Ollama Issues
+
+```bash
+# Check if running
+ollama list
+
+# Start manually
+ollama serve
+
+# Check for model
+ollama list | grep llama3.1
+```
 
 ---
 
@@ -572,112 +603,60 @@ Log Files:
 
 ```
 claude-os/
+├── templates/              # NEW: Shared templates system
+│   ├── commands/          # Slash commands
+│   ├── skills/            # Skills
+│   └── project-files/     # Files created during init
+├── cli/                   # NEW: CLI tools
+│   └── claude-os-consolidate.sh
 ├── app/                    # Backend application
 │   ├── core/              # Core modules
-│   │   ├── config.py      # Configuration management
-│   │   ├── sqlite_manager.py  # SQLite interface
-│   │   ├── rag_engine.py  # RAG logic
+│   │   ├── sqlite_manager.py
+│   │   ├── rag_engine.py
 │   │   └── ...
-│   ├── db/                # Database schemas
-│   └── ...
+│   └── db/                # Database schemas
 ├── frontend/              # React UI (Vite)
 │   ├── src/
-│   │   ├── pages/
-│   │   ├── components/
-│   │   └── ...
-│   └── package.json
+│   └── public/
+│       └── assets/
+│           └── claude-os-hero.png
 ├── mcp_server/           # MCP Server (HTTP)
-│   ├── server.py         # FastAPI + MCP endpoints
-│   └── ...
-├── migrations/           # Database migrations
-├── data/                 # SQLite database (auto-created)
+│   └── server.py         # FastAPI + MCP endpoints
+├── data/                 # SQLite database
 │   └── claude-os.db
-├── logs/                 # Service logs (auto-created)
-├── .sh scripts           # Utility scripts (see Scripts Guide above)
-├── requirements.txt      # Python dependencies
+├── logs/                 # Service logs
+├── install.sh            # NEW: Coworker setup
+├── start.sh              # NEW: Start services
+├── SHARING_GUIDE.md      # NEW: Team sharing docs
 └── README.md             # This file
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Database Issues
-
-The SQLite database is automatically created at `data/claude-os.db`. If you encounter issues:
-
-```bash
-# Check if database exists
-ls -lh data/claude-os.db
-
-# Remove and recreate (WARNING: deletes all data)
-rm data/claude-os.db
-# Restart the server to recreate
-```
-
-### Ollama Issues
-
-```bash
-# Check if Ollama is running
-ollama list
-
-# Start Ollama manually
-ollama serve
-
-# Check for specific model
-ollama list | grep llama3.1
-```
-
-### Port Already in Use
-
-```bash
-# Find process on port 8051 (MCP Server)
-lsof -i :8051
-
-# Find process on port 5173 (React UI)
-lsof -i :5173
-
-# Kill if needed (replace PID with actual process ID)
-kill -9 <PID>
-```
-
-### MCP Server Not Starting
-
-```bash
-# Check logs
-tail -f /tmp/mcp_server.log
-
-# Verify Python environment
-source venv/bin/activate
-python mcp_server/server.py
-
-# Check port 8051 is accessible
-curl http://localhost:8051/health
 ```
 
 ---
 
 ## 📖 Additional Documentation
 
+### Getting Started
+- **[SHARING_GUIDE.md](SHARING_GUIDE.md)** - 🤝 How to share with your team
+- **[templates/README.md](templates/README.md)** - 📂 Template system documentation
+
 ### Core Features
-- **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns from your conversations automatically
-- **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning system usage guide
-- **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory across sessions
+- **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns automatically
+- **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning usage
+- **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory guide
 
 ### Technical Documentation
-- **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup guide
-- **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why we chose native Ollama
+- **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup
+- **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why native Ollama
 - **[PERFORMANCE_TEST_RESULTS.md](PERFORMANCE_TEST_RESULTS.md)** - Benchmark results
-- **[SLUG_IMPLEMENTATION_SUMMARY.md](SLUG_IMPLEMENTATION_SUMMARY.md)** - URL slug system
-- **[MCP_KB_ENDPOINTS.md](MCP_KB_ENDPOINTS.md)** - MCP endpoint documentation
+- **[MCP_KB_ENDPOINTS.md](MCP_KB_ENDPOINTS.md)** - MCP endpoint docs
 
 ---
 
 ## 🤝 Contributing
 
-This is a personal development tool. Feel free to:
+This is a team development tool. Feel free to:
 - Modify for your specific needs
-- Add new KB types
+- Add new commands and skills
 - Optimize RAG strategies
 - Contribute improvements back
 
@@ -691,12 +670,27 @@ MIT License - Use it freely!
 
 ## 🎯 Next Steps
 
-1. **First-time setup:** Run `./setup_native.sh`
-2. **Start services:** Run `./start_all_services.sh`
-3. **Create knowledge base:** Visit http://localhost:5173
-4. **Upload documents:** Add your codebase/docs
-5. **Integrate with Claude:** Run `claude mcp add ...`
-6. **Start coding:** Ask Claude about your project!
+### For Original Creator:
+1. Run `./setup.sh` (first time)
+2. Run `./cli/claude-os-consolidate.sh` (organize files)
+3. Commit templates to git
+4. Share repo with team
 
-Happy coding! 🚀
+### For Team Members:
+1. Clone the repo
+2. Run `./install.sh`
+3. Run `./start.sh`
+4. Use `/claude-os-init` in your projects
 
+### For Everyone:
+- Use `/claude-os-search` to find past work
+- Use `/claude-os-remember` to save insights
+- Use `/claude-os-session` to track work
+- Enjoy never losing context again!
+
+---
+
+<p align="center">
+  <strong>Claude Code + Claude OS = Invincible! 🚀</strong><br>
+  <em>Built by AI coders, for AI coders</em>
+</p>

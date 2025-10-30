@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "description": "Claude OS trigger configuration - controls automatic skill invocation",
+  "triggers": {
+    "remember_this": {
+      "description": "Auto-invokes remember-this skill to save to Claude OS memories",
+      "skill": "remember-this",
+      "phrases": [
+        "remember this:",
+        "save this:",
+        "document this:",
+        "remember:",
+        "don't forget:",
+        "important:",
+        "note:"
+      ],
+      "case_sensitive": false,
+      "enabled": true
+    },
+    "search_memories": {
+      "description": "Auto-invokes memory search when asking about past work",
+      "action": "search_claude_os",
+      "phrases": [
+        "what did we do about",
+        "recall",
+        "find memories about",
+        "search for",
+        "do you remember when"
+      ],
+      "case_sensitive": false,
+      "enabled": true
+    },
+    "session_start": {
+      "description": "Triggers session start workflow",
+      "action": "session_start",
+      "phrases": [
+        "start session",
+        "begin work",
+        "let's code",
+        "morning claude",
+        "hey claude let's work"
+      ],
+      "case_sensitive": false,
+      "enabled": false
+    },
+    "session_end": {
+      "description": "Triggers session end workflow",
+      "action": "session_end",
+      "phrases": [
+        "end session",
+        "done for today",
+        "save and exit",
+        "that's all for now",
+        "wrap up"
+      ],
+      "case_sensitive": false,
+      "enabled": false
+    }
+  },
+  "settings": {
+    "trigger_detection_enabled": true,
+    "show_trigger_confirmations": false,
+    "log_trigger_activations": true
+  }
+}

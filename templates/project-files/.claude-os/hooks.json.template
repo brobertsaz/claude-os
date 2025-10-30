@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "pre_commit": {
+      "enabled": false,
+      "commands": []
+    },
+    "post_commit": {
+      "enabled": false,
+      "commands": []
+    },
+    "pre_session_start": {
+      "enabled": true,
+      "commands": [
+        {
+          "name": "Load Project Context",
+          "action": "search_memories",
+          "kb_name": "{{PROJECT_NAME}}-project_memories",
+          "query": "recent work context"
+        }
+      ]
+    },
+    "post_session_end": {
+      "enabled": true,
+      "commands": [
+        {
+          "name": "Save Session Summary",
+          "action": "save_to_memories",
+          "kb_name": "{{PROJECT_NAME}}-project_memories"
+        }
+      ]
+    }
+  },
+  "project_name": "{{PROJECT_NAME}}",
+  "version": "1.0.0"
+}

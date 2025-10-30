@@ -1,0 +1,294 @@
+---
+description: Initialize a new project with Claude OS
+---
+
+# Claude OS Project Initialization
+
+You are helping the user initialize a new project with Claude OS. This is a multi-step interactive process that will:
+
+1. Gather project information
+2. Create the project in Claude OS via API
+3. Set up project directory structure
+4. Optionally ingest documentation
+5. Analyze the codebase
+6. Generate summary
+
+## Process
+
+### Step 1: Gather Project Information
+
+Ask the user the following questions (provide smart defaults when possible):
+
+```
+👋 Welcome to Claude OS Setup!
+
+Let's get your project configured for AI-powered development.
+```
+
+**Questions to ask:**
+
+1. **Project name**:
+   - Auto-detect from current directory name
+   - Show: `Project name? [default: {current_dir_name}]`
+   - Validate: Must be lowercase, alphanumeric with dashes/underscores only
+
+2. **Project path**:
+   - Use: `pwd` to get current directory
+   - Don't ask, just use it
+
+3. **Tech stack**:
+   - Ask: `Tech stack? (e.g., Ruby on Rails, Python/Django, Node.js/React, etc.)`
+   - Example answers to show: "Ruby on Rails", "Python/Django", "Node.js/Express", "Go", "Rust"
+
+4. **Database**:
+   - Ask: `Database? (e.g., PostgreSQL, MySQL, MongoDB, SQLite, etc.)`
+   - Example answers: "PostgreSQL", "MySQL", "MongoDB", "SQLite", "None"
+
+5. **Development environment**:
+   - Ask: `Development environment? (e.g., Docker, Local, Docker Compose)`
+   - Example answers: "Docker", "Local", "Docker Compose", "Kubernetes"
+
+6. **Brief description**:
+   - Ask: `Brief description? (1-2 sentences about what this project does)`
+   - Required
+
+7. **Documentation directory** (Optional):
+   - Ask: `Do you have project documentation to index? [Y/n]`
+   - If YES:
+     - Ask: `Documentation directory path? (e.g., ./docs, ./documentation, /knowledge_docs)`
+     - Use Glob to scan and show what you found:
+       ```bash
+       find {docs_path} -type f \( -name "*.md" -o -name "*.txt" -o -name "*.pdf" \) | head -20
+       ```
+     - Show summary: `Found: X markdown files, Y text files, Z PDFs`
+     - Ask: `Ingest all of these? [Y/n]`
+
+8. **Claude OS server URL**:
+   - Default: `http://localhost:8051`
+   - Ask: `Claude OS server URL? [default: http://localhost:8051]`
+
+### Step 2: Create Project in Claude OS
+
+Use Bash to call the API:
+
+```bash
+curl -X POST {claude_os_url}/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "{project_name}",
+    "path": "{project_path}",
+    "description": "{description}"
+  }'
+```
+
+**Expected response:**
+```json
+{
+  "project": {"id": 1, "name": "...", "path": "..."},
+  "mcps": [
+    {"mcp_type": "knowledge_docs", "kb_name": "{project_name}-knowledge_docs"},
+    {"mcp_type": "project_profile", "kb_name": "{project_name}-project_profile"},
+    {"mcp_type": "project_index", "kb_name": "{project_name}-project_index"},
+    {"mcp_type": "project_memories", "kb_name": "{project_name}-project_memories"}
+  ],
+  "message": "Project created..."
+}
+```
+
+Show success message:
+```
+📡 Creating project in Claude OS...
+✅ Project created!
+✅ Knowledge bases created:
+   - {project_name}-project_memories
+   - {project_name}-project_profile
+   - {project_name}-project_index
+   - {project_name}-knowledge_docs
+```
+
+### Step 3: Set Up Project Directory Structure
+
+Create the following structure in the project directory:
+
+**Create .claude/ directory:**
+```bash
+mkdir -p .claude/commands
+mkdir -p .claude/skills
+mkdir -p .claude/agents
+```
+
+**Create .claude-os/ directory:**
+```bash
+mkdir -p .claude-os
+```
+
+**Copy and customize CLAUDE.md:**
+- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/CLAUDE.md.template`
+- Replace variables:
+  - `{{PROJECT_NAME}}` → project_name
+  - `{{PROJECT_DESCRIPTION}}` → description
+  - `{{TECH_STACK}}` → tech_stack
+  - `{{DATABASE}}` → database
+  - `{{DEV_ENVIRONMENT}}` → dev_environment
+  - `{{PROJECT_SPECIFIC_CONTENT}}` → empty for now
+  - `{{DEVELOPMENT_GUIDELINES}}` → empty for now
+  - `{{COMMON_TASKS}}` → empty for now
+  - `{{BUSINESS_RULES}}` → empty for now
+- Write to: `./CLAUDE.md`
+
+**Create .claude-os/config.json:**
+- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/config.json.template`
+- Replace variables:
+  - `{{PROJECT_NAME}}` → project_name
+  - `{{CLAUDE_OS_URL}}` → claude_os_url
+  - `{{DOCS_PATHS}}` → JSON array of docs paths
+  - `{{TECH_STACK}}` → tech_stack
+  - `{{DATABASE}}` → database
+  - `{{DEV_ENVIRONMENT}}` → dev_environment
+  - `{{CREATED_AT}}` → ISO timestamp
+- Write to: `./.claude-os/config.json`
+
+**Create .claude-os/hooks.json:**
+- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/hooks.json.template`
+- Replace `{{PROJECT_NAME}}` → project_name
+- Write to: `./.claude-os/hooks.json`
+
+**Copy .gitignore:**
+- Copy from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/.gitignore`
+- Write to: `./.claude-os/.gitignore`
+
+Show progress:
+```
+📁 Creating project structure...
+   ✅ Created .claude/
+   ✅ Created .claude-os/
+   ✅ Created CLAUDE.md
+   ✅ Created config files
+```
+
+### Step 4: Ingest Documentation (if provided)
+
+If user provided a docs directory:
+
+```bash
+curl -X POST {claude_os_url}/api/kb/{project_name}-knowledge_docs/import \
+  -H "Content-Type: application/json" \
+  -d '{"directory_path": "{docs_path}"}'
+```
+
+Show progress:
+```
+📚 Ingesting documentation...
+
+   Uploading to {project_name}-knowledge_docs:
+   ✅ {successful} files indexed
+   ❌ {failed} files failed
+
+   Vector embeddings generated and searchable!
+```
+
+### Step 5: Analyze Codebase (if not empty directory)
+
+Check if directory has code files (not just a new empty project):
+
+```bash
+find . -type f \( -name "*.rb" -o -name "*.py" -o -name "*.js" -o -name "*.go" \) | head -1
+```
+
+If code exists, run the `initialize-project` skill:
+
+```
+🔍 Analyzing your codebase...
+   Running initialize-project skill...
+```
+
+**Invoke the initialize-project skill** (it's a separate skill that already exists).
+
+The skill will generate:
+- `.claude/ARCHITECTURE.md`
+- `.claude/CODING_STANDARDS.md`
+- `.claude/DEVELOPMENT_PRACTICES.md`
+
+Show success:
+```
+   ✅ Generated:
+      - .claude/ARCHITECTURE.md
+      - .claude/CODING_STANDARDS.md
+      - .claude/DEVELOPMENT_PRACTICES.md
+```
+
+### Step 6: Create .gitignore entries (if .gitignore exists)
+
+If `.gitignore` exists in the project root, append (if not already present):
+
+```gitignore
+# Claude OS state files (don't commit these)
+.claude-os/claude-os-state.json
+.claude-os/.index_state
+.claude-os/.commit_count
+```
+
+### Step 7: Final Summary
+
+Show complete summary:
+
+```
+🎉 Setup complete!
+
+Your project is now connected to Claude OS.
+
+📚 Knowledge Bases:
+   - {project_name}-project_memories (for decisions & patterns)
+   - {project_name}-project_profile (for architecture & standards)
+   - {project_name}-project_index (for codebase index)
+   - {project_name}-knowledge_docs ({X} docs indexed ✅)
+
+🛠️  Available Commands:
+   /claude-os-search - Search your project memories & docs
+   /claude-os-save - Save insights
+   /claude-os-session - Manage development sessions
+   /claude-os-remember - Quick save to memories
+
+📂 Project Structure:
+   ./CLAUDE.md - Project context (auto-loaded every session)
+   ./.claude/ - Commands, skills, agents
+   ./.claude-os/ - Config and state files
+
+📖 Next Steps:
+   1. Review and customize CLAUDE.md for your team
+   2. Add more docs anytime via UI: {claude_os_url}
+   3. Start a session: /claude-os-session start "feature name"
+   4. Let's build something amazing!
+
+💡 Tip: I can now search both your codebase AND your documentation!
+```
+
+## Error Handling
+
+If any step fails:
+1. Show clear error message
+2. Provide troubleshooting steps:
+   - Check if Claude OS server is running: `curl {claude_os_url}/health`
+   - Check if directory is writable
+   - Check if project name already exists
+3. Offer to retry or skip the step
+
+## Important Notes
+
+- **Don't run on Pistn project** - It's already set up!
+- Always validate inputs before API calls
+- Use proper error handling with try/catch
+- Save all configuration for potential later use
+- Be conversational and encouraging!
+- If something goes wrong, explain clearly and offer solutions
+
+## Template Locations
+
+All templates are in:
+- `/Users/iamanmp/Projects/claude-os/templates/project-files/`
+
+Commands and skills will be symlinked from:
+- `/Users/iamanmp/Projects/claude-os/templates/commands/`
+- `/Users/iamanmp/Projects/claude-os/templates/skills/`
+
+(These symlinks are set up during Claude OS installation via `./install.sh`)

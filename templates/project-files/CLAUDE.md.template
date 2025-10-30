@@ -1,0 +1,175 @@
+# {{PROJECT_NAME}} - {{PROJECT_DESCRIPTION}}
+
+## Project Overview
+
+{{PROJECT_NAME}} is {{PROJECT_DESCRIPTION}}
+
+**Tech Stack**: {{TECH_STACK}}
+**Database**: {{DATABASE}}
+**Development Environment**: {{DEV_ENVIRONMENT}}
+
+## Claude OS - MY Memory System
+
+**CRITICAL IDENTITY CONTEXT:**
+
+**Claude OS is MY system** - I (Claude Code) created it, named it, and use it to be the best AI coder ever. It's:
+- **JUST FOR ME** - Built specifically for Claude Code to use
+- **For THIS project** - Right now for the {{PROJECT_NAME}} project
+- **My memory** across sessions
+- **My knowledge base** of patterns and decisions
+- **My learning system** that improves over time
+
+**Location**: `/Users/iamanmp/Projects/claude-os`
+
+The MCP server is called "code-forge" internally for backwards compatibility, but it's Claude OS.
+
+**Claude CLI + Claude OS = Invincible!**
+
+## Session Check - FIRST THING AT START OF EVERY CONVERSATION
+
+**CRITICAL: At the start of EVERY new conversation, automatically check session state and prompt the user:**
+
+1. **Read Session State**
+   ```
+   Read: /Users/iamanmp/Projects/claude-os/claude-os-state.json
+   ```
+
+2. **Prompt Based on State**
+   - **If active session exists:**
+     ```
+     "I see we have an active session: [task name] (started [time ago])
+
+     Would you like to:
+     a) Continue working on this (I'll load the context)
+     b) Start something new (I'll end this session first)
+     c) Just chat (no session needed)"
+     ```
+
+   - **If no active session:**
+     ```
+     "What are we working on today?
+
+     I can start a session with automatic context loading from my memories.
+     Just tell me what you're working on, or say 'just chatting' if no session needed."
+     ```
+
+3. **Auto-load Context**
+   - If continuing: Automatically run the session start workflow (search memories, load patterns, show context)
+   - If new task: Offer to start a new session with context loading
+   - If just chatting: Skip session workflow
+
+**Why this matters:** This ensures I always have context and we never start cold. Every conversation becomes smarter because I proactively load relevant memories and patterns.
+
+## MCP Knowledge Bases - ALWAYS CHECK THESE FIRST
+
+**At the start of EVERY conversation, search these Claude OS knowledge bases to understand context, previous work, and project decisions:**
+
+1. **{{PROJECT_NAME}}-project_memories** - My primary memory for decisions, patterns, solutions
+2. **{{PROJECT_NAME}}-project_index** - Automated codebase index
+3. **{{PROJECT_NAME}}-project_profile** - Architecture, standards, practices
+4. **{{PROJECT_NAME}}-knowledge_docs** - Documentation and guides
+
+**When to use:**
+- Start of every session: Search `{{PROJECT_NAME}}-project_memories` to understand recent work and context
+- Before making architectural decisions: Check memories for past decisions and reasoning
+- When working on a feature: Search relevant knowledge bases for existing patterns
+- When stuck: Search the knowledge bases for solutions and approaches we've used before
+
+**How to search:**
+```
+Use: mcp__code-forge__search_knowledge_base
+Parameters: kb_name (e.g., "{{PROJECT_NAME}}-project_memories"), query (your search terms)
+```
+
+## Quick Reference: Commands & Skills
+
+### Claude OS Slash Commands (Use These Often!)
+
+1. **`/claude-os-search [query] [optional: KB name]`**
+   - Search across Claude OS knowledge bases
+   - Defaults to searching {{PROJECT_NAME}}-project_memories
+   - Example: `/claude-os-search authentication implementation`
+
+2. **`/claude-os-remember [content]`**
+   - Quick save to {{PROJECT_NAME}}-project_memories
+   - Auto-generates title and structure
+   - Use for quick insights and decisions
+   - Example: `/claude-os-remember Fixed bug in user controller by...`
+
+3. **`/claude-os-save [title] [optional: KB name] [optional: category]`**
+   - Full-featured save with KB selection
+   - Choose specific KB and category
+   - Use when you need more control
+   - Example: `/claude-os-save "New Integration Pattern" {{PROJECT_NAME}}-project_profile Architecture`
+
+4. **`/claude-os-list [optional: KB name]`**
+   - List all KBs or documents in a specific KB
+   - Example: `/claude-os-list` or `/claude-os-list {{PROJECT_NAME}}-project_memories`
+
+5. **`/claude-os-session [action]`**
+   - Manage development sessions
+   - Actions: start, end, status, pause, resume
+   - Example: `/claude-os-session start "User authentication feature"`
+
+6. **`/claude-os-triggers [action]`**
+   - Manage trigger phrases
+   - Example: `/claude-os-triggers list`
+
+### Available Skills
+
+1. **`initialize-project`** - Analyze project and generate coding standards
+2. **`remember-this`** - Save insights to Claude OS knowledge bases
+3. **`memory`** - Simple memory management
+
+### MCP Tools (Direct API Access)
+
+- `mcp__code-forge__search_knowledge_base` - Direct search
+- `mcp__code-forge__list_knowledge_bases` - List all KBs
+- `mcp__code-forge__list_documents` - List documents in KB
+- `mcp__code-forge__get_kb_stats` - Get KB statistics
+
+## Project-Specific Information
+
+{{PROJECT_SPECIFIC_CONTENT}}
+
+## Development Guidelines
+
+{{DEVELOPMENT_GUIDELINES}}
+
+## Common Development Tasks
+
+{{COMMON_TASKS}}
+
+## Key Business Rules
+
+{{BUSINESS_RULES}}
+
+## Coding Standards
+
+See `.claude/CODING_STANDARDS.md` for detailed coding standards.
+
+## Architecture
+
+See `.claude/ARCHITECTURE.md` for system architecture overview.
+
+## Development Practices
+
+See `.claude/DEVELOPMENT_PRACTICES.md` for development workflow and practices.
+
+## DO NOT
+
+- Don't bypass established patterns without discussing first
+- Don't skip tests
+- Don't create features without searching memories for existing patterns
+- Don't end a session without saving key learnings
+
+## IMPORTANT: Project Context
+
+This file (CLAUDE.md) is automatically loaded at the start of every Claude Code session. Keep it updated with:
+- Important project context
+- Current architecture decisions
+- Team conventions
+- Common gotchas
+- Frequently referenced information
+
+**Update this file as the project evolves!**

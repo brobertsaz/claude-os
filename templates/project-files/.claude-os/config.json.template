@@ -1,0 +1,20 @@
+{
+  "project_name": "{{PROJECT_NAME}}",
+  "claude_os_url": "{{CLAUDE_OS_URL}}",
+  "knowledge_bases": {
+    "memories": "{{PROJECT_NAME}}-project_memories",
+    "profile": "{{PROJECT_NAME}}-project_profile",
+    "index": "{{PROJECT_NAME}}-project_index",
+    "docs": "{{PROJECT_NAME}}-knowledge_docs"
+  },
+  "docs_settings": {
+    "watch_paths": {{DOCS_PATHS}},
+    "auto_ingest_patterns": ["*.md", "*.txt", "*.pdf"],
+    "exclude_patterns": ["node_modules", ".git", "vendor", "build", "dist"]
+  },
+  "tech_stack": "{{TECH_STACK}}",
+  "database": "{{DATABASE}}",
+  "dev_environment": "{{DEV_ENVIRONMENT}}",
+  "created_at": "{{CREATED_AT}}",
+  "claude_os_version": "1.0.0"
+}
