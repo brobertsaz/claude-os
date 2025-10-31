@@ -42,6 +42,8 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 ✅ **Automatic Context Loading** - Starts every session with relevant memories
 ✅ **Session Management** - Track work, save progress, resume later
 ✅ **Documentation Ingestion** - Auto-indexes your docs during setup
+✅ **Agent-OS Integration** - Optional spec-driven development with 8 specialized agents
+✅ **Flexible AI** - Choose local Ollama (free) or OpenAI API (paid)
 ✅ **Team Sharing** - `./install.sh` for coworkers, works instantly
 ✅ **100% Local** - Never leaves your machine, fully private
 ✅ **Template System** - Commands and skills shared via symlinks
@@ -64,10 +66,13 @@ cd claude-os
 ```
 
 The installer will:
+
 - ✅ Set up Python environment
 - ✅ Install all dependencies
 - ✅ Configure MCP server
 - ✅ Symlink commands and skills to `~/.claude/`
+- ✅ Optional: Install Agent-OS (8 agents by Builder Methods)
+- ✅ Ask about AI provider (Ollama or OpenAI)
 - ✅ Create start script
 
 ### Step 2: Start Claude OS
@@ -85,6 +90,7 @@ cd /path/to/your/project
 ```
 
 In Claude Code, run:
+
 ```
 /claude-os-init
 ```
@@ -92,6 +98,7 @@ In Claude Code, run:
 Answer the questions (project name, tech stack, docs path, etc.) and **you're done!**
 
 **What you get:**
+
 - ✅ 4 knowledge bases created (memories, profile, index, docs)
 - ✅ Documentation auto-indexed
 - ✅ Codebase analyzed
@@ -105,10 +112,12 @@ Answer the questions (project name, tech stack, docs path, etc.) and **you're do
 ### Prerequisites
 
 **Required:**
+
 - Python 3.11+ (`python3 --version`)
 - Git (`git --version`)
 
 **Optional:**
+
 - Node.js 16+ (for React UI)
 
 ### Installation
@@ -126,6 +135,7 @@ cd claude-os
 ```
 
 **The setup script automatically installs:**
+
 - ✅ Ollama (if not present) + LLM models
 - ✅ Redis (if not present) for caching/queues
 - ✅ Python virtual environment
@@ -133,7 +143,7 @@ cd claude-os
 - ✅ SQLite database
 - ✅ Frontend dependencies (if Node.js present)
 
-**Visit** http://localhost:5173 to use the web UI.
+**Visit** <http://localhost:5173> to use the web UI.
 
 ### Consolidate Your Files (First Time Only)
 
@@ -146,6 +156,7 @@ If you've been using Claude OS and have scattered commands/skills, run the conso
 This moves all commands from `~/.claude/commands/` to `templates/commands/` and creates symlinks.
 
 **Then commit to git:**
+
 ```bash
 git add templates/ cli/ install.sh SHARING_GUIDE.md
 git commit -m "Add packaging system for sharing"
@@ -167,6 +178,7 @@ cd /your/project
 ```
 
 In Claude Code:
+
 ```
 /claude-os-init
 ```
@@ -190,6 +202,7 @@ The command will:
      - `{project}-knowledge_docs` - Your documentation
 
 3. **Set Up Project Structure:**
+
    ```
    your-project/
    ├── CLAUDE.md           # Auto-loaded every session!
@@ -265,6 +278,124 @@ All these work in any initialized project:
 
 ---
 
+## 🤖 Agent-OS: Spec-Driven Development (Optional)
+
+> **Created by [Builder Methods (CasJam Media LLC)](https://github.com/builder-methods/agent-os)**
+> MIT Licensed • Optional Integration with Claude OS
+
+**Agent-OS adds structured workflows for planning and implementing features using 8 specialized agents.**
+
+Claude OS optionally integrates with Agent-OS during installation. Agent-OS is a separate open-source project created by Builder Methods, and we're grateful for their work in creating such powerful spec-driven development tools.
+
+### When to Use Agent-OS
+
+Enable Agent-OS during `/claude-os-init` if you want:
+
+- **Structured feature planning** with iterative requirements gathering
+- **Detailed specifications** before coding
+- **Task breakdowns** with clear implementation steps
+- **Verification workflows** to ensure completeness
+
+### The 8 Agents
+
+**Specification Workflow:**
+
+1. **`spec-initializer`** - Initialize new spec directories
+2. **`spec-shaper`** - Gather requirements through 1-3 questions at a time
+3. **`spec-writer`** - Create detailed technical specifications
+4. **`tasks-list-creator`** - Break specs into actionable tasks
+
+**Implementation Workflow:**
+
+5. **`implementer`** - Implement features following task list
+6. **`implementation-verifier`** - Verify implementation completeness
+7. **`spec-verifier`** - Verify specs and tasks consistency
+8. **`product-planner`** - Create product documentation
+
+### Agent-OS Commands
+
+Available when enabled:
+
+- **`/new-spec`** - Initialize a new feature specification
+- **`/create-spec`** - Full specification workflow (gather requirements → create spec → generate tasks)
+- **`/plan-product`** - Create product mission, roadmap, and tech stack docs
+- **`/implement-spec`** - Implement a specification following its tasks
+
+### How It Works
+
+```
+1. User: "/new-spec user-authentication"
+   → Agent creates spec directory structure
+
+2. User: "/create-spec"
+   → spec-shaper asks 1-3 questions at a time
+   → Gathers requirements iteratively
+   → Identifies reusable code
+   → Collects visual assets
+
+3. Agent: spec-writer creates detailed specification
+   → tasks-list-creator generates actionable tasks
+
+4. User: "/implement-spec user-authentication"
+   → implementer follows tasks step-by-step
+   → implementation-verifier checks completeness
+
+5. Result: Fully specified, implemented, and verified feature!
+```
+
+### Agent-OS Project Structure
+
+When enabled, your project gets:
+
+```
+your-project/
+├── agent-os/
+│   ├── config.yml          # Agent-OS configuration
+│   ├── product/            # Product documentation
+│   │   ├── mission.md      # Product mission
+│   │   ├── roadmap.md      # Feature roadmap
+│   │   └── tech-stack.md   # Technology stack
+│   ├── specs/              # Feature specifications
+│   │   └── YYYY-MM-DD-feature-name/
+│   │       ├── planning/
+│   │       │   ├── requirements.md
+│   │       │   └── visuals/
+│   │       ├── spec.md
+│   │       └── tasks.md
+│   └── standards/          # Coding standards (as skills)
+└── .claude/agents/agent-os/  # 8 agents (symlinked)
+```
+
+### AI Provider Options
+
+Agent-OS requires AI for advanced features:
+
+**Option 1: Ollama (Local, Free)**
+- Requires 8GB+ RAM
+- Fully private, no data leaves your machine
+- Install: `https://ollama.ai`
+- Then: `ollama pull llama2`
+
+**Option 2: OpenAI API (Cloud, Paid)**
+- Works on any machine
+- ~$0.02 per request
+- Requires API key (set during `./install.sh`)
+
+The installer will ask which you prefer!
+
+### Integration with Claude OS
+
+Agent-OS agents deeply integrate with Claude OS:
+
+- **Search memories** before creating specs (avoid reinventing)
+- **Save decisions** to project_memories during planning
+- **Reference patterns** from previous work
+- **Build knowledge** that improves over time
+
+**This is the complete AI development system!**
+
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -331,6 +462,7 @@ claude-os/
 ```
 
 **Benefits:**
+
 - ✅ Update once, all projects benefit
 - ✅ Symlinks mean instant updates
 - ✅ Easy to share with team
@@ -342,7 +474,7 @@ claude-os/
 
 ### Via Web UI
 
-1. **Visit** http://localhost:5173
+1. **Visit** <http://localhost:5173>
 2. **Create Knowledge Base:**
    - Click "Create Knowledge Base"
    - Choose type (Generic, Code, Documentation, Agent_OS)
@@ -398,6 +530,7 @@ When you run `/claude-os-init`, you get 4 knowledge bases:
 ### Sharing Claude OS
 
 **Step 1: Package for sharing**
+
 ```bash
 cd /path/to/claude-os
 ./cli/claude-os-consolidate.sh  # Move files to templates/
@@ -409,10 +542,12 @@ git push
 **Step 2: Share repo URL with team**
 
 Send teammates:
+
 - Repo URL
 - Link to `SHARING_GUIDE.md` in the repo
 
 **Step 3: They install (3 minutes)**
+
 ```bash
 git clone <your-repo-url>
 cd claude-os
@@ -425,6 +560,7 @@ Done! They can now use `/claude-os-init` on any project.
 ### Per-Project Setup
 
 Each team member:
+
 1. Runs `/claude-os-init` in their project
 2. Gets their own knowledge bases
 3. CLAUDE.md is committed to git (shared)
@@ -479,12 +615,14 @@ Each project has `.claude-os/config.json`:
 ## 📊 Performance
 
 **Native Ollama Setup:**
+
 - Response time: ~40 seconds per query
 - GPU acceleration: Full Metal GPU on Apple Silicon
 - Memory usage: 8-10GB (models + context)
 - CPU usage: 12 cores (M4 Pro)
 
 **Why it's fast:**
+
 - Direct GPU acceleration (no virtualization)
 - Efficient vector search in SQLite
 - Optimized RAG engine with caching
@@ -497,10 +635,13 @@ Each project has `.claude-os/config.json`:
 ### Installation & Setup
 
 #### `./install.sh` - Team Member Setup ⭐
+
 ```bash
 ./install.sh
 ```
+
 **For coworkers joining the team:**
+
 - ✅ Creates `~/.claude/` directories
 - ✅ Symlinks all commands and skills
 - ✅ Sets up Python environment
@@ -508,20 +649,26 @@ Each project has `.claude-os/config.json`:
 - ✅ Configures MCP server
 
 #### `./setup.sh` - First-Time Setup
+
 ```bash
 ./setup.sh
 ```
+
 **For the original creator:**
+
 - ✅ Installs Ollama + Redis (if needed)
 - ✅ Downloads LLM models (~5-10 GB)
 - ✅ Sets up Python environment
 - ✅ Creates database
 
 #### `./cli/claude-os-consolidate.sh` - Organize Files
+
 ```bash
 ./cli/claude-os-consolidate.sh
 ```
+
 **One-time consolidation:**
+
 - Moves commands to `templates/`
 - Moves skills to `templates/`
 - Creates symlinks
@@ -530,10 +677,13 @@ Each project has `.claude-os/config.json`:
 ### Service Management
 
 #### `./start.sh` or `./start_all_services.sh` - Start Everything
+
 ```bash
 ./start.sh
 ```
+
 **Starts:**
+
 - 🔌 MCP Server (port 8051)
 - 🎨 React Frontend (port 5173)
 - 🤖 RQ Workers
@@ -541,11 +691,13 @@ Each project has `.claude-os/config.json`:
 - 🧠 Ollama
 
 #### `./stop_all_services.sh` - Stop All
+
 ```bash
 ./stop_all_services.sh
 ```
 
 #### `./restart_services.sh` - Restart
+
 ```bash
 ./restart_services.sh
 ```
@@ -557,6 +709,7 @@ Each project has `.claude-os/config.json`:
 ### "Command not found: /claude-os-init"
 
 Symlinks weren't created. Re-run:
+
 ```bash
 cd /path/to/claude-os
 ./install.sh
@@ -565,6 +718,7 @@ cd /path/to/claude-os
 ### "Connection refused to localhost:8051"
 
 Claude OS server isn't running:
+
 ```bash
 cd /path/to/claude-os
 ./start.sh
@@ -572,7 +726,7 @@ cd /path/to/claude-os
 
 ### "Project already exists"
 
-Project name is taken. Choose a different name or delete via UI at http://localhost:5173
+Project name is taken. Choose a different name or delete via UI at <http://localhost:5173>
 
 ### Port Already in Use
 
@@ -636,15 +790,18 @@ claude-os/
 ## 📖 Additional Documentation
 
 ### Getting Started
+
 - **[SHARING_GUIDE.md](SHARING_GUIDE.md)** - 🤝 How to share with your team
 - **[templates/README.md](templates/README.md)** - 📂 Template system documentation
 
 ### Core Features
+
 - **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns automatically
 - **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning usage
 - **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory guide
 
 ### Technical Documentation
+
 - **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup
 - **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why native Ollama
 - **[PERFORMANCE_TEST_RESULTS.md](PERFORMANCE_TEST_RESULTS.md)** - Benchmark results
@@ -655,6 +812,7 @@ claude-os/
 ## 🤝 Contributing
 
 This is a team development tool. Feel free to:
+
 - Modify for your specific needs
 - Add new commands and skills
 - Optimize RAG strategies
@@ -662,27 +820,52 @@ This is a team development tool. Feel free to:
 
 ---
 
+## 🙏 Acknowledgments
+
+**Agent-OS Integration**
+
+Claude OS optionally integrates with [Agent-OS](https://github.com/builder-methods/agent-os) by Builder Methods (CasJam Media LLC).
+
+- **Project**: Agent-OS - Spec-driven development workflow system
+- **Author**: Builder Methods (CasJam Media LLC)
+- **License**: MIT
+- **Repository**: https://github.com/builder-methods/agent-os
+
+Agent-OS provides 8 specialized agents for structured feature planning and implementation. We're grateful to Builder Methods for creating such powerful tools and for licensing them under MIT, making this integration possible.
+
+If you find Agent-OS valuable, consider:
+- ⭐ Starring their repository
+- 📣 Sharing it with other developers
+- 🤝 Contributing to their project
+
+---
+
 ## 📄 License
 
 MIT License - Use it freely!
+
+**Note**: This project (Claude OS) is MIT licensed. Agent-OS, when installed, is a separate project also MIT licensed by Builder Methods (CasJam Media LLC). See the Agent-OS repository for their specific license terms.
 
 ---
 
 ## 🎯 Next Steps
 
-### For Original Creator:
+### For Original Creator
+
 1. Run `./setup.sh` (first time)
 2. Run `./cli/claude-os-consolidate.sh` (organize files)
 3. Commit templates to git
 4. Share repo with team
 
-### For Team Members:
+### For Team Members
+
 1. Clone the repo
 2. Run `./install.sh`
 3. Run `./start.sh`
 4. Use `/claude-os-init` in your projects
 
-### For Everyone:
+### For Everyone
+
 - Use `/claude-os-search` to find past work
 - Use `/claude-os-remember` to save insights
 - Use `/claude-os-session` to track work

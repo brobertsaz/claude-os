@@ -11,9 +11,10 @@ claude-os/
 ├── templates/              # All reusable templates
 │   ├── commands/          # Slash commands (symlinked to ~/.claude/)
 │   ├── skills/            # Skills (symlinked to ~/.claude/)
-│   ├── agents/            # Agent templates
+│   ├── agents/            # Agent-OS agents (8 specialized agents)
 │   └── project-files/     # Files created during project init
 │       ├── CLAUDE.md.template
+│       ├── agent-os/      # Agent-OS project templates
 │       └── .claude-os/    # Config templates
 ├── cli/                   # CLI tools
 │   └── claude-os-consolidate.sh
@@ -75,10 +76,14 @@ cd claude-os
 This will:
 - ✅ Create `~/.claude/` directories
 - ✅ Symlink all commands and skills
+- ✅ Optional: Install Agent-OS (8 agents by Builder Methods)
+- ✅ Ask about AI provider (Ollama or OpenAI)
 - ✅ Set up Python virtual environment
 - ✅ Install dependencies
 - ✅ Configure MCP server
 - ✅ Create start script
+
+**Note**: Agent-OS is an optional integration created by Builder Methods (CasJam Media LLC) and MIT licensed. The installer will ask if you want to install it.
 
 ### Step 3: Start Claude OS
 
@@ -166,6 +171,17 @@ All these work in any initialized project:
 - `initialize-project` - Analyze codebase and generate standards
 - `remember-this` - Auto-save when you say "remember this:"
 - `memory` - Simple memory management
+
+## Agent-OS Commands (If Installed)
+
+If you chose to install Agent-OS during setup, you also get these commands:
+
+- `/new-spec` - Initialize a new feature specification
+- `/create-spec` - Full specification workflow
+- `/plan-product` - Create product documentation
+- `/implement-spec` - Implement a specification
+
+**Agent-OS** is created by Builder Methods (CasJam Media LLC) and provides 8 specialized agents for spec-driven development. Learn more at https://github.com/builder-methods/agent-os
 
 ## Benefits for Your Team
 

@@ -87,6 +87,129 @@ pip install --quiet --upgrade pip
 pip install --quiet -r "${CLAUDE_OS_DIR}/requirements.txt"
 echo "   ✅ Dependencies installed"
 
+# AI Model Configuration
+echo ""
+echo "🤖 AI Model Configuration (for Agent-OS)"
+echo "========================================="
+echo ""
+echo "Agent-OS can use AI for advanced features like spec generation."
+echo "You have two options:"
+echo ""
+echo "  1. Local Ollama (FREE, requires 8GB+ RAM)"
+echo "  2. OpenAI API (Paid, ~\$0.02/request, works on any machine)"
+echo "  3. Skip for now (can configure later)"
+echo ""
+read -p "Which would you like to use? (1/2/3): " ai_choice
+
+AI_PROVIDER="none"
+if [ "$ai_choice" = "1" ]; then
+    echo ""
+    echo "📦 Checking for Ollama..."
+    if command -v ollama &> /dev/null; then
+        echo "   ✅ Ollama found"
+        AI_PROVIDER="ollama"
+        # Check if llama2 model is available
+        if ollama list | grep -q "llama2"; then
+            echo "   ✅ llama2 model available"
+        else
+            echo "   📥 Pulling llama2 model (this may take a few minutes)..."
+            ollama pull llama2
+            echo "   ✅ llama2 model ready"
+        fi
+    else
+        echo "   ❌ Ollama not found"
+        echo ""
+        echo "   To install Ollama:"
+        echo "   1. Visit: https://ollama.ai"
+        echo "   2. Download and install"
+        echo "   3. Run: ollama pull llama2"
+        echo ""
+        read -p "   Press enter to continue (you can configure Ollama later)..."
+        AI_PROVIDER="none"
+    fi
+elif [ "$ai_choice" = "2" ]; then
+    echo ""
+    echo "🔑 OpenAI API Configuration"
+    echo ""
+    read -p "Enter your OpenAI API key: " openai_key
+    if [ -n "$openai_key" ]; then
+        # Create or append to .env file
+        ENV_FILE="${CLAUDE_OS_DIR}/.env"
+        if grep -q "OPENAI_API_KEY" "$ENV_FILE" 2>/dev/null; then
+            # Update existing key
+            sed -i.bak "s/OPENAI_API_KEY=.*/OPENAI_API_KEY=$openai_key/" "$ENV_FILE"
+        else
+            # Add new key
+            echo "OPENAI_API_KEY=$openai_key" >> "$ENV_FILE"
+        fi
+        echo "   ✅ API key saved to .env"
+        AI_PROVIDER="openai"
+    else
+        echo "   ⚠️  No API key provided, skipping"
+        AI_PROVIDER="none"
+    fi
+else
+    echo "   ⏭️  Skipping AI configuration (can set up later)"
+    AI_PROVIDER="none"
+fi
+
+# Agent-OS Integration (Optional)
+echo ""
+echo "🎯 Agent-OS Integration (Optional)"
+echo "===================================="
+echo ""
+echo "Agent-OS by Builder Methods (CasJam Media LLC) provides 8 specialized"
+echo "agents for spec-driven development workflows:"
+echo ""
+echo "  • spec-initializer    • spec-shaper"
+echo "  • spec-writer         • tasks-list-creator"
+echo "  • implementer         • implementation-verifier"
+echo "  • spec-verifier       • product-planner"
+echo ""
+echo "Agent-OS is MIT licensed and created by Builder Methods."
+echo "Repository: https://github.com/builder-methods/agent-os"
+echo ""
+read -p "Install Agent-OS? (y/n): " install_agent_os
+
+AGENT_OS_INSTALLED="no"
+if [ "$install_agent_os" = "y" ] || [ "$install_agent_os" = "Y" ]; then
+    echo ""
+    echo "📦 Installing Agent-OS..."
+    AGENT_OS_DIR="${USER_CLAUDE_DIR}/agents/agent-os"
+
+    # Create agents directory if needed
+    mkdir -p "${USER_CLAUDE_DIR}/agents"
+
+    # Clone or update Agent-OS
+    if [ -d "$AGENT_OS_DIR" ]; then
+        echo "   📁 Agent-OS directory exists, updating..."
+        cd "$AGENT_OS_DIR"
+        git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || echo "   ⚠️  Could not update (not a git repo or no connection)"
+        cd "$CLAUDE_OS_DIR"
+    else
+        echo "   📥 Cloning Agent-OS from GitHub..."
+        git clone https://github.com/builder-methods/agent-os.git "$AGENT_OS_DIR" 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "   ✅ Agent-OS installed successfully"
+            AGENT_OS_INSTALLED="yes"
+        else
+            echo "   ❌ Failed to clone Agent-OS (check internet connection)"
+            echo "   You can install it manually later:"
+            echo "   git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os"
+            AGENT_OS_INSTALLED="failed"
+        fi
+    fi
+
+    if [ -d "$AGENT_OS_DIR" ]; then
+        AGENT_OS_INSTALLED="yes"
+    fi
+else
+    echo "   ⏭️  Skipping Agent-OS installation"
+    echo ""
+    echo "   You can install it later with:"
+    echo "   git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os"
+fi
+
 # Create config file
 echo ""
 echo "⚙️  Creating configuration..."
@@ -105,6 +228,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
     "model": "all-MiniLM-L6-v2",
     "device": "cpu"
   },
+  "ai_provider": "${AI_PROVIDER}",
   "installed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "version": "1.0.0"
 }
@@ -180,9 +304,15 @@ echo ""
 echo "📋 What was set up:"
 echo "   ✅ Commands linked to ~/.claude/commands/"
 echo "   ✅ Skills linked to ~/.claude/skills/"
+if [ "$AGENT_OS_INSTALLED" = "yes" ]; then
+    echo "   ✅ Agent-OS installed (8 agents by Builder Methods)"
+else
+    echo "   ⏭️  Agent-OS not installed (optional)"
+fi
 echo "   ✅ Python virtual environment created"
 echo "   ✅ Dependencies installed"
 echo "   ✅ MCP server configured"
+echo "   ✅ AI provider: ${AI_PROVIDER}"
 echo ""
 echo "🎯 Next steps:"
 echo "   1. Start Claude OS:"
