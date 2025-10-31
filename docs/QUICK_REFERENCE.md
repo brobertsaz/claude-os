@@ -313,6 +313,7 @@ ollama list
 ### Trigger Phrases (Auto-Save)
 
 When you say these, Claude automatically saves to memories:
+
 - "Remember this:"
 - "Save this:"
 - "Document this:"
@@ -345,11 +346,13 @@ When you say these, Claude automatically saves to memories:
 ## 📊 Performance Expectations
 
 ### Local Development (Mac)
+
 - Query response: 2-10 seconds
 - Memory search: 1-3 seconds
 - Document upload: < 1 second
 
 ### Production Server (16 CPU / 32GB RAM)
+
 - Simple queries: 1-5 seconds
 - Complex queries: 5-15 seconds
 - Concurrent users: 50+ without slowdown
@@ -359,11 +362,13 @@ When you say these, Claude automatically saves to memories:
 ## 🔐 Security Notes
 
 ### Local Development
+
 - Runs on localhost:8051
 - Only accessible from your machine
 - Data stays local
 
 ### Production Server
+
 - MCP server localhost only (127.0.0.1)
 - External access via app (authenticated)
 - Daily backups, 7-day retention
@@ -375,16 +380,19 @@ When you say these, Claude automatically saves to memories:
 ## 📞 Support & Resources
 
 ### Logs Locations
+
 - **Local**: `~/Projects/claude-os/logs/`
 - **Production**: `/opt/claude-os/logs/`
 - **Systemd**: `sudo journalctl -u claude-os`
 
 ### Config Locations
+
 - **Local**: `~/Projects/claude-os/claude-os-config.json`
 - **Production**: `/opt/claude-os/claude-os-config.json`
 - **Project**: `.claude-os/config.json`
 
 ### Documentation
+
 - **Full README**: `README.md`
 - **Deployment Guide**: `docs/DEPLOYMENT_GUIDE.md`
 - **Sharing Guide**: `SHARING_GUIDE.md`

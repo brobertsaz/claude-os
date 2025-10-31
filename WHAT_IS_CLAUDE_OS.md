@@ -216,7 +216,35 @@ Claude instantly knows:
 
 ---
 
-### 5. 🔌 **MCP Integration** (The Claude Code Bridge)
+### 5. 🎯 **Session Management** (Never Lose Context Again)
+
+Every time you start a new conversation, Claude OS automatically checks your session state and loads relevant context.
+
+```
+New Conversation Starts
+        ↓
+Claude OS checks: "What were we working on?"
+        ↓
+Loads: Active session, recent memories, current branch, decisions made
+        ↓
+Prompts: "Continue working on [feature]?" or "Start something new?"
+```
+
+**What this means for you:**
+
+- **Zero cold starts** - Every conversation picks up where you left off
+- **Automatic context loading** - Relevant memories surfaced immediately
+- **Session tracking** - Track task, branch, decisions, blockers across days
+- **Resume anywhere** - Start on laptop, continue on desktop, same context
+- **Work tracking** - Know exactly what was accomplished, what's next
+
+**The Result:**
+
+No more "what was I doing?" moments. Claude knows what you're working on before you even ask.
+
+---
+
+### 6. 🔌 **MCP Integration** (The Claude Code Bridge)
 
 MCPs (Model Context Protocol) are the bridge between Claude OS and Claude Code. They expose all Claude OS knowledge directly to you.
 
@@ -245,6 +273,108 @@ Every MCP has:
 - 🎯 **Always current** - Auto-updated with every commit
 
 ---
+
+---
+
+## 🤝 **Team Collaboration & Sharing** (Built for Teams)
+
+Claude OS isn't just for solo developers—it's designed for teams to share knowledge.
+
+```
+Your Claude OS Setup
+        ↓
+One Command: ./install.sh
+        ↓
+Teammates Get: All commands, skills, templates instantly
+        ↓
+Each Project: /claude-os-init (2 minutes)
+        ↓
+Team Shares: CLAUDE.md (in git), separate memories (private)
+```
+
+**How team sharing works:**
+
+- **Template system** - Commands and skills shared via symlinks, updates propagate instantly
+- **One-command install** - Teammates run `./install.sh`, done in 3 minutes
+- **Project isolation** - Each project has separate knowledge bases
+- **Shared context** - CLAUDE.md in git gives everyone the same project overview
+- **Private memories** - Each developer's memories stay private (git-ignored)
+- **Update once, benefit everywhere** - Update templates, all projects get improvements
+
+**The Result:**
+
+Onboard new developers in minutes, not weeks. They get institutional knowledge from day one.
+
+---
+
+## 🎨 **Agent-OS Integration** (Spec-Driven Development - Optional)
+
+Partner with Agent-OS by Builder Methods for structured feature development.
+
+**8 Specialized Agents:**
+
+1. **spec-initializer** - Create feature specification directories
+2. **spec-shaper** - Gather requirements through iterative questions
+3. **spec-writer** - Generate detailed technical specifications
+4. **tasks-list-creator** - Break specs into actionable tasks
+5. **implementer** - Implement features following task list
+6. **implementation-verifier** - Verify implementation completeness
+7. **spec-verifier** - Ensure spec and tasks consistency
+8. **product-planner** - Create product documentation
+
+**The workflow:**
+
+```
+/new-spec user-authentication
+        ↓
+/create-spec (answers 1-3 questions at a time)
+        ↓
+Spec.md + Tasks.md generated
+        ↓
+/implement-spec user-authentication
+        ↓
+Feature implemented, tested, verified
+```
+
+**Why this matters:**
+
+- **Structured planning** - Think before coding
+- **Clear requirements** - No more "wait, what did we want?"
+- **Task breakdown** - Implementation steps crystal clear
+- **Verification built-in** - Ensures nothing missed
+- **Documentation automatic** - Spec becomes permanent record
+
+**Integration with Claude OS:**
+
+Agent-OS agents search Claude OS memories before creating specs, ensuring they build on existing patterns and decisions. Perfect synergy.
+
+---
+
+## ⚡ **Smart Commands & Triggers** (Your AI Assistant on Autopilot)
+
+Claude OS gives you powerful slash commands and automatic triggers.
+
+**Essential Commands:**
+
+- `/claude-os-search "query"` - Search all memories and docs
+- `/claude-os-remember "content"` - Quick save to memories
+- `/claude-os-save "title"` - Full-featured save with KB selection
+- `/claude-os-list` - View all knowledge bases
+- `/claude-os-session start` - Begin tracking a feature
+- `/claude-os-triggers` - Manage automatic triggers
+
+**Automatic Triggers:**
+
+When you say phrases like these, Claude automatically saves to memories:
+- "Remember this:"
+- "Save this:"
+- "Document this:"
+- "Note this:"
+- "Keep in mind:"
+
+**The Result:**
+
+Building institutional knowledge happens naturally as you work. No manual note-taking needed.
 
 ---
 
@@ -350,6 +480,10 @@ accounts table—there's a large blob field that causes performance issues."
 | Learns from your decisions | ❌ | ❌ | ❌ | ✅ Automatically |
 | Writes in your style | ❌ | ❌ | Partial | ✅ Always |
 | Persists context between sessions | ❌ | ❌ | ❌ | ✅ Forever |
+| Session management & tracking | ❌ | ❌ | ❌ | ✅ Built-in |
+| Automatic context loading | ❌ | ❌ | ❌ | ✅ Every session |
+| Spec-driven development | ❌ | ❌ | ❌ | ✅ Optional |
+| Team sharing & collaboration | ❌ | ❌ | ❌ | ✅ One install |
 | Detects your bugs before they happen | ❌ | ❌ | ❌ | ✅ Via patterns |
 | Works offline | N/A | ✅ | ✅ | ✅ Yes |
 | Requires zero setup per project | ❌ | ✅ | ✅ | ✅ One command |
@@ -464,17 +598,25 @@ This is the **compounding intelligence** that happens when AI actually understan
 ## Getting Started in 3 Steps
 
 ```bash
-# 1. Install Claude OS (already running locally)
+# 1. Install Claude OS (one-time, 3 minutes)
+git clone https://github.com/your-org/claude-os.git
+cd claude-os
+./install.sh
+
+# 2. Start Claude OS
+./start.sh
+
+# 3. Initialize your project (2 minutes)
 cd /path/to/your/project
-
-# 2. Initialize your project (5 minute setup)
-/initialize-project [project-id]
-
-# 3. Start developing (Claude now knows everything)
-# That's it! You're done.
+/claude-os-init
+# Answer a few questions, done!
 ```
 
 Now every conversation with Claude includes your complete project knowledge.
+
+**For Teams:**
+
+Share the repo URL with teammates. They run `./install.sh` and get everything you have. Each project they work on runs `/claude-os-init` once. That's it.
 
 ---
 
