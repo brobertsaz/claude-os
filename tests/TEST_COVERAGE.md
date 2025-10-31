@@ -6,24 +6,7 @@ Comprehensive test suite for Claude OS RAG system covering all critical componen
 
 ## Test Files
 
-### 1. `test_pg_vector.py` - PostgreSQL Vector Operations
-**Purpose**: Verify pgvector functionality and vector similarity search
-
-**Tests**:
-- ✅ Vector storage and retrieval
-- ✅ Vector similarity queries with cosine distance
-- ✅ KB filtering in vector queries
-- ✅ PostgresManager.query_similar() method
-- ✅ Empty query results handling
-- ✅ Vector dimension validation
-- ✅ Embedding format conversions
-- ✅ Embedding roundtrip (store and retrieve)
-
-**Coverage**: Vector database operations, similarity search, data integrity
-
----
-
-### 2. `test_rag_engine.py` - RAG Engine
+### 1. `test_rag_engine.py` - RAG Engine
 **Purpose**: Test RAG query execution and response generation
 
 **Tests**:
@@ -84,23 +67,6 @@ Comprehensive test suite for Claude OS RAG system covering all critical componen
 - ✅ Invalid file type handling
 
 **Coverage**: API endpoints, request/response validation, error handling
-
----
-
-### 6. `test_pg_manager.py` - PostgreSQL Manager
-**Purpose**: Test database operations and schema
-
-**Tests**:
-- ✅ Create collection
-- ✅ List collections
-- ✅ Delete collection
-- ✅ Get collection statistics
-- ✅ Add document
-- ✅ Connection pooling
-- ✅ Schema validation (tables exist)
-- ✅ pgvector extension installed
-
-**Coverage**: Database operations, connection management, schema integrity
 
 ---
 
@@ -197,11 +163,6 @@ Tests are designed to run in CI/CD pipelines:
 
 ```yaml
 # GitHub Actions example
-- name: Setup test database
-  run: |
-    createdb codeforge_test
-    psql -d codeforge_test -c "CREATE EXTENSION vector"
-
 - name: Run tests
   run: |
     pytest --cov=app --cov-report=xml

@@ -84,11 +84,6 @@ def check_sqlite_health() -> Dict[str, any]:
         }
 
 
-# Backwards compatibility aliases
-check_postgres_health = check_sqlite_health
-check_chroma_health = check_sqlite_health
-
-
 def wait_for_services(max_retries: int = 30, delay: int = 2) -> bool:
     """
     Wait for both Ollama and SQLite services to become healthy.

@@ -31,31 +31,31 @@ curl -X DELETE "http://localhost:8051/api/kb/Pistn%20Agent%20OS/documents/api.md
 
 ---
 
-## Method 2: Manual PostgreSQL Query (Alternative)
+## Method 2: Manual SQLite Query (Alternative)
 
-If the API endpoint has issues, you can delete documents directly from PostgreSQL:
+If the API endpoint has issues, you can delete documents directly from SQLite:
 
-```sql
--- Connect to codeforge database
-psql -h localhost -U $USER -d codeforge
+```bash
+# Connect to SQLite database
+sqlite3 data/claude-os.db
 
--- Find documents to delete
-SELECT id, metadata->>'filename' as filename, kb_id
+# Find documents to delete
+SELECT id, json_extract(metadata, '$.filename') as filename, kb_id
 FROM documents
-WHERE metadata->>'filename' LIKE '%api.md%'
+WHERE json_extract(metadata, '$.filename') LIKE '%api.md%'
 LIMIT 10;
 
--- Delete specific document(s)
+# Delete specific document(s)
 DELETE FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'Pistn Agent OS'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 )
-AND metadata->>'filename' = 'api.md';
+AND json_extract(metadata, '$.filename') = 'api.md';
 
--- Verify deletion
+# Verify deletion
 SELECT COUNT(*) FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'Pistn Agent OS'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 );
 ```
 
@@ -70,20 +70,22 @@ WHERE kb_id = (
 curl -X DELETE "http://localhost:8051/api/kb/Pistn%20Agent%20OS"
 ```
 
-Or via PostgreSQL:
+Or via SQLite:
 
-```sql
+```bash
+sqlite3 data/claude-os.db
+
 -- Delete KB and all documents
 DELETE FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'Pistn Agent OS'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 );
 
-DELETE FROM knowledge_bases WHERE name = 'Pistn Agent OS';
+DELETE FROM knowledge_bases WHERE name = 'Pistn-project_memories';
 
 -- Recreate the KB fresh
 INSERT INTO knowledge_bases (name, kb_type, slug)
-VALUES ('Pistn Agent OS', 'AGENT_OS', 'pistn-agent-os');
+VALUES ('Pistn-project_memories', 'generic', 'pistn-project-memories');
 ```
 
 ---
@@ -166,21 +168,6 @@ sleep 3
 curl -s "http://localhost:8051/health" | python3 -m json.tool
 ```
 
-### PostgreSQL connection issues
-
-Make sure PostgreSQL is running:
-
-```bash
-# Check PostgreSQL
-brew services list | grep postgresql
-
-# Start if stopped
-brew services start postgresql@16
-
-# Test connection
-psql -h localhost -U $USER -d codeforge -c "SELECT 1;"
-```
-
 ---
 
 ## UI Delete Functionality
@@ -192,7 +179,7 @@ The web UI at http://localhost:5173 currently doesn't have a delete button.
 2. This would call the new `DELETE /api/kb/{kb_name}/documents/{filename}` endpoint
 3. See `frontend/src/components/KBManagement.tsx` for where to add this
 
-For now, use the API or PostgreSQL methods above.
+For now, use the API or SQLite methods above.
 
 ---
 

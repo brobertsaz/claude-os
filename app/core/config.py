@@ -41,7 +41,7 @@ class Config(metaclass=ConfigMeta):
     RERANK_MODEL: str = os.getenv("RERANK_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384")
     RERANK_TOP_K: int = int(os.getenv("RERANK_TOP_K", "10"))
 
-    # SQLite Database Configuration (replaces PostgreSQL)
+    # SQLite Database Configuration
     # Always use absolute path to avoid issues when running from different directories
     _default_db_path = str(Path(__file__).parent.parent.parent / "data" / "claude-os.db")
     SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", _default_db_path)

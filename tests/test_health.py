@@ -7,8 +7,7 @@ from unittest.mock import patch, MagicMock
 
 from app.core.health import (
     check_ollama_health,
-    check_postgres_health,
-    check_chroma_health,
+    check_sqlite_health,
     wait_for_services
 )
 
@@ -134,12 +133,12 @@ class TestOllamaHealth:
 
 
 @pytest.mark.unit
-class TestPostgresHealth:
-    """Test PostgreSQL health check functionality."""
+class TestSQLiteHealth:
+    """Test SQLite health check functionality."""
 
     @patch('app.core.health.get_sqlite_manager')
-    def test_postgres_healthy(self, mock_get_db):
-        """Test PostgreSQL health check when service is healthy."""
+    def test_sqlite_healthy(self, mock_get_db):
+        """Test SQLite health check when service is healthy."""
         # Mock successful database connection
         mock_db = MagicMock()
         mock_db.list_collections.return_value = [
@@ -148,45 +147,45 @@ class TestPostgresHealth:
         ]
         mock_get_db.return_value = mock_db
 
-        result = check_postgres_health()
+        result = check_sqlite_health()
 
         assert result["status"] == "healthy"
         assert result["collections"] == 2
 
     @patch('app.core.health.get_sqlite_manager')
-    def test_postgres_unhealthy(self, mock_get_db):
-        """Test PostgreSQL health check when service is unhealthy."""
+    def test_sqlite_unhealthy(self, mock_get_db):
+        """Test SQLite health check when service is unhealthy."""
         # Mock database connection error
         mock_get_db.side_effect = Exception("Connection failed")
 
-        result = check_postgres_health()
+        result = check_sqlite_health()
 
         assert result["status"] == "unhealthy"
         assert "error" in result
         assert "Connection refused" in result["error"]
 
     @patch('app.core.health.get_sqlite_manager')
-    def test_postgres_empty_database(self, mock_get_db):
-        """Test PostgreSQL health check with empty database."""
+    def test_sqlite_empty_database(self, mock_get_db):
+        """Test SQLite health check with empty database."""
         # Mock empty database
         mock_db = MagicMock()
         mock_db.list_collections.return_value = []
         mock_get_db.return_value = mock_db
 
-        result = check_postgres_health()
+        result = check_sqlite_health()
 
         assert result["status"] == "healthy"
         assert result["collections"] == 0
 
     @patch('app.core.health.get_sqlite_manager')
-    def test_postgres_list_collections_error(self, mock_get_db):
-        """Test PostgreSQL health check when list_collections fails."""
+    def test_sqlite_list_collections_error(self, mock_get_db):
+        """Test SQLite health check when list_collections fails."""
         # Mock list_collections error
         mock_db = MagicMock()
         mock_db.list_collections.side_effect = Exception("Query failed")
         mock_get_db.return_value = mock_db
 
-        result = check_postgres_health()
+        result = check_sqlite_health()
 
         assert result["status"] == "unhealthy"
         assert "error" in result
@@ -194,27 +193,11 @@ class TestPostgresHealth:
 
 
 @pytest.mark.unit
-class TestChromaHealth:
-    """Test Chroma health check (backwards compatibility)."""
-
-    @patch('app.core.health.check_postgres_health')
-    def test_chroma_health_calls_postgres(self, mock_check_pg):
-        """Test that Chroma health check calls PostgreSQL health check."""
-        mock_check_pg.return_value = {"status": "healthy", "collections": 5}
-
-        result = check_chroma_health()
-
-        # Should call PostgreSQL health check
-        mock_check_pg.assert_called_once()
-        assert result == {"status": "healthy", "collections": 5}
-
-
-@pytest.mark.unit
 class TestWaitForServices:
     """Test wait_for_services functionality."""
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_immediate_success(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test waiting for services when they're immediately healthy."""
@@ -232,7 +215,7 @@ class TestWaitForServices:
         mock_pg_check.assert_called_once()
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_eventual_success(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test waiting for services that become healthy after retries."""
@@ -254,7 +237,7 @@ class TestWaitForServices:
         assert mock_pg_check.call_count == 3
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_timeout(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test waiting for services that never become healthy."""
@@ -272,11 +255,11 @@ class TestWaitForServices:
         assert mock_pg_check.call_count == 3
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_partial_failure(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test waiting when one service is always unhealthy."""
-        # Mock Ollama always fails, PostgreSQL succeeds
+        # Mock Ollama always fails, SQLite succeeds
         mock_ollama_check.return_value = {"status": "unhealthy"}
         mock_pg_check.return_value = {"status": "healthy"}
 
@@ -288,7 +271,7 @@ class TestWaitForServices:
         assert mock_pg_check.call_count == 3
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_default_parameters(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test wait_for_services with default parameters."""
@@ -306,7 +289,7 @@ class TestWaitForServices:
         mock_sleep.assert_not_called()
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_logging(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test that wait_for_services logs progress."""
@@ -330,11 +313,11 @@ class TestWaitForServices:
             assert "Waiting for services" in log_messages
             assert "Attempt 1/2" in log_messages
             assert "Ollama=unhealthy" in log_messages
-            assert "PostgreSQL=healthy" in log_messages
+            assert "SQLite=healthy" in log_messages
             assert "All services healthy" in log_messages
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_error_during_check(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test wait_for_services when health check raises exception."""
@@ -350,7 +333,7 @@ class TestWaitForServices:
         assert mock_ollama_check.call_count == 2
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_custom_delay(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test wait_for_services with custom delay."""
@@ -368,7 +351,7 @@ class TestWaitForServices:
         mock_sleep.assert_called_once_with(0.5)
 
     @patch('app.core.health.check_ollama_health')
-    @patch('app.core.health.check_postgres_health')
+    @patch('app.core.health.check_sqlite_health')
     @patch('app.core.health.time.sleep')
     def test_wait_for_services_custom_retries(self, mock_sleep, mock_pg_check, mock_ollama_check):
         """Test wait_for_services with custom retry count."""
@@ -432,8 +415,8 @@ class TestHealthIntegration:
         assert isinstance(model["name"], str)
 
     @patch('app.core.health.get_sqlite_manager')
-    def test_real_postgres_check_structure(self, mock_get_db):
-        """Test that PostgreSQL check has correct structure."""
+    def test_real_sqlite_check_structure(self, mock_get_db):
+        """Test that SQLite check has correct structure."""
         # Mock realistic database
         mock_db = MagicMock()
         mock_db.list_collections.return_value = [
@@ -443,7 +426,7 @@ class TestHealthIntegration:
         ]
         mock_get_db.return_value = mock_db
 
-        result = check_postgres_health()
+        result = check_sqlite_health()
 
         # Check response structure
         assert "status" in result

@@ -1,6 +1,6 @@
 """
 SQLite database manager for Claude OS with vector embedding support.
-Replaces PostgreSQL with single-file SQLite + sqlite-vec for vector similarity.
+Uses single-file SQLite + sqlite-vec for vector similarity.
 """
 
 import os
@@ -368,7 +368,6 @@ class SQLiteManager:
             kb_id = result['id']
 
             # Get all embeddings and compute cosine similarity in Python
-            # (SQLite doesn't have native vector ops like PostgreSQL)
             cursor.execute(
                 """
                 SELECT doc_id, content, embedding, metadata

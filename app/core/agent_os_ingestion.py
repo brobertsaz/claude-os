@@ -153,7 +153,7 @@ class AgentOSIngestion:
         )
         embeddings = [embed_model.get_text_embedding(text) for text in texts]
 
-        # Add to PostgreSQL
+        # Add to SQLite
         self.db_manager.add_documents(
             kb_name=kb_name,
             documents=texts,

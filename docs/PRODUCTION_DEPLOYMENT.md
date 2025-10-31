@@ -551,7 +551,7 @@ crontab -e
 3. **Scale if needed**:
    - Move to dedicated server if traffic increases
    - Use GPU for faster inference
-   - Upgrade to PostgreSQL if concurrent writes needed
+   - SQLite handles concurrent reads well; for high write concurrency, consider connection pooling
 
 ## Support
 

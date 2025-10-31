@@ -45,7 +45,7 @@ Quick reference for managing Claude OS services on macOS.
 
 **Output:**
 ```
-🚀 Claude OS Setup - NATIVE (No Docker, No PostgreSQL)
+🚀 Claude OS Setup - NATIVE (SQLite + Ollama)
 ==================================================
 Step 1: Checking Ollama installation...
   ✅ Ollama found

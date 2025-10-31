@@ -362,14 +362,14 @@ export default function MainApp() {
                           </div>
                           <div className="bg-cool-blue/10 border border-electric-teal/30 rounded-lg p-4">
                             <div className="text-sm text-light-grey mb-1">MCPs Configured</div>
-                            <div className="text-white text-2xl font-bold">{projectMCPs.length} / 4</div>
+                            <div className="text-white text-2xl font-bold">{projectMCPs.length} / 5</div>
                           </div>
                         </div>
 
                         <div className="bg-cool-blue/10 border border-electric-teal/30 rounded-lg p-6">
                           <h3 className="text-lg font-bold text-electric-teal mb-4">Project MCPs</h3>
                           <div className="grid grid-cols-2 gap-4">
-                            {['knowledge_docs', 'project_profile', 'project_index', 'project_memories'].map((type) => {
+                            {['knowledge_docs', 'project_profile', 'project_index', 'project_memories', 'code_structure'].map((type) => {
                               const mcp = projectMCPs.find((m: ProjectMCP) => m.mcp_type === type);
                               return (
                                 <div

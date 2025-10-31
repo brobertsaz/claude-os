@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Claude OS Setup - NATIVE (No Docker, No PostgreSQL)"
+echo "🚀 Claude OS Setup - NATIVE (SQLite + Ollama)"
 echo "=================================================="
 echo ""
 

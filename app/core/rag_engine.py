@@ -1,7 +1,7 @@
 """
 RAG Engine with advanced retrieval strategies.
 Supports vector search, hybrid search, reranking, and agentic modes.
-Now using SQLite with in-memory vector similarity instead of PostgreSQL.
+Uses SQLite with in-memory vector similarity.
 """
 
 import logging

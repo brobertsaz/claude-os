@@ -141,7 +141,7 @@ def ingest_file(
             base_url=Config.OLLAMA_HOST
         )
 
-        # Get PostgreSQL collection
+        # Get SQLite collection
         pg_manager = get_sqlite_manager()
         if not pg_manager.collection_exists(collection_name):
             return {
@@ -189,7 +189,7 @@ def ingest_file(
                 "error": f"All {len(chunks)} chunks failed to generate embeddings"
             }
 
-        # Add all documents to PostgreSQL in batch
+        # Add all documents to SQLite in batch
         pg_manager.add_documents(
             kb_name=collection_name,
             documents=documents,

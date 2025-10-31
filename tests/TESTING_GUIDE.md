@@ -21,9 +21,8 @@ This guide provides comprehensive information about testing Claude OS, a product
 
 ### Prerequisites
 
-1. **PostgreSQL** with pgvector extension
-2. **Python 3.11+** with pytest
-3. **Test database** (automatically created by test runner)
+1. **Python 3.11+** with pytest
+2. **Ollama** running locally (for integration tests)
 
 ### Run All Tests
 
@@ -229,17 +228,6 @@ chmod +x .git/hooks/pre-commit
 ---
 
 ## 🐛 Troubleshooting
-
-### Database Connection Errors
-
-```bash
-# Check PostgreSQL is running
-pg_isready
-
-# Create test database manually
-createdb codeforge_test
-psql -d codeforge_test -c "CREATE EXTENSION vector"
-```
 
 ### Ollama Connection Errors
 

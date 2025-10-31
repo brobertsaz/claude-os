@@ -9,20 +9,12 @@ Comprehensive tests for the Claude OS RAG system.
    pip install -r requirements.txt
    ```
 
-2. **Create test database:**
+2. **Set environment variables (optional):**
    ```bash
-   createdb codeforge_test
-   psql -d codeforge_test -c "CREATE EXTENSION vector"
-   ```
-
-3. **Set environment variables (optional):**
-   ```bash
-   export TEST_POSTGRES_HOST=localhost
-   export TEST_POSTGRES_PORT=5432
-   export TEST_POSTGRES_DB=codeforge_test
-   export TEST_POSTGRES_USER=$USER
    export TEST_OLLAMA_HOST=http://localhost:11434
    ```
+
+   Note: Tests use SQLite database which is automatically created in the test environment.
 
 ## Running Tests
 
@@ -75,7 +67,6 @@ pytest -x
 ## Test Structure
 
 - **`conftest.py`** - Shared fixtures and configuration
-- **`test_pg_vector.py`** - PostgreSQL vector operations
 - **`test_rag_engine.py`** - RAG engine functionality
 - **`test_embeddings.py`** - Embedding generation
 - **`test_document_processing.py`** - Document ingestion and chunking
@@ -125,11 +116,6 @@ Tests can be run in CI/CD pipelines:
 ```
 
 ## Troubleshooting
-
-### Database connection errors:
-- Ensure PostgreSQL is running
-- Verify test database exists: `psql -l | grep codeforge_test`
-- Check environment variables
 
 ### Ollama connection errors:
 - Ensure Ollama is running: `curl http://localhost:11434/api/tags`

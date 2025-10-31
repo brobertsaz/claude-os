@@ -4,29 +4,7 @@ This guide covers running Claude OS natively on your M4 Pro Mac with Metal GPU a
 
 ## Prerequisites
 
-### 1. **PostgreSQL** (Required for MCP Server)
-
-If you don't have PostgreSQL installed, install it:
-
-```bash
-# Option A: Via Homebrew (recommended)
-brew install postgresql@16
-brew services start postgresql@16
-
-# Option B: Download from https://www.postgresql.org/download/macosx/
-
-# Verify it's running
-psql --version
-psql -h localhost -U $USER -d postgres -c "SELECT 1"
-```
-
-Once PostgreSQL is running, create the database:
-
-```bash
-createdb codeforge
-```
-
-### 2. **Ollama** (For LLM)
+### 1. **Ollama** (For LLM)
 
 Already installed via Homebrew in the previous steps. It should be running with:
 
@@ -34,7 +12,7 @@ Already installed via Homebrew in the previous steps. It should be running with:
 brew services start ollama
 ```
 
-### 3. **Node.js** (For React Frontend)
+### 2. **Node.js** (For React Frontend)
 
 ```bash
 # Check if installed
@@ -44,7 +22,7 @@ node --version
 brew install node
 ```
 
-### 4. **Python 3.11+** (For MCP Server)
+### 3. **Python 3.11+** (For MCP Server)
 
 ```bash
 python3 --version
@@ -63,9 +41,9 @@ cd ~/Projects/claude-os
 ```
 
 This will:
-1. ✅ Check PostgreSQL is running
-2. ✅ Check/Start Ollama
-3. ✅ Setup Python virtual environment
+1. ✅ Check/Start Ollama
+2. ✅ Setup Python virtual environment
+3. ✅ Initialize SQLite database
 4. ✅ Start MCP Server (port 8051)
 5. ✅ Start React Frontend (port 5173)
 
@@ -101,12 +79,8 @@ tail -f logs/frontend.log
 The system uses environment variables from:
 
 ```bash
-# PostgreSQL
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=codeforge
-POSTGRES_USER=$USER
-POSTGRES_PASSWORD=
+# SQLite Database
+SQLITE_DB_PATH=data/claude-os.db
 
 # Ollama
 OLLAMA_HOST=http://localhost:11434
@@ -126,13 +100,6 @@ With native setup on M4 Pro:
 - **CPU Utilization**: 12 cores (leave 2 for system)
 
 ## Troubleshooting
-
-### "PostgreSQL not running"
-```bash
-brew services start postgresql@16
-# or find your postgresql version
-brew services list
-```
 
 ### "Ollama models not found"
 ```bash
@@ -165,7 +132,7 @@ localhost:8051 (FastAPI MCP Server)
     ↓
 localhost:11434 (Ollama with Metal GPU)
     ↓
-localhost:5432 (PostgreSQL)
+data/claude-os.db (SQLite + sqlite-vec)
 ```
 
 ## For Claude (Me)

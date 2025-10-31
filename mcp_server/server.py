@@ -1191,7 +1191,7 @@ async def api_set_kb_folder(project_id: int, request: ProjectKBFolderRequest):
             raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
         # Verify MCP type is valid
-        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories", "code_structure"]
         if request.mcp_type not in valid_mcp_types:
             raise HTTPException(
                 status_code=400,
@@ -1302,7 +1302,7 @@ async def api_ingest_document(project_id: int, request: ProjectDocumentIngestReq
             raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
         # Verify MCP type is valid
-        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        valid_mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories", "code_structure"]
         if request.mcp_type not in valid_mcp_types:
             raise HTTPException(
                 status_code=400,
@@ -2019,37 +2019,6 @@ async def health_check():
         health_status["components"]["ollama"] = {
             "status": "unhealthy",
             "running": False,
-            "error": str(e)
-        }
-
-    # Check pgvector extension
-    try:
-        db_manager = get_sqlite_manager()
-        conn = db_manager.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT extversion FROM pg_extension WHERE extname='vector';")
-        result = cursor.fetchone()
-        cursor.close()
-        db_manager.return_connection(conn)
-
-        if result:
-            health_status["components"]["pgvector"] = {
-                "status": "healthy",
-                "installed": True,
-                "version": result[0]
-            }
-        else:
-            health_status["status"] = "unhealthy"
-            health_status["components"]["pgvector"] = {
-                "status": "unhealthy",
-                "installed": False,
-                "error": "pgvector extension not found"
-            }
-    except Exception as e:
-        health_status["status"] = "unhealthy"
-        health_status["components"]["pgvector"] = {
-            "status": "unhealthy",
-            "installed": False,
             "error": str(e)
         }
 

@@ -26,13 +26,6 @@ echo ""
 # Activate venv
 source "$PROJECT_DIR/venv/bin/activate"
 
-# Check PostgreSQL connection
-echo "Checking PostgreSQL connection..."
-if ! psql -h localhost -U $USER -d codeforge -c "SELECT 1" &> /dev/null; then
-    echo "⚠️  Warning: Could not connect to PostgreSQL"
-    echo "   Make sure PostgreSQL is running and accessible"
-fi
-
 echo ""
 echo "Starting MCP Server..."
 echo "📡 MCP Server will be available at: http://localhost:8051"
