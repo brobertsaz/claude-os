@@ -29,11 +29,21 @@ import hashlib
 
 try:
     from tree_sitter_languages import get_language, get_parser
-    import networkx as nx
     TREE_SITTER_AVAILABLE = True
 except ImportError:
     TREE_SITTER_AVAILABLE = False
     logging.warning("tree_sitter_languages not available. Install with: pip install tree_sitter_languages")
+
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    NETWORKX_AVAILABLE = False
+    # Create stub for type hints
+    class nx:
+        class MultiDiGraph:
+            pass
+    logging.warning("networkx not available. Install with: pip install networkx")
 
 logger = logging.getLogger(__name__)
 
