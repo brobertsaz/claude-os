@@ -164,6 +164,26 @@ cp /opt/claude-os-backups/claude-os-YYYYMMDD_HHMMSS.db \
 sudo systemctl start claude-os
 ```
 
+### Copy Local Database to Production (SECRET SAUCE!)
+
+```bash
+# Copy your local Claude OS database (with all knowledge) to production
+# This transfers ALL memories, indexed code, and learned patterns!
+
+# From your Mac:
+scp ~/Projects/claude-os/data/claude-os.db \
+    deploy@staging.pistn.com:/tmp/claude-os-local.db
+
+# On the server:
+sudo systemctl stop claude-os
+sudo cp /tmp/claude-os-local.db /opt/claude-os/data/claude-os.db
+sudo chown deploy:deploy /opt/claude-os/data/claude-os.db
+sudo systemctl start claude-os
+
+# Verify:
+curl http://localhost:8051/api/kb/list
+```
+
 ### Updates
 
 ```bash

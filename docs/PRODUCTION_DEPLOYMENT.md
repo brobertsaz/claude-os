@@ -71,7 +71,60 @@ The script automatically:
 - ✅ Sets up daily backups (2am cron)
 - ✅ Runs health checks
 
-### 3. Initialize PISTN Knowledge Bases
+### 3. Copy Local SQLite Database to Server (RECOMMENDED!)
+
+**🎯 This is the SECRET SAUCE!**
+
+Instead of re-indexing everything from scratch on the server, **copy your local Claude OS database** (with all the knowledge Claude has already learned about PISTN) to the production server!
+
+**Why this is amazing:**
+- ✅ All of Claude's memories about PISTN bugs and solutions
+- ✅ All the patterns learned from working with you locally
+- ✅ All indexed code and documentation
+- ✅ Every architectural decision and choice
+- ✅ Months of accumulated knowledge → instant production deployment
+- ✅ No re-indexing needed (saves hours!)
+
+**How to do it:**
+
+```bash
+# 1. Stop Claude OS on server (if running)
+ssh deploy@staging.pistn.com "sudo systemctl stop claude-os"
+
+# 2. Find your local Claude OS database
+# Default location on Mac:
+ls -lh ~/Projects/claude-os/data/claude-os.db
+
+# 3. Copy local database to server
+scp ~/Projects/claude-os/data/claude-os.db \
+    deploy@staging.pistn.com:/tmp/claude-os-local.db
+
+# 4. SSH into server and move database
+ssh deploy@staging.pistn.com
+
+# Backup the empty database (just in case)
+sudo cp /opt/claude-os/data/claude-os.db \
+       /opt/claude-os/data/claude-os.db.original
+
+# Replace with your local database
+sudo cp /tmp/claude-os-local.db /opt/claude-os/data/claude-os.db
+sudo chown deploy:deploy /opt/claude-os/data/claude-os.db
+sudo chmod 644 /opt/claude-os/data/claude-os.db
+
+# 5. Start Claude OS
+sudo systemctl start claude-os
+
+# 6. Verify it worked
+curl "http://localhost:8051/api/kb/list"
+# Should show: Pistn-project_memories, Pistn-project_profile, etc.
+
+curl "http://localhost:8051/api/kb/Pistn-project_index/stats"
+# Should show documents and chunks already indexed!
+```
+
+**Result:** Claude on the server now has ALL the same knowledge as Claude on your Mac! 🚀
+
+### 4. Initialize PISTN Knowledge Bases (Only if NOT copying database)
 
 ```bash
 # Create project
@@ -100,7 +153,7 @@ curl "http://localhost:8051/api/kb/list"
 curl "http://localhost:8051/api/kb/Pistn-project_index/stats"
 ```
 
-### 4. Update PISTN Rails App
+### 5. Update PISTN Rails App
 
 **Add to `/var/www/pistn/shared/.env`:**
 ```bash
@@ -158,7 +211,7 @@ end
 cap production deploy
 ```
 
-### 5. Test Integration
+### 6. Test Integration
 
 ```bash
 # Test Claude OS directly
