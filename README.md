@@ -17,8 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://brobertsaz.github.io/claude-os/">
-    <img src="https://img.shields.io/badge/🌐_Live_Demo-Interactive_Brochure-00D9FF?style=for-the-badge&logo=github" alt="Live Demo">
+  <a href="https://thebob.dev/claude-os/">
+    <img src="https://img.shields.io/badge/🌐_Explore-Claude_OS-00D9FF?style=for-the-badge&logo=github" alt="Explore Claude OS">
   </a>
 </p>
 
