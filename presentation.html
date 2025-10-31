@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude OS - The AI Operating System That Never Forgets</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/theme/black.css">
+    <style>
+        :root {
+            --cyan: #00D9FF;
+            --purple: #8B5CF6;
+            --pink: #FF00FF;
+            --dark-bg: #0F172A;
+            --darker-bg: #1E293B;
+        }
+
+        .reveal {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3 {
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--purple) 50%, var(--pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: none;
+            font-weight: 700;
+        }
+
+        .reveal {
+            font-size: 28px; /* Reduced from default 40px */
+        }
+
+        .reveal h1 {
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .reveal h2 {
+            font-size: 1.8em;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .reveal h3 {
+            font-size: 1.2em;
+        }
+
+        .reveal .slides {
+            text-align: left;
+        }
+
+        .reveal .slides section {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 40px 120px 40px 40px;
+        }
+
+        .reveal .title-slide {
+            text-align: center;
+        }
+
+        .reveal ul {
+            font-size: 0.8em;
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .reveal li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .reveal p {
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .reveal img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .reveal strong {
+            color: var(--cyan);
+        }
+
+        .reveal .highlight {
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            font-size: 1.2em;
+        }
+
+        .reveal .metric {
+            font-size: 1.5em;
+            color: var(--cyan);
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+        }
+
+        .reveal .problem {
+            background: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #FF0000;
+            padding: 12px 15px;
+            margin: 12px 0;
+            font-size: 0.8em;
+        }
+
+        .reveal .solution {
+            background: rgba(0, 217, 255, 0.1);
+            border-left: 4px solid var(--cyan);
+            padding: 12px 15px;
+            margin: 12px 0;
+            font-size: 0.8em;
+        }
+
+        .reveal pre {
+            font-size: 0.45em;
+            margin: 12px 0;
+        }
+
+        .reveal table {
+            font-size: 0.5em;
+            margin: 15px 0;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--purple);
+            padding: 8px;
+        }
+
+        .reveal table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px;
+        }
+
+        .reveal .emoji {
+            font-size: 1.5em;
+        }
+
+        .reveal .fragment.highlight-current-cyan.visible.current-fragment {
+            color: var(--cyan);
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+        }
+
+        .reveal code {
+            color: var(--pink);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .reveal pre {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--purple);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .reveal pre code {
+            background: transparent;
+            padding: 20px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+            width: 100%;
+        }
+
+        .pillar-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid var(--purple);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 6px 0;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+
+        .pillar-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 1em;
+        }
+
+        .pillar-card p {
+            margin: 0;
+            font-size: 0.75em;
+            line-height: 1.3;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            font-weight: 700;
+            text-decoration: none;
+            margin: 20px 0;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.5);
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(0, 217, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <!-- Slide 1: Title -->
+            <section class="title-slide">
+                <h1>Claude OS</h1>
+                <h2 style="color: white;">The AI Operating System<br>That Never Forgets</h2>
+                <p style="font-size: 1.2em; margin-top: 40px;">
+                    <span class="emoji">🧠</span> Persistent Memory &nbsp;&nbsp;
+                    <span class="emoji">⚡</span> 600-1000x Faster &nbsp;&nbsp;
+                    <span class="emoji">🚀</span> Zero Setup
+                </p>
+            </section>
+
+            <!-- Slide 2: The Problem -->
+            <section>
+                <h2>The Problem You're Facing</h2>
+                <div class="problem">
+                    <p><strong>Every. Single. Time.</strong></p>
+                    <pre><code class="language-plaintext">You: "Claude, add a feature to our auth system"
+Claude: "Based on common best practices..."
+You: "No no no—we have custom JWT, 2FA,
+      timezone handling... This is all wrong."
+Claude: "Oh! I didn't know that."
+You: *starts typing 30-minute context document*</code></pre>
+                </div>
+                <p class="fragment" style="font-size: 1.3em; text-align: center; margin-top: 40px;">
+                    <span class="highlight">Claude is brilliant. But Claude starts from ZERO every conversation.</span>
+                </p>
+            </section>
+
+            <!-- Slide 3: The Solution + Architecture -->
+            <section>
+                <h2>Enter Claude OS</h2>
+                <img src="frontend/public/assets/claude-os-architecture.svg" alt="Architecture" style="width: 100%; max-width: 1200px;">
+                <p class="fragment" style="text-align: center; margin-top: 20px;">
+                    <span class="metric">10,000 files indexed in 3 seconds</span>
+                </p>
+            </section>
+
+            <!-- Slide 4: What It Does -->
+            <section>
+                <h2 style="margin-bottom: 25px;">What Claude OS Does</h2>
+                <ul style="font-size: 0.85em; line-height: 1.8;">
+                    <li class="fragment"><strong>Remembers everything</strong> about your project across all sessions</li>
+                    <li class="fragment"><strong>Learns automatically</strong> from every conversation, commit, and decision</li>
+                    <li class="fragment"><strong>Understands your codebase</strong> like a senior developer</li>
+                    <li class="fragment"><strong>Detects patterns</strong> in real-time as you work</li>
+                    <li class="fragment"><strong>Adapts its responses</strong> to match YOUR coding style</li>
+                    <li class="fragment"><strong>Never forgets</strong> — context persists forever</li>
+                </ul>
+            </section>
+
+            <!-- Slide 5: The 6 Pillars -->
+            <section>
+                <h2 style="margin-bottom: 20px;">6 Core Pillars</h2>
+                <div class="two-column" style="font-size: 0.75em; gap: 20px;">
+                    <div class="pillar-card fragment">
+                        <h3>🧠 Real-Time Learning</h3>
+                        <p>Redis Pub/Sub &lt;1ms | 10+ patterns</p>
+                    </div>
+                    <div class="pillar-card fragment">
+                        <h3>💾 Memory MCP</h3>
+                        <p>Persistent memory | Natural language</p>
+                    </div>
+                    <div class="pillar-card fragment">
+                        <h3>📚 Semantic Knowledge</h3>
+                        <p>Vector embeddings | Instant search</p>
+                    </div>
+                    <div class="pillar-card fragment">
+                        <h3>📊 Code Structure</h3>
+                        <p><strong>NEW!</strong> Tree-sitter AST | 3 sec indexing</p>
+                    </div>
+                    <div class="pillar-card fragment">
+                        <h3>🔍 Analyze-Project</h3>
+                        <p>Hybrid indexing | Git hooks</p>
+                    </div>
+                    <div class="pillar-card fragment">
+                        <h3>🎯 Session Management</h3>
+                        <p>Auto-resume | Zero cold starts</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 6: Hybrid Indexing -->
+            <section>
+                <h2 style="margin-bottom: 20px;">⚡ NEW: Hybrid Indexing</h2>
+                <div class="two-column" style="gap: 30px;">
+                    <div>
+                        <h3 style="color: var(--cyan); font-size: 1.3em; margin-bottom: 15px;">Phase 1: Structural</h3>
+                        <ul style="font-size: 0.85em; line-height: 1.6;">
+                            <li>Tree-sitter AST parsing</li>
+                            <li>Extract all symbols</li>
+                            <li>Build dependency graph</li>
+                            <li>PageRank scoring</li>
+                            <li><strong class="metric" style="font-size: 1.5em;">3 seconds</strong> for 10k files!</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--purple); font-size: 1.3em; margin-bottom: 15px;">Phase 2: Semantic</h3>
+                        <ul style="font-size: 0.85em; line-height: 1.6;">
+                            <li>Top 20% most important files</li>
+                            <li>Full documentation embedding</li>
+                            <li>80% reduction in chunks</li>
+                            <li>Runs in background</li>
+                            <li><strong>Optional, while you code</strong></li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="fragment" style="text-align: center; margin-top: 30px; font-size: 1.3em;">
+                    <span class="highlight">600-1000x faster than before!</span>
+                </p>
+            </section>
+
+            <!-- Slide 7: Performance Metrics -->
+            <section>
+                <h2>Real Performance Numbers</h2>
+                <table style="width: 100%; margin-top: 40px;">
+                    <thead>
+                        <tr>
+                            <th>Project</th>
+                            <th>Before (Full Embed)</th>
+                            <th>After (Hybrid)</th>
+                            <th>Speedup</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Pistn (10k Ruby files)</strong></td>
+                            <td>3-5 hours</td>
+                            <td><span class="metric" style="font-size: 1.3em;">3 seconds</span></td>
+                            <td><span style="color: var(--cyan);">600-1000x</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Start coding</strong></td>
+                            <td>After full index</td>
+                            <td><span style="color: var(--cyan);">Immediately!</span></td>
+                            <td>Instant</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chunks indexed</strong></td>
+                            <td>100,000+</td>
+                            <td>~20,000</td>
+                            <td>80% reduction</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Query speed</strong></td>
+                            <td>Semantic only</td>
+                            <td>Structural + Semantic</td>
+                            <td>Faster!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 8: Comparison -->
+            <section>
+                <h2>How It Compares</h2>
+                <table style="font-size: 0.6em;">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Claude Alone</th>
+                            <th>ChatGPT</th>
+                            <th>Copilot</th>
+                            <th>Claude OS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Remembers your code</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><span style="color: var(--cyan);">✅ Perfectly</span></td>
+                        </tr>
+                        <tr>
+                            <td>Understands architecture</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><span style="color: var(--cyan);">✅ Completely</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Indexes 10k files</strong></td>
+                            <td>N/A</td>
+                            <td>N/A</td>
+                            <td>N/A</td>
+                            <td><span class="metric" style="font-size: 1.2em;">✅ 3 seconds</span></td>
+                        </tr>
+                        <tr>
+                            <td>Learns from decisions</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><span style="color: var(--cyan);">✅ Automatically</span></td>
+                        </tr>
+                        <tr>
+                            <td>Session management</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><span style="color: var(--cyan);">✅ Built-in</span></td>
+                        </tr>
+                        <tr>
+                            <td>Free & open source</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><span style="color: var(--cyan);">✅ 100%</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Slide 9: Use Cases -->
+            <section>
+                <h2 style="margin-bottom: 25px;">You Need This If You...</h2>
+                <div class="two-column" style="font-size: 0.8em; gap: 30px;">
+                    <ul style="line-height: 1.8;">
+                        <li class="fragment">Work on multiple projects</li>
+                        <li class="fragment">Have team members leaving</li>
+                        <li class="fragment">Work long-term on same project</li>
+                        <li class="fragment">Care about code consistency</li>
+                        <li class="fragment">Want faster development</li>
+                    </ul>
+                    <ul style="line-height: 1.8;">
+                        <li class="fragment">Debug tricky issues</li>
+                        <li class="fragment">Onboard new developers</li>
+                        <li class="fragment">Maintain architectural consistency</li>
+                        <li class="fragment">Document as you go</li>
+                        <li class="fragment">Make better decisions</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 10: Getting Started -->
+            <section>
+                <h2 style="margin-bottom: 20px;">Getting Started in 3 Steps</h2>
+                <pre style="font-size: 0.5em; margin: 10px 0;"><code class="language-bash"># 1. Install Claude OS (one-time, 3 minutes)
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+./install.sh
+
+# 2. Start Claude OS
+./start.sh
+
+# 3. Initialize your project (2 minutes)
+cd /path/to/your/project
+/claude-os-init
+# Answer a few questions, done!</code></pre>
+                <p class="fragment" style="text-align: center; margin-top: 20px; font-size: 1.2em;">
+                    <span class="highlight">Now every conversation includes your complete project knowledge.</span>
+                </p>
+            </section>
+
+            <!-- Slide 11: The Magic -->
+            <section class="title-slide">
+                <h2>The Real Magic ✨</h2>
+                <p style="font-size: 1.3em; margin: 40px auto; max-width: 800px;">
+                    Claude OS doesn't make Claude <strong style="color: var(--cyan);">smarter</strong>.
+                </p>
+                <p class="fragment" style="font-size: 1.3em; margin: 40px auto; max-width: 800px;">
+                    Claude OS makes Claude <strong style="color: var(--purple);">USEFUL</strong> for your specific project.
+                </p>
+                <p class="fragment" style="font-size: 1.5em; margin-top: 60px;">
+                    <span class="highlight">Generic Intelligence → Practical Expertise</span>
+                </p>
+            </section>
+
+            <!-- Slide 12: Call to Action -->
+            <section class="title-slide">
+                <h2>Stop Starting From Zero</h2>
+                <p style="font-size: 1.3em; margin: 40px 0;">
+                    Start building with an AI that knows your code<br>as well as you do.
+                </p>
+                <div style="margin-top: 60px;">
+                    <a href="https://github.com/brobertsaz/claude-os" class="cta-button">
+                        Get Claude OS Now
+                    </a>
+                </div>
+                <p style="margin-top: 60px; font-size: 0.9em; opacity: 0.8;">
+                    100% Free & Open Source<br>
+                    <span style="font-size: 0.8em;">Built with ❤️ by developers who got tired of starting every conversation from zero</span>
+                </p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.6.0/plugin/highlight/highlight.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            transition: 'slide',
+            transitionSpeed: 'default',
+            backgroundTransition: 'fade',
+            center: false,
+            controls: true,
+            progress: true,
+            slideNumber: true,
+            plugins: [ RevealHighlight ]
+        });
+    </script>
+</body>
+</html>

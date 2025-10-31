@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude OS - The AI Operating System That Never Forgets</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- AOS (Animate On Scroll) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --cyan: #00D9FF;
+            --purple: #8B5CF6;
+            --pink: #FF00FF;
+            --dark-bg: #0F172A;
+            --darker-bg: #1E293B;
+        }
+
+        * {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--purple) 50%, var(--pink) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        /* Sections */
+        section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 80px 0;
+        }
+
+        section.half-height {
+            min-height: 50vh;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero h2 {
+            font-size: 2rem;
+            color: #cbd5e1;
+            margin-bottom: 2rem;
+        }
+
+        .hero .emoji-row {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        /* Problem Box */
+        .problem-box {
+            background: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #ef4444;
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .problem-box pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .problem-box code {
+            color: #fca5a5;
+            font-size: 0.9rem;
+        }
+
+        /* Architecture Image */
+        .architecture-img {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 217, 255, 0.3);
+        }
+
+        /* Metric Badge */
+        .metric-badge {
+            display: inline-block;
+            font-size: 2.5rem;
+            color: var(--cyan);
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
+            margin: 1rem 0;
+        }
+
+        /* Pillar Cards */
+        .pillar-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid var(--purple);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
+        }
+
+        .pillar-card h4 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .pillar-card.cyan {
+            border-color: var(--cyan);
+        }
+
+        .pillar-card.purple {
+            border-color: var(--purple);
+        }
+
+        .pillar-card.pink {
+            border-color: var(--pink);
+        }
+
+        /* Two Column Section */
+        .two-col-section h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .two-col-section ul {
+            font-size: 1.1rem;
+            line-height: 2;
+        }
+
+        /* Tables */
+        table {
+            margin: 2rem 0;
+        }
+
+        table thead {
+            background: var(--purple);
+        }
+
+        table th {
+            padding: 1rem;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        /* Code Block */
+        .code-block {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid var(--purple);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .code-block code {
+            color: var(--cyan);
+            font-size: 0.95rem;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(90deg, var(--cyan) 0%, var(--purple) 100%);
+            color: white;
+            padding: 1.2rem 3rem;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+            margin: 2rem 0;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.5);
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(0, 217, 255, 0.8);
+            color: white;
+        }
+
+        /* Highlight */
+        .highlight {
+            color: var(--cyan);
+            font-weight: 600;
+        }
+
+        /* Section Titles */
+        h2.section-title {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero h2 {
+                font-size: 1.5rem;
+            }
+
+            h2.section-title {
+                font-size: 2rem;
+            }
+
+            section {
+                min-height: auto;
+                padding: 60px 0;
+            }
+        }
+
+        /* Navbar (optional sticky nav) */
+        .navbar-custom {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .navbar-custom .nav-link {
+            color: #cbd5e1 !important;
+            transition: color 0.3s;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: var(--cyan) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="container">
+            <h1 class="gradient-text" data-aos="fade-down">Claude OS</h1>
+            <h2 data-aos="fade-up" data-aos-delay="200">
+                The AI Operating System<br>That Never Forgets
+            </h2>
+            <div class="emoji-row" data-aos="fade-up" data-aos-delay="400">
+                <span>🧠 Persistent Memory</span> &nbsp;&nbsp;
+                <span>⚡ 600-1000x Faster</span> &nbsp;&nbsp;
+                <span>🚀 Zero Setup</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section id="problem">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 offset-lg-1">
+                    <h2 class="section-title gradient-text" data-aos="fade-right">The Problem You're Facing</h2>
+                    <div class="problem-box" data-aos="fade-up">
+                        <p class="fs-5"><strong>Every. Single. Time.</strong></p>
+                        <pre><code>You: "Claude, add a feature to our auth system"
+Claude: "Based on common best practices..."
+You: "No no no—we have custom JWT, 2FA,
+      timezone handling... This is all wrong."
+Claude: "Oh! I didn't know that."
+You: *starts typing 30-minute context document*</code></pre>
+                    </div>
+                    <p class="text-center fs-3 mt-4" data-aos="zoom-in" data-aos-delay="200">
+                        <span class="highlight">Claude is brilliant. But Claude starts from ZERO every conversation.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution + Architecture -->
+    <section id="solution">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">Enter Claude OS</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <img src="assets/claude-os-architecture.svg"
+                         alt="Claude OS Architecture"
+                         class="architecture-img"
+                         data-aos="zoom-in"
+                         data-aos-delay="200">
+                </div>
+            </div>
+            <div class="text-center mt-4" data-aos="fade-up" data-aos-delay="400">
+                <div class="metric-badge">10,000 files indexed in 3 seconds</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What It Does -->
+    <section id="what-it-does">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 offset-lg-1">
+                    <h2 class="section-title gradient-text" data-aos="fade-right">What Claude OS Does</h2>
+                    <ul class="fs-5" data-aos="fade-up">
+                        <li class="mb-3"><strong class="highlight">Remembers everything</strong> about your project across all sessions</li>
+                        <li class="mb-3"><strong class="highlight">Learns automatically</strong> from every conversation, commit, and decision</li>
+                        <li class="mb-3"><strong class="highlight">Understands your codebase</strong> like a senior developer</li>
+                        <li class="mb-3"><strong class="highlight">Detects patterns</strong> in real-time as you work</li>
+                        <li class="mb-3"><strong class="highlight">Adapts its responses</strong> to match YOUR coding style</li>
+                        <li class="mb-3"><strong class="highlight">Never forgets</strong> — context persists forever</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6 Pillars -->
+    <section id="pillars">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">6 Core Pillars</h2>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="0">
+                    <div class="pillar-card cyan">
+                        <h4 class="gradient-text">🧠 Real-Time Learning</h4>
+                        <p>Redis Pub/Sub with &lt;1ms latency. Automatically detects 10+ pattern types from your conversations.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="pillar-card purple">
+                        <h4 class="gradient-text">💾 Memory MCP</h4>
+                        <p>Persistent memory across sessions. Natural language save and instant recall.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="pillar-card pink">
+                        <h4 class="gradient-text">📚 Semantic Knowledge</h4>
+                        <p>Vector embeddings for deep understanding. Instant semantic search across your codebase.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="pillar-card cyan">
+                        <h4 class="gradient-text">📊 Code Structure</h4>
+                        <p><strong>NEW!</strong> Tree-sitter AST parsing. 38,406 symbols indexed in 3 seconds.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="pillar-card purple">
+                        <h4 class="gradient-text">🔍 Analyze-Project</h4>
+                        <p>Hybrid indexing (structural + semantic). Git hooks for automatic updates.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="pillar-card pink">
+                        <h4 class="gradient-text">🎯 Session Management</h4>
+                        <p>Auto-resume sessions with full context preservation. Zero cold starts.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hybrid Indexing -->
+    <section id="hybrid-indexing" class="two-col-section">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">⚡ NEW: Hybrid Indexing</h2>
+            <div class="row g-5">
+                <div class="col-md-6" data-aos="fade-right">
+                    <h3 style="color: var(--cyan);">Phase 1: Structural</h3>
+                    <ul>
+                        <li>Tree-sitter AST parsing</li>
+                        <li>Extract all symbols</li>
+                        <li>Build dependency graph</li>
+                        <li>PageRank scoring</li>
+                        <li><strong class="metric-badge" style="font-size: 2rem;">3 seconds</strong> for 10k files!</li>
+                    </ul>
+                </div>
+                <div class="col-md-6" data-aos="fade-left">
+                    <h3 style="color: var(--purple);">Phase 2: Semantic</h3>
+                    <ul>
+                        <li>Top 20% most important files</li>
+                        <li>Full documentation embedding</li>
+                        <li>80% reduction in chunks</li>
+                        <li>Runs in background</li>
+                        <li><strong>Optional, while you code</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="text-center mt-5" data-aos="zoom-in">
+                <p class="fs-2 gradient-text">600-1000x faster than before!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Metrics -->
+    <section id="performance">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">Real Performance Numbers</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="table-responsive" data-aos="fade-up">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Before (Full Embed)</th>
+                                    <th>After (Hybrid)</th>
+                                    <th>Speedup</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Pistn (10k Ruby files)</strong></td>
+                                    <td>3-5 hours</td>
+                                    <td><span class="highlight fs-5">3 seconds</span></td>
+                                    <td><span class="highlight">600-1000x</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Start coding</strong></td>
+                                    <td>After full index</td>
+                                    <td><span class="highlight">Immediately!</span></td>
+                                    <td>Instant</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Chunks indexed</strong></td>
+                                    <td>100,000+</td>
+                                    <td>~20,000</td>
+                                    <td>80% reduction</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Query speed</strong></td>
+                                    <td>Semantic only</td>
+                                    <td>Structural + Semantic</td>
+                                    <td>Faster!</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison -->
+    <section id="comparison">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">How It Compares</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="table-responsive" data-aos="fade-up">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Feature</th>
+                                    <th>Claude Alone</th>
+                                    <th>ChatGPT</th>
+                                    <th>Copilot</th>
+                                    <th>Claude OS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Remembers your code</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td><span class="highlight">✅ Perfectly</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Understands architecture</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td><span class="highlight">✅ Completely</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Indexes 10k files</strong></td>
+                                    <td>N/A</td>
+                                    <td>N/A</td>
+                                    <td>N/A</td>
+                                    <td><span class="highlight fs-5">✅ 3 seconds</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Learns from decisions</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td><span class="highlight">✅ Automatically</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Session management</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td><span class="highlight">✅ Built-in</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Free & open source</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td>❌</td>
+                                    <td><span class="highlight">✅ 100%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases -->
+    <section id="use-cases" class="two-col-section">
+        <div class="container">
+            <h2 class="section-title gradient-text text-center" data-aos="fade-down">You Need This If You...</h2>
+            <div class="row g-5">
+                <div class="col-md-6" data-aos="fade-right">
+                    <ul class="fs-5">
+                        <li class="mb-3">Work on multiple projects</li>
+                        <li class="mb-3">Have team members leaving</li>
+                        <li class="mb-3">Work long-term on same project</li>
+                        <li class="mb-3">Care about code consistency</li>
+                        <li class="mb-3">Want faster development</li>
+                    </ul>
+                </div>
+                <div class="col-md-6" data-aos="fade-left">
+                    <ul class="fs-5">
+                        <li class="mb-3">Debug tricky issues</li>
+                        <li class="mb-3">Onboard new developers</li>
+                        <li class="mb-3">Maintain architectural consistency</li>
+                        <li class="mb-3">Document as you go</li>
+                        <li class="mb-3">Make better decisions</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Getting Started -->
+    <section id="getting-started">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 offset-lg-1">
+                    <h2 class="section-title gradient-text text-center" data-aos="fade-down">Getting Started in 3 Steps</h2>
+                    <div class="code-block" data-aos="fade-up">
+                        <pre><code># 1. Install Claude OS (one-time, 3 minutes)
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+./install.sh
+
+# 2. Start Claude OS
+./start.sh
+
+# 3. Initialize your project (2 minutes)
+cd /path/to/your/project
+/claude-os-init
+# Answer a few questions, done!</code></pre>
+                    </div>
+                    <p class="text-center fs-4 mt-4" data-aos="zoom-in" data-aos-delay="200">
+                        <span class="highlight">Now every conversation includes your complete project knowledge.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Magic -->
+    <section id="magic" class="half-height">
+        <div class="container text-center">
+            <h2 class="section-title gradient-text" data-aos="fade-down">The Real Magic ✨</h2>
+            <p class="fs-3 mb-4" data-aos="fade-up" data-aos-delay="200">
+                Claude OS doesn't make Claude <strong class="highlight">smarter</strong>.
+            </p>
+            <p class="fs-3 mb-5" data-aos="fade-up" data-aos-delay="400">
+                Claude OS makes Claude <strong class="highlight">USEFUL</strong> for your specific project.
+            </p>
+            <p class="fs-2 gradient-text" data-aos="zoom-in" data-aos-delay="600">
+                Generic Intelligence → Practical Expertise
+            </p>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="cta" class="half-height">
+        <div class="container text-center">
+            <h2 class="section-title gradient-text" data-aos="fade-down">Stop Starting From Zero</h2>
+            <p class="fs-4 mb-4" data-aos="fade-up" data-aos-delay="200">
+                Start building with an AI that knows your code<br>as well as you do.
+            </p>
+            <div data-aos="zoom-in" data-aos-delay="400">
+                <a href="https://github.com/brobertsaz/claude-os" class="cta-button">
+                    Get Claude OS Now
+                </a>
+            </div>
+            <p class="mt-5" style="opacity: 0.8;" data-aos="fade-up" data-aos-delay="600">
+                100% Free & Open Source<br>
+                <small>Built with ❤️ by developers who got tired of starting every conversation from zero</small>
+            </p>
+        </div>
+    </section>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+    </script>
+</body>
+</html>

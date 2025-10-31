@@ -206,6 +206,7 @@ Git Hooks Installed (auto-indexing on every commit)
 Inspired by [Aider](https://github.com/Aider-AI/aider), Claude OS now uses a revolutionary two-phase approach:
 
 **Phase 1 - Structural Index (INSTANT):**
+
 - **Tree-sitter parsing** - Language-agnostic AST extraction (supports 40+ languages)
 - **No embeddings needed** - Parse syntax, extract symbols, zero LLM calls
 - **Blazing fast** - 10,000 Ruby files indexed in **30 seconds** (vs 3-5 hours before!)
@@ -214,6 +215,7 @@ Inspired by [Aider](https://github.com/Aider-AI/aider), Claude OS now uses a rev
 - **PageRank scoring** - Identifies most important files automatically
 
 **Phase 2 - Semantic Index (SELECTIVE):**
+
 - **Top 20% only** - Embed most important files (based on PageRank)
 - **Documentation first** - Full embedding for docs, specs, README
 - **Background processing** - Runs while you code, no waiting
@@ -478,6 +480,7 @@ Claude OS gives you powerful slash commands and automatic triggers.
 **Automatic Triggers:**
 
 When you say phrases like these, Claude automatically saves to memories:
+
 - "Remember this:"
 - "Save this:"
 - "Document this:"
@@ -637,12 +640,12 @@ This is the **compounding intelligence** that happens when AI actually understan
 │                     CLAUDE OS ECOSYSTEM v2.0                        │
 │                    (Now with Hybrid Indexing!)                      │
 │                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐  │
-│  │  Real-Time   │  │   Memory     │  │  ⚡ NEW: Code Structure│  │
-│  │  Learning    │  │   System     │  │   (Tree-sitter AST)    │  │
-│  │  (Redis)     │  │   (MCP)      │  │   38,406 symbols!      │  │
-│  │  <1ms        │  │   Instant    │  │   3 seconds to index   │  │
-│  └──────┬───────┘  └──────┬───────┘  └───────────┬─────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐    │
+│  │  Real-Time   │  │   Memory     │  │  ⚡ NEW: Code Structure  │    │
+│  │  Learning    │  │   System     │  │   (Tree-sitter AST)     │    │
+│  │  (Redis)     │  │   (MCP)      │  │   38,406 symbols!       │    │
+│  │  <1ms        │  │   Instant    │  │   3 seconds to index    │    │
+│  └──────┬───────┘  └──────┬───────┘  └───────────┬─────────────┘    │
 │         │                  │                      │                 │
 │         └──────────────────┼──────────────────────┘                 │
 │                            │                                        │
@@ -670,7 +673,7 @@ This is the **compounding intelligence** that happens when AI actually understan
 │         ┌──────────────────▼─────────────────────────┐              │
 │         │       Claude Code Interface                │              │
 │         │  (Your AI with 600-1000x faster indexing!) │              │
-│         └─────────────────────────────────────────────┘              │
+│         └─────────────────────────────────────────────┘             │
 └─────────────────────────────────────────────────────────────────────┘
 
 Performance: Pistn (10,000 Ruby files) indexed in 3 seconds ⚡
@@ -733,7 +736,7 @@ Performance: Pistn (10,000 Ruby files) indexed in 3 seconds ⚡
 
 ```bash
 # 1. Install Claude OS (one-time, 3 minutes)
-git clone https://github.com/your-org/claude-os.git
+git clone https://github.co/brobertsaz/claude-os.git
 cd claude-os
 ./install.sh
 
