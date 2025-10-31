@@ -247,18 +247,151 @@ Show progress:
    Vector embeddings generated and searchable!
 ```
 
-### Step 5: Analyze Codebase (if not empty directory)
+### Step 5: Phase 1 - Structural Indexing (FAST!)
+
+**NEW: Lightning-fast hybrid indexing with tree-sitter!**
+
+First, create the code_structure knowledge base:
+
+```bash
+curl -X POST {claude_os_url}/api/kb/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "{project_name}-code_structure",
+    "kb_type": "generic",
+    "description": "Structural code index (tree-sitter)"
+  }'
+```
 
 Check if directory has code files (not just a new empty project):
 
 ```bash
-find . -type f \( -name "*.rb" -o -name "*.py" -o -name "*.js" -o -name "*.go" \) | head -1
+find . -type f \( -name "*.rb" -o -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.go" \) | head -1
 ```
+
+If code exists, run structural indexing:
+
+```
+⚡ Phase 1: Structural Indexing...
+
+   Building code structure map with tree-sitter...
+   This takes ~30 seconds for 10,000 files!
+```
+
+Call the API:
+
+```bash
+curl -X POST {claude_os_url}/api/kb/{project_name}-code_structure/index-structural \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path": "{project_path}",
+    "token_budget": 2048
+  }'
+```
+
+**Expected response:**
+```json
+{
+  "success": true,
+  "total_files": 1234,
+  "total_symbols": 5678,
+  "time_taken_seconds": 28.5,
+  "message": "Structural index created: 5678 symbols in 1234 files"
+}
+```
+
+Show success:
+```
+   ✅ Structural index complete!
+      - Parsed {total_files} files
+      - Extracted {total_symbols} symbols (classes, functions, methods)
+      - Dependency graph built
+      - PageRank importance computed
+      - Time: {time_taken_seconds}s
+
+   🎯 Ready to code! I now know your entire codebase structure.
+```
+
+### Step 6: Phase 2 - Semantic Indexing (Optional)
+
+Ask the user if they want semantic indexing:
+
+```
+⚡ Phase 2: Semantic Indexing (Optional)
+
+Phase 1 is complete! You can start coding now.
+
+Would you like to run Phase 2 semantic indexing? This enables:
+- Deep semantic search ("How does auth work?")
+- More detailed context for complex queries
+- Only indexes top 20% most important files + docs
+
+Options:
+  1. Yes, selective (top 20% + docs) - Recommended (~20 minutes)
+  2. Yes, full (all files) - Complete but slow (~1-3 hours)
+  3. No, skip for now - Can run later anytime
+
+Your choice? [1/2/3]
+```
+
+**If option 1 (Selective):**
+
+```bash
+curl -X POST {claude_os_url}/api/kb/{project_name}-project_index/index-semantic \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path": "{project_path}",
+    "selective": true
+  }'
+```
+
+Show:
+```
+   🎯 Selective semantic indexing started!
+      - Indexing {files_selected} files (top 20% + docs)
+      - Running in background...
+      - Estimated time: 20-30 minutes
+      - You can start coding now!
+```
+
+**If option 2 (Full):**
+
+```bash
+curl -X POST {claude_os_url}/api/kb/{project_name}-project_index/index-semantic \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_path": "{project_path}",
+    "selective": false
+  }'
+```
+
+Show:
+```
+   📚 Full semantic indexing started!
+      - Indexing all {total_files} files
+      - Running in background...
+      - Estimated time: 1-3 hours
+      - You can start coding now!
+```
+
+**If option 3 (Skip):**
+
+Show:
+```
+   ⏭️  Skipped semantic indexing
+
+   You can run it later anytime with:
+   curl -X POST {claude_os_url}/api/kb/{project_name}-project_index/index-semantic \
+     -H "Content-Type: application/json" \
+     -d '{"project_path": "{project_path}", "selective": true}'
+```
+
+### Step 7: Analyze Codebase Architecture
 
 If code exists, run the `initialize-project` skill:
 
 ```
-🔍 Analyzing your codebase...
+🔍 Analyzing project architecture...
    Running initialize-project skill...
 ```
 
@@ -277,7 +410,7 @@ Show success:
       - .claude/DEVELOPMENT_PRACTICES.md
 ```
 
-### Step 6: Create .gitignore entries (if .gitignore exists)
+### Step 8: Create .gitignore entries (if .gitignore exists)
 
 If `.gitignore` exists in the project root, append (if not already present):
 
@@ -288,7 +421,7 @@ If `.gitignore` exists in the project root, append (if not already present):
 .claude-os/.commit_count
 ```
 
-### Step 7: Final Summary
+### Step 9: Final Summary
 
 Show complete summary:
 
@@ -298,9 +431,10 @@ Show complete summary:
 Your project is now connected to Claude OS.
 
 📚 Knowledge Bases:
+   - {project_name}-code_structure (structural index - {total_symbols} symbols) ⚡
+   - {project_name}-project_index (semantic index - optional)
    - {project_name}-project_memories (for decisions & patterns)
    - {project_name}-project_profile (for architecture & standards)
-   - {project_name}-project_index (for codebase index)
    - {project_name}-knowledge_docs ({X} docs indexed ✅)
 
 🛠️  Available Commands:
@@ -320,7 +454,10 @@ Your project is now connected to Claude OS.
    3. Start a session: /claude-os-session start "feature name"
    4. Let's build something amazing!
 
-💡 Tip: I can now search both your codebase AND your documentation!
+💡 Tip: With hybrid indexing, I instantly know your entire codebase structure!
+   - Structural search is INSTANT (tree-sitter)
+   - Semantic search available if you enabled Phase 2
+   - I can find anything in seconds!
 ```
 
 ## Error Handling

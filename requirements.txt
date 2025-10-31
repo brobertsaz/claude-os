@@ -7,6 +7,11 @@ llama-index-embeddings-ollama>=0.1.0
 sqlite-vec>=0.1.0
 numpy>=1.24.0
 
+# Tree-sitter for fast structural indexing
+tree-sitter>=0.21.0
+tree-sitter-languages>=1.10.0  # Pre-built binaries for 40+ languages
+networkx>=3.2.1  # For dependency graphs and PageRank
+
 # File system watching
 watchdog>=3.0.0
 
