@@ -84,12 +84,20 @@ curl -X POST "http://localhost:8051/api/projects" \
     "description": "Automotive service management platform"
   }'
 
-# Import PISTN documentation
-curl -X POST "http://localhost:8051/api/kb/Pistn-knowledge_docs/import" \
-  -d "directory_path=/var/www/pistn/current/docs"
+# Index entire PISTN codebase (RECOMMENDED - one command does it all!)
+/opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051
+
+# Or manually import specific directories:
+# curl -X POST "http://localhost:8051/api/kb/Pistn-knowledge_docs/import" \
+#   -d "directory_path=/var/www/pistn/current/docs"
+# curl -X POST "http://localhost:8051/api/kb/Pistn-project_index/import" \
+#   -d "directory_path=/var/www/pistn/current/app"
 
 # Verify knowledge bases created
 curl "http://localhost:8051/api/kb/list"
+
+# Check indexing stats
+curl "http://localhost:8051/api/kb/Pistn-project_index/stats"
 ```
 
 ### 4. Update PISTN Rails App
@@ -359,6 +367,61 @@ sudo systemctl restart claude-os
    end
    ```
 
+## Keeping Code Index Updated
+
+**Why re-index?**
+As you deploy new code, Claude OS needs to learn about your changes to provide accurate suggestions and answers.
+
+### Automatic Re-indexing on Deploy
+
+**Option 1: Capistrano Hook (Recommended)**
+
+Add to `config/deploy.rb`:
+```ruby
+# Re-index codebase after successful deployment
+after 'deploy:finished', 'claude_os:reindex'
+
+namespace :claude_os do
+  desc 'Re-index codebase in Claude OS'
+  task :reindex do
+    on roles(:app) do
+      within release_path do
+        info "Re-indexing codebase in Claude OS..."
+        execute "/opt/claude-os/scripts/index-codebase.sh",
+                "Pistn",
+                release_path,
+                "http://localhost:8051"
+      end
+    end
+  end
+end
+```
+
+**Option 2: Manual After Each Deploy**
+```bash
+# SSH into server
+ssh deploy@staging.pistn.com
+
+# Run indexing script
+/opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051
+```
+
+**Option 3: Scheduled Cron Job**
+```bash
+# Edit crontab
+crontab -e
+
+# Add weekly re-index (Sundays at 2am)
+0 2 * * 0 /opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051 >> /opt/claude-os/logs/reindex.log 2>&1
+```
+
+### Performance Impact
+
+- Indexing ~5,000 files takes 2-5 minutes
+- CPU usage: Light (mostly I/O bound)
+- Safe to run during low-traffic periods
+- Can run concurrently with normal operations
+
 ## Cost Analysis
 
 **Server Resources Used:**
@@ -404,6 +467,7 @@ sudo systemctl restart claude-os
 **Helper Scripts:**
 - Update: `/opt/claude-os/update.sh`
 - Backup: `/opt/claude-os/backup.sh`
+- Index Codebase: `/opt/claude-os/scripts/index-codebase.sh`
 
 ---
 
