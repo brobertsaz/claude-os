@@ -16,6 +16,12 @@
   <a href="https://ollama.ai/"><img src="https://img.shields.io/badge/Ollama-Latest-pink.svg" alt="Ollama"></a>
 </p>
 
+<p align="center">
+  <a href="https://brobertsaz.github.io/claude-os/">
+    <img src="https://img.shields.io/badge/🌐_Live_Demo-Interactive_Brochure-00D9FF?style=for-the-badge&logo=github" alt="Live Demo">
+  </a>
+</p>
+
 ---
 
 ## 🚀 What is Claude OS?
