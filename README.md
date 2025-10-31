@@ -188,15 +188,21 @@ cd claude-os
 
 **Visit** <http://localhost:5173> to use the web UI.
 
-### Consolidate Your Files (First Time Only)
+### ⚠️ IMPORTANT: Consolidate Your Files (Required for Team Sharing)
 
-If you've been using Claude OS and have scattered commands/skills, run the consolidation script:
+**If you plan to share Claude OS with your team**, you MUST run the consolidation script after setup:
 
 ```bash
 ./cli/claude-os-consolidate.sh
 ```
 
-This moves all commands from `~/.claude/commands/` to `templates/commands/` and creates symlinks.
+**What this does:**
+- Moves all commands from `~/.claude/commands/` to `templates/commands/`
+- Moves all skills from `~/.claude/skills/` to `templates/skills/`
+- Creates symlinks so your local environment still works
+- Enables team members to install Claude OS with `./install.sh`
+
+**Without consolidation:** Your coworkers' installations will be broken (symlinks will point to empty directories).
 
 **Then commit to git:**
 
@@ -847,10 +853,11 @@ claude-os/
 
 ### Technical Documentation
 
+- **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** - 🔌 **Complete API Reference** (all endpoints, examples, authentication)
+- **[docs/HYBRID_INDEXING_DESIGN.md](docs/HYBRID_INDEXING_DESIGN.md)** - ⚡ Hybrid indexing architecture
 - **[README_NATIVE_SETUP.md](README_NATIVE_SETUP.md)** - Detailed native setup
 - **[NATIVE_VS_DOCKER_DECISION.md](NATIVE_VS_DOCKER_DECISION.md)** - Why native Ollama
 - **[PERFORMANCE_TEST_RESULTS.md](PERFORMANCE_TEST_RESULTS.md)** - Benchmark results
-- **[MCP_KB_ENDPOINTS.md](MCP_KB_ENDPOINTS.md)** - MCP endpoint docs
 
 ---
 

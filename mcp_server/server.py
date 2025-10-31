@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -755,25 +755,54 @@ async def api_index_structural(kb_name: str, request: StructuralIndexRequest):
             token_budget=request.token_budget
         )
 
-        # Store repo map as a document in the KB
+        # Store repo map as JSON document directly (NO EMBEDDING!)
         repo_map_json = json.dumps(repo_map.to_dict(), indent=2)
 
-        from app.core.ingestion import ingest_file
-        import tempfile
+        # Store directly in database without embedding - use raw SQL
+        conn = db_manager.get_connection()
+        cursor = conn.cursor()
 
-        # Write to temp file and ingest
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            f.write(repo_map_json)
-            temp_path = f.name
+        # Get KB ID
+        cursor.execute("SELECT id FROM knowledge_bases WHERE name = ?", (kb_name,))
+        kb_result = cursor.fetchone()
+        if not kb_result:
+            raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
+        kb_id = kb_result['id']
 
-        try:
-            ingest_result = ingest_file(
-                temp_path,
-                kb_name,
-                "repo_map.json"
+        # Insert or replace the repo map document
+        metadata_json = json.dumps({
+            "filename": "repo_map.json",
+            "type": "structural_index",
+            "total_files": repo_map.total_files,
+            "total_symbols": repo_map.total_symbols,
+            "indexed_at": time.time(),
+            "kb_id": str(kb_id)
+        })
+
+        # Check if document already exists
+        cursor.execute(
+            "SELECT id FROM documents WHERE kb_id = ? AND doc_id = ?",
+            (kb_id, "repo_map")
+        )
+        existing = cursor.fetchone()
+
+        if existing:
+            # Update existing
+            cursor.execute(
+                """UPDATE documents
+                   SET content = ?, metadata = ?
+                   WHERE kb_id = ? AND doc_id = ?""",
+                (repo_map_json, metadata_json, kb_id, "repo_map")
             )
-        finally:
-            Path(temp_path).unlink()
+        else:
+            # Insert new
+            cursor.execute(
+                """INSERT INTO documents
+                   (kb_id, doc_id, content, metadata)
+                   VALUES (?, ?, ?, ?)""",
+                (kb_id, "repo_map", repo_map_json, metadata_json)
+            )
+        conn.commit()
 
         # Close indexer
         indexer.close()
@@ -846,16 +875,34 @@ async def api_index_semantic(kb_name: str, request: SemanticIndexRequest):
 
             logger.info(f"Selective indexing: {len(all_files)} files (top 20% + docs)")
 
-            # TODO: Implement selective file ingestion
-            # For now, this is a placeholder that would need custom ingestion logic
+            # Ingest selected files only
+            from app.core.ingestion import ingest_file
+            results = []
+
+            for file_rel_path in all_files:
+                file_path = Path(request.project_path) / file_rel_path
+                if file_path.exists() and file_path.is_file():
+                    try:
+                        result = ingest_file(str(file_path), kb_name, str(file_rel_path))
+                        results.append({"status": "success", "file": str(file_rel_path)})
+                        logger.debug(f"Ingested: {file_rel_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to ingest {file_rel_path}: {e}")
+                        results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+
+            successes = [r for r in results if r.get("status") == "success"]
+            elapsed = time.time() - start_time
+
+            logger.info(f"Selective semantic indexing complete for {kb_name} in {elapsed:.1f}s")
 
             return {
                 "success": True,
                 "kb_name": kb_name,
                 "mode": "selective",
                 "files_selected": len(all_files),
-                "time_taken_seconds": time.time() - start_time,
-                "message": f"Selective semantic indexing queued for {len(all_files)} files"
+                "files_indexed": len(successes),
+                "time_taken_seconds": elapsed,
+                "message": f"Selective semantic indexing complete: {len(successes)}/{len(all_files)} files indexed"
             }
         else:
             # Full indexing (all files)
@@ -1913,29 +1960,27 @@ async def health_check():
     from datetime import datetime
     health_status["timestamp"] = datetime.utcnow().isoformat()
 
-    # Check PostgreSQL
+    # Check SQLite Database
     try:
         db_manager = get_sqlite_manager()
         collections = db_manager.list_collections()
 
-        # Try to get schema version
+        # Get SQLite table count
         conn = db_manager.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';")
+        cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table';")
         table_count = cursor.fetchone()[0]
-        cursor.close()
-        db_manager.return_connection(conn)
 
-        health_status["components"]["postgresql"] = {
+        health_status["components"]["sqlite"] = {
             "status": "healthy",
             "connected": True,
-            "database": "codeforge",
+            "database": "claude-os.db",
             "tables": table_count,
             "knowledge_bases": len(collections)
         }
     except Exception as e:
         health_status["status"] = "unhealthy"
-        health_status["components"]["postgresql"] = {
+        health_status["components"]["sqlite"] = {
             "status": "unhealthy",
             "connected": False,
             "error": str(e)
