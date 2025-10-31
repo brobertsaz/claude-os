@@ -1,0 +1,20 @@
+Create a professional, modern architecture diagram for Claude OS showing:
+
+**Center:** "Claude OS Ecosystem" (SQLite Database)
+
+**5 Connected Components:**
+1. Real-Time Learning (Redis Pub/Sub, <1ms, 10+ patterns)
+2. Memory MCP (Persistent memory, instant recall)
+3. Semantic Knowledge Base (Vector embeddings, 800+ chunks)
+4. Analyze-Project (Intelligent indexing, git hooks)
+5. Session Management (Context preservation, auto-resume)
+
+**Flow:** All → MCP Server (port 8051) → Claude Code Interface → Developer
+
+**Style:**
+- Modern tech aesthetic with electric blue (#00D9FF), purple (#8B5CF6), teal (#14B8A6)
+- Dark background (#0F172A)
+- Clean, professional, suitable for documentation
+- Include icons/emojis: 🧠💾📚🔍🎯
+
+Make it visually stunning and easy to understand!

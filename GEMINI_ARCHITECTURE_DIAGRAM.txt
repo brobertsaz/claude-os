@@ -1,0 +1,67 @@
+Create a professional architecture diagram for Claude OS with this EXACT style:
+
+**VISUAL STYLE (MUST MATCH EXISTING LOGO):**
+- Dark space background with subtle stars (like existing hero image)
+- Cyan-to-purple/pink gradient (#00D9FF → #8B5CF6 → #FF00FF)
+- Circuit board aesthetic with connecting lines
+- Modern, clean, tech/cyberpunk feel
+- Glowing neon effects on components
+
+**DIAGRAM CONTENT:**
+
+Main Title at Top: "CLAUDE OS ARCHITECTURE"
+
+**Center Hub (Large Circle):**
+"Semantic Knowledge Base"
+- SQLite + sqlite-vec
+- 800+ indexed chunks
+- Vector embeddings
+(Make this glow with cyan light)
+
+**5 Components Around Hub (connected with circuit-board style lines):**
+
+1. TOP-LEFT: "Real-Time Learning" 🧠
+   - Redis Pub/Sub
+   - <1ms latency
+   - 10+ patterns
+   (Cyan glow)
+
+2. TOP-RIGHT: "Memory MCP" 💾
+   - Persistent Memory
+   - Instant Recall
+   - Natural Language
+   (Purple glow)
+
+3. RIGHT: "Analyze-Project" 🔍
+   - Git Hooks
+   - Auto-Index
+   - Smart Docs
+   (Pink glow)
+
+4. BOTTOM-RIGHT: "Session Management" 🎯
+   - Auto Resume
+   - Context Preservation
+   - Zero Cold Start
+   (Purple-pink glow)
+
+5. BOTTOM-LEFT: "Semantic Search" 📚
+   - Vector Similarity
+   - Code Understanding
+   - Pattern Recognition
+   (Cyan-purple glow)
+
+**Flow Path (glowing circuit traces):**
+All 5 components → Center Hub → MCP Server (port 8051) → Claude Code Interface → Developer
+
+**Bottom Panel:**
+Show data flow: "Git Commit → 3s indexing → SQLite → MCP → Claude → You"
+
+**Style Notes:**
+- Use glowing lines like circuit traces
+- Each component is a rounded rectangle with internal circuit patterns
+- Neon glow effects (like Tron aesthetic)
+- Dark background (#0F172A to #1E293B gradient)
+- White text with subtle cyan glow
+- Make it look FUTURISTIC and POWERFUL
+
+Resolution: 1920x1080 (landscape, perfect for README hero section)
