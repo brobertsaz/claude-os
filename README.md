@@ -93,6 +93,26 @@ Inspired by [Aider's](https://github.com/Aider-AI/aider) approach, Claude OS now
 
 ---
 
+## 🏗️ Architecture Overview
+
+<p align="center">
+  <img src="frontend/public/assets/claude-os-architecture.svg" alt="Claude OS Architecture Diagram" width="100%"/>
+</p>
+
+**Claude OS is built on 5 core pillars that work together to give Claude persistent memory:**
+
+1. **🧠 Real-Time Learning** - Automatically captures insights from conversations via Redis Pub/Sub
+2. **💾 Memory MCP** - Persistent memory system with instant recall using natural language
+3. **🔍 Analyze-Project** - Intelligent codebase indexing with git hooks and tree-sitter
+4. **🎯 Session Management** - Auto-resume sessions with full context preservation
+5. **📚 Semantic Search** - Vector-based code understanding and pattern recognition
+
+All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec), exposed via the **MCP Server** (port 8051) to **Claude Code**, giving you an AI assistant that never forgets.
+
+**Data Flow:** `Git Commit → 3s indexing → SQLite → MCP → Claude → You`
+
+---
+
 ## ⚡ Quick Start for Coworkers
 
 **Your coworker shared Claude OS with you? Here's the 3-minute setup:**
