@@ -153,7 +153,54 @@ curl "http://localhost:8051/api/kb/list"
 curl "http://localhost:8051/api/kb/Pistn-project_index/stats"
 ```
 
-### 5. Update PISTN Rails App
+### 5. Setup Authentication (Recommended for Production)
+
+Protect the Claude OS frontend from strangers with simple email/password authentication.
+
+**Add to `/opt/claude-os/.env`:**
+
+```bash
+# Authentication
+CLAUDE_OS_EMAIL=admin@pistn.com
+CLAUDE_OS_PASSWORD_HASH=<generated_hash>
+CLAUDE_OS_SECRET_KEY=<random_32_char_secret>
+```
+
+**Generate password hash:**
+
+```bash
+# SSH into server
+ssh deploy@staging.pistn.com
+
+# Generate hash
+cd /opt/claude-os
+source venv/bin/activate
+python3 -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('your_secure_password'))"
+
+# Copy the output and add to .env as CLAUDE_OS_PASSWORD_HASH
+```
+
+**Generate secret key:**
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**Restart Claude OS:**
+
+```bash
+sudo systemctl restart claude-os
+```
+
+**Test login:**
+
+Visit `https://staging.pistn.com/login` and use your configured email/password.
+
+**Note:** If you don't configure these variables, authentication is disabled and the frontend is open access.
+
+See [`AUTH_SETUP.md`](/AUTH_SETUP.md) for detailed authentication documentation.
+
+### 6. Update PISTN Rails App
 
 **Add to `/var/www/pistn/shared/.env`:**
 ```bash
@@ -211,7 +258,7 @@ end
 cap production deploy
 ```
 
-### 6. Test Integration
+### 7. Test Integration
 
 ```bash
 # Test Claude OS directly

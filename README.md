@@ -371,12 +371,14 @@ your-project/
 Agent-OS requires AI for advanced features:
 
 **Option 1: Ollama (Local, Free)**
+
 - Requires 8GB+ RAM
 - Fully private, no data leaves your machine
 - Install: `https://ollama.ai`
 - Then: `ollama pull llama2`
 
 **Option 2: OpenAI API (Cloud, Paid)**
+
 - Works on any machine
 - ~$0.02 per request
 - Requires API key (set during `./install.sh`)
@@ -829,11 +831,12 @@ Claude OS optionally integrates with [Agent-OS](https://github.com/builder-metho
 - **Project**: Agent-OS - Spec-driven development workflow system
 - **Author**: Builder Methods (CasJam Media LLC)
 - **License**: MIT
-- **Repository**: https://github.com/builder-methods/agent-os
+- **Repository**: <https://github.com/builder-methods/agent-os>
 
 Agent-OS provides 8 specialized agents for structured feature planning and implementation. We're grateful to Builder Methods for creating such powerful tools and for licensing them under MIT, making this integration possible.
 
 If you find Agent-OS valuable, consider:
+
 - ⭐ Starring their repository
 - 📣 Sharing it with other developers
 - 🤝 Contributing to their project

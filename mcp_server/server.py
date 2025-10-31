@@ -1566,6 +1566,69 @@ async def handle_mcp_request(request: Request, kb_filter: Optional[str] = None) 
         })
 
 
+# ============================================================================
+# Authentication Endpoints
+# ============================================================================
+
+from mcp_server.auth import (
+    authenticate_user,
+    create_access_token,
+    is_auth_enabled,
+    get_current_user
+)
+from datetime import timedelta
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/api/auth/login")
+async def login(request: LoginRequest):
+    """Login endpoint - returns JWT token if credentials are valid."""
+    if not is_auth_enabled():
+        raise HTTPException(
+            status_code=501,
+            detail="Authentication is not configured. Set CLAUDE_OS_EMAIL and CLAUDE_OS_PASSWORD in environment."
+        )
+
+    if not authenticate_user(request.email, request.password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password"
+        )
+
+    access_token = create_access_token(
+        data={"sub": request.email},
+        expires_delta=timedelta(days=7)
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "email": request.email
+    }
+
+
+@app.get("/api/auth/me")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Get current user info."""
+    return current_user
+
+
+@app.get("/api/auth/status")
+async def auth_status():
+    """Check if authentication is enabled."""
+    return {
+        "auth_enabled": is_auth_enabled()
+    }
+
+
+# ============================================================================
+# Health Check
+# ============================================================================
+
 @app.get("/health")
 async def health_check():
     """
