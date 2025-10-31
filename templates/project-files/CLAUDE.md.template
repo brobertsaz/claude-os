@@ -121,6 +121,8 @@ Parameters: kb_name (e.g., "{{PROJECT_NAME}}-project_memories"), query (your sea
 2. **`remember-this`** - Save insights to Claude OS knowledge bases
 3. **`memory`** - Simple memory management
 
+{{AGENT_OS_SECTION}}
+
 ### MCP Tools (Direct API Access)
 
 - `mcp__code-forge__search_knowledge_base` - Direct search

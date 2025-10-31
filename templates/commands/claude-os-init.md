@@ -67,6 +67,26 @@ Let's get your project configured for AI-powered development.
    - Default: `http://localhost:8051`
    - Ask: `Claude OS server URL? [default: http://localhost:8051]`
 
+9. **Agent-OS Setup** (Optional):
+   - Ask: `Enable Agent-OS for spec-driven development? [Y/n]`
+   - Explain:
+     ```
+     Agent-OS provides 8 specialized agents for structured feature development:
+     - Gather requirements through iterative questions
+     - Create detailed specifications
+     - Generate task breakdowns
+     - Implement and verify features
+
+     Note: Requires Ollama (local) or OpenAI API key for advanced features.
+     ```
+   - If YES:
+     - Set `ENABLE_AGENT_OS=true`
+     - Will create `agent-os/` directory structure
+     - Will symlink agents to `.claude/agents/agent-os/`
+   - If NO:
+     - Set `ENABLE_AGENT_OS=false`
+     - Can enable later by manually copying templates
+
 ### Step 2: Create Project in Claude OS
 
 Use Bash to call the API:
@@ -157,11 +177,51 @@ mkdir -p .claude-os
 - Copy from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/.gitignore`
 - Write to: `./.claude-os/.gitignore`
 
+**If Agent-OS is enabled (`ENABLE_AGENT_OS=true`):**
+
+1. **Create agent-os/ directory structure:**
+   ```bash
+   mkdir -p agent-os/product
+   mkdir -p agent-os/specs
+   mkdir -p agent-os/standards/backend
+   mkdir -p agent-os/standards/frontend
+   mkdir -p agent-os/standards/global
+   mkdir -p agent-os/standards/testing
+   ```
+
+2. **Copy agent-os config:**
+   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/config.yml.template`
+   - Replace `{{TIMESTAMP}}` with current timestamp
+   - Write to: `./agent-os/config.yml`
+
+3. **Copy agent-os README:**
+   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/README.md`
+   - Replace `{{PROJECT_NAME}}` → project_name
+   - Write to: `./agent-os/README.md`
+
+4. **Copy agent-os .gitignore:**
+   - Copy: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/.gitignore`
+   - Write to: `./agent-os/.gitignore`
+
+5. **Symlink agent-os agents:**
+   ```bash
+   mkdir -p .claude/agents/agent-os
+
+   # Symlink all agents
+   ln -s /Users/iamanmp/Projects/claude-os/templates/agents/*.md .claude/agents/agent-os/
+   ```
+
+6. **Update CLAUDE.md with agent-os section:**
+   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os-section.md`
+   - Replace `{{AGENT_OS_SECTION}}` in CLAUDE.md with this content
+   - Or if `{{AGENT_OS_SECTION}}` not present, leave empty
+
 Show progress:
 ```
 📁 Creating project structure...
    ✅ Created .claude/
    ✅ Created .claude-os/
+   ✅ Created agent-os/ (with 8 agents)
    ✅ Created CLAUDE.md
    ✅ Created config files
 ```

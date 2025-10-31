@@ -1,0 +1,8 @@
+# Agent-OS state files (personal, not shared)
+.agent-os-state.json
+*.tmp
+*.log
+
+# Spec work in progress
+specs/*/planning/*.tmp
+specs/*/implementation/*.tmp
