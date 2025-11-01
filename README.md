@@ -6,12 +6,12 @@
 
 <p align="center">
   <strong>AI Memory & Knowledge Base System for Claude Code</strong><br>
-  Share with your team • Initialize projects in seconds • Never lose context again
+  Initialize projects in seconds • Never lose context again
 </p>
 
 <p align="center">
   <a href="#license"><img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="License: MIT"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%20|%203.12-blue.svg" alt="Python 3.11 | 3.12"></a>
   <a href="https://www.sqlite.org/"><img src="https://img.shields.io/badge/SQLite-3.0+-green.svg" alt="SQLite"></a>
   <a href="https://ollama.ai/"><img src="https://img.shields.io/badge/Ollama-Latest-pink.svg" alt="Ollama"></a>
 </p>
@@ -40,7 +40,7 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 - 🔍 **Searches past work** automatically at session start
 - 📚 **Indexes your docs** and makes them searchable
 - 🧠 **Learns patterns** that improve over time
-- 🤝 **Shares with your team** - one install, unlimited projects
+- 🔄 **100% Local** - Never leaves your machine, fully private
 
 ### Key Features
 
@@ -51,8 +51,6 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 ✅ **Documentation Ingestion** - Auto-indexes your docs during setup
 ✅ **Agent-OS Integration** - Optional spec-driven development with 8 specialized agents
 ✅ **Flexible AI** - Choose local Ollama (free) or OpenAI API (paid)
-✅ **Team Sharing** - `./install.sh` for coworkers, works instantly
-✅ **100% Local** - Never leaves your machine, fully private
 ✅ **Template System** - Commands and skills shared via symlinks
 
 ---
@@ -64,6 +62,7 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 ### The Problem with Traditional Indexing
 
 Previous versions embedded EVERY file, which was painfully slow for large codebases:
+
 - **Pistn project (10,000 Ruby files):** 3-5 hours to index
 - Must complete before Claude can start working
 - High resource usage, blocks productive coding
@@ -73,6 +72,7 @@ Previous versions embedded EVERY file, which was painfully slow for large codeba
 Inspired by [Aider's](https://github.com/Aider-AI/aider) approach, Claude OS now uses:
 
 **Phase 1: Structural Index (30 seconds)**
+
 - ⚡ Parse files with tree-sitter (no LLM calls!)
 - 📊 Extract symbols only (classes, functions, signatures)
 - 🔗 Build dependency graph
@@ -80,6 +80,7 @@ Inspired by [Aider's](https://github.com/Aider-AI/aider) approach, Claude OS now
 - ✅ Ready to code immediately!
 
 **Phase 2: Semantic Index (optional, background)**
+
 - 🎯 Selective embedding (top 20% most important files)
 - 📚 Full embedding for documentation
 - 🔍 Deep semantic search when needed
@@ -119,84 +120,53 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 
 ---
 
-## ⚡ Quick Start for Coworkers
+## 💻 Installation & Setup
 
-**Your coworker shared Claude OS with you? Here's the 3-minute setup:**
-
-### Step 1: Clone and Install
-
-```bash
-# Clone the repository
-git clone https://github.com/your-team/claude-os.git
-cd claude-os
-
-# Run the installer (handles everything)
-./install.sh
-```
-
-The installer will:
-
-- ✅ Set up Python environment
-- ✅ Install all dependencies
-- ✅ Configure MCP server
-- ✅ Symlink commands and skills to `~/.claude/`
-- ✅ Optional: Install Agent-OS (8 agents by Builder Methods)
-- ✅ Ask about AI provider (Ollama or OpenAI)
-- ✅ Create start script
-
-### Step 2: Start Claude OS
-
-```bash
-./start.sh
-```
-
-This starts the MCP server at `http://localhost:8051`
-
-### Step 3: Initialize Your First Project
-
-```bash
-cd /path/to/your/project
-```
-
-In Claude Code, run:
-
-```
-/claude-os-init
-```
-
-Answer the questions (project name, tech stack, docs path, etc.) and **you're done!**
-
-**What you get:**
-
-- ✅ 4 knowledge bases created (memories, profile, index, docs)
-- ✅ Documentation auto-indexed
-- ✅ Codebase analyzed
-- ✅ CLAUDE.md file with all context
-- ✅ Ready to code with AI memory!
-
----
-
-## 🎯 For First-Time Setup (Original Creator)
+> **Note:** The `install.sh` script currently supports macOS only. Linux and Windows support coming soon.
 
 ### Prerequisites
 
 **Required:**
 
-- Python 3.11+ (`python3 --version`)
+- macOS (for `install.sh`)
+- Python 3.11 or 3.12 (`python3 --version`)
+  - **Note:** Python 3.13+ not yet supported due to dependency constraints
 - Git (`git --version`)
 
 **Optional:**
 
 - Node.js 16+ (for React UI)
+- Ollama (for local AI) or OpenAI API key
 
-### Installation
+### Quick Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+
+# Run the installer
+./install.sh
+```
+
+The installer will:
+
+- ✅ Set up Python virtual environment
+- ✅ Install all dependencies
+- ✅ Configure MCP server
+- ✅ Symlink commands and skills to `~/.claude/`
+- ✅ Create start script
+
+### Full Setup (with Ollama)
+
+If you want to use local AI with Ollama:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/brobertsaz/claude-os.git
 cd claude-os
 
-# 2. Run the setup script
+# 2. Run the full setup script (installs Ollama + Redis)
 ./setup.sh
 
 # 3. Start all services
@@ -214,45 +184,31 @@ cd claude-os
 
 **Visit** <http://localhost:5173> to use the web UI.
 
-### ⚠️ IMPORTANT: Consolidate Your Files (Required for Team Sharing)
+### Starting Claude OS
 
-**If you plan to share Claude OS with your team**, you MUST run the consolidation script after setup:
-
-```bash
-./cli/claude-os-consolidate.sh
-```
-
-**What this does:**
-- Moves all commands from `~/.claude/commands/` to `templates/commands/`
-- Moves all skills from `~/.claude/skills/` to `templates/skills/`
-- Creates symlinks so your local environment still works
-- Enables team members to install Claude OS with `./install.sh`
-
-**Without consolidation:** Your coworkers' installations will be broken (symlinks will point to empty directories).
-
-**Then commit to git:**
+After installation, start the services:
 
 ```bash
-git add templates/ cli/ install.sh SHARING_GUIDE.md
-git commit -m "Add packaging system for sharing"
-git push
+./start.sh
 ```
 
-Now your team can clone and use `./install.sh`!
+This starts the MCP server at `http://localhost:8051`
 
 ---
 
-## 🎨 The `/claude-os-init` Command
+## 🚀 Quick Start
 
 **Initialize any project with Claude OS in under 2 minutes:**
 
-### What It Does
+### Step 1: Navigate to Your Project
 
 ```bash
-cd /your/project
+cd /path/to/your/project
 ```
 
-In Claude Code:
+### Step 2: Initialize with Claude OS
+
+In Claude Code, run:
 
 ```
 /claude-os-init
@@ -306,6 +262,14 @@ The command will:
    - Memory persists across sessions
    - Context auto-loads on session start
 
+### What You Get
+
+- ✅ 4 knowledge bases created (memories, profile, index, docs)
+- ✅ Documentation auto-indexed
+- ✅ Codebase analyzed
+- ✅ CLAUDE.md file with all context
+- ✅ Ready to code with AI memory!
+
 ---
 
 ## 🧠 How Claude OS Works
@@ -356,15 +320,25 @@ All these work in any initialized project:
 ## 🤖 Agent-OS: Spec-Driven Development (Optional)
 
 > **Created by [Builder Methods (CasJam Media LLC)](https://github.com/builder-methods/agent-os)**
-> MIT Licensed • Optional Integration with Claude OS
+> MIT Licensed • Separate Optional Integration
 
 **Agent-OS adds structured workflows for planning and implementing features using 8 specialized agents.**
 
-Claude OS optionally integrates with Agent-OS during installation. Agent-OS is a separate open-source project created by Builder Methods, and we're grateful for their work in creating such powerful spec-driven development tools.
+Agent-OS is a separate open-source project that can be installed alongside Claude OS. We're grateful to Builder Methods for creating such powerful spec-driven development tools.
+
+### Manual Installation
+
+If the Agent-OS repository is available, you can install it with:
+
+```bash
+git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os
+```
+
+**Note:** Check if the repository exists before attempting to install.
 
 ### When to Use Agent-OS
 
-Enable Agent-OS during `/claude-os-init` if you want:
+If you have Agent-OS installed, use it when you want:
 
 - **Structured feature planning** with iterative requirements gathering
 - **Detailed specifications** before coding
@@ -441,24 +415,6 @@ your-project/
 └── .claude/agents/agent-os/  # 8 agents (symlinked)
 ```
 
-### AI Provider Options
-
-Agent-OS requires AI for advanced features:
-
-**Option 1: Ollama (Local, Free)**
-
-- Requires 8GB+ RAM
-- Fully private, no data leaves your machine
-- Install: `https://ollama.ai`
-- Then: `ollama pull llama2`
-
-**Option 2: OpenAI API (Cloud, Paid)**
-
-- Works on any machine
-- ~$0.02 per request
-- Requires API key (set during `./install.sh`)
-
-The installer will ask which you prefer!
 
 ### Integration with Claude OS
 
@@ -518,7 +474,7 @@ Agent-OS agents deeply integrate with Claude OS:
 
 ```
 claude-os/
-├── templates/              # Shared with all projects
+├── templates/              # Shared templates
 │   ├── commands/          # Slash commands (symlinked to ~/.claude/)
 │   │   ├── claude-os-init.md
 │   │   ├── claude-os-search.md
@@ -534,7 +490,7 @@ claude-os/
 │           └── hooks.json.template
 ├── cli/                   # CLI tools
 │   └── claude-os-consolidate.sh
-├── install.sh             # One-command setup for coworkers
+├── install.sh             # Quick setup script
 └── start.sh               # Start services
 ```
 
@@ -542,7 +498,6 @@ claude-os/
 
 - ✅ Update once, all projects benefit
 - ✅ Symlinks mean instant updates
-- ✅ Easy to share with team
 - ✅ Consistent across projects
 
 ---
@@ -599,51 +554,6 @@ When you run `/claude-os-init`, you get 4 knowledge bases:
    - Your documentation
    - Auto-ingested during init
    - Add more via UI or CLI
-
----
-
-## 🤝 Team Collaboration
-
-### Sharing Claude OS
-
-**Step 1: Package for sharing**
-
-```bash
-cd /path/to/claude-os
-./cli/claude-os-consolidate.sh  # Move files to templates/
-git add templates/ cli/ install.sh
-git commit -m "Ready for team sharing"
-git push
-```
-
-**Step 2: Share repo URL with team**
-
-Send teammates:
-
-- Repo URL
-- Link to `SHARING_GUIDE.md` in the repo
-
-**Step 3: They install (3 minutes)**
-
-```bash
-git clone <your-repo-url>
-cd claude-os
-./install.sh
-./start.sh
-```
-
-Done! They can now use `/claude-os-init` on any project.
-
-### Per-Project Setup
-
-Each team member:
-
-1. Runs `/claude-os-init` in their project
-2. Gets their own knowledge bases
-3. CLAUDE.md is committed to git (shared)
-4. .claude-os/ state is git-ignored (personal)
-
-**Result:** Team shares context via CLAUDE.md, but each person has their own AI memory.
 
 ---
 
@@ -711,13 +621,13 @@ Each project has `.claude-os/config.json`:
 
 ### Installation & Setup
 
-#### `./install.sh` - Team Member Setup ⭐
+#### `./install.sh` - Quick Setup (macOS only)
 
 ```bash
 ./install.sh
 ```
 
-**For coworkers joining the team:**
+**Automated setup script:**
 
 - ✅ Creates `~/.claude/` directories
 - ✅ Symlinks all commands and skills
@@ -725,31 +635,18 @@ Each project has `.claude-os/config.json`:
 - ✅ Installs dependencies
 - ✅ Configures MCP server
 
-#### `./setup.sh` - First-Time Setup
+#### `./setup.sh` - Full Setup (with Ollama + Redis)
 
 ```bash
 ./setup.sh
 ```
 
-**For the original creator:**
+**Complete installation:**
 
 - ✅ Installs Ollama + Redis (if needed)
 - ✅ Downloads LLM models (~5-10 GB)
 - ✅ Sets up Python environment
 - ✅ Creates database
-
-#### `./cli/claude-os-consolidate.sh` - Organize Files
-
-```bash
-./cli/claude-os-consolidate.sh
-```
-
-**One-time consolidation:**
-
-- Moves commands to `templates/`
-- Moves skills to `templates/`
-- Creates symlinks
-- Prepares for git commit
 
 ### Service Management
 
@@ -834,11 +731,11 @@ ollama list | grep llama3.1
 
 ```
 claude-os/
-├── templates/              # NEW: Shared templates system
+├── templates/              # Shared templates system
 │   ├── commands/          # Slash commands
 │   ├── skills/            # Skills
 │   └── project-files/     # Files created during init
-├── cli/                   # NEW: CLI tools
+├── cli/                   # CLI tools
 │   └── claude-os-consolidate.sh
 ├── app/                    # Backend application
 │   ├── core/              # Core modules
@@ -856,9 +753,8 @@ claude-os/
 ├── data/                 # SQLite database
 │   └── claude-os.db
 ├── logs/                 # Service logs
-├── install.sh            # NEW: Coworker setup
-├── start.sh              # NEW: Start services
-├── SHARING_GUIDE.md      # NEW: Team sharing docs
+├── install.sh            # Quick setup script
+├── start.sh              # Start services
 └── README.md             # This file
 ```
 
@@ -868,7 +764,6 @@ claude-os/
 
 ### Getting Started
 
-- **[SHARING_GUIDE.md](SHARING_GUIDE.md)** - 🤝 How to share with your team
 - **[templates/README.md](templates/README.md)** - 📂 Template system documentation
 
 ### Core Features
@@ -889,7 +784,7 @@ claude-os/
 
 ## 🤝 Contributing
 
-This is a team development tool. Feel free to:
+Claude OS is open source. Feel free to:
 
 - Modify for your specific needs
 - Add new commands and skills
@@ -924,31 +819,6 @@ If you find Agent-OS valuable, consider:
 MIT License - Use it freely!
 
 **Note**: This project (Claude OS) is MIT licensed. Agent-OS, when installed, is a separate project also MIT licensed by Builder Methods (CasJam Media LLC). See the Agent-OS repository for their specific license terms.
-
----
-
-## 🎯 Next Steps
-
-### For Original Creator
-
-1. Run `./setup.sh` (first time)
-2. Run `./cli/claude-os-consolidate.sh` (organize files)
-3. Commit templates to git
-4. Share repo with team
-
-### For Team Members
-
-1. Clone the repo
-2. Run `./install.sh`
-3. Run `./start.sh`
-4. Use `/claude-os-init` in your projects
-
-### For Everyone
-
-- Use `/claude-os-search` to find past work
-- Use `/claude-os-remember` to save insights
-- Use `/claude-os-session` to track work
-- Enjoy never losing context again!
 
 ---
 

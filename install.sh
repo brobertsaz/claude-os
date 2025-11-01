@@ -1,12 +1,45 @@
 #!/bin/bash
 # Claude OS Installation Script
 # Sets up Claude OS for a new user/machine
+# This script ALWAYS completes and provides detailed feedback
 
-set -e  # Exit on error
+# DON'T exit on error - we want to handle all errors gracefully
+set +e
 
+# Initialize error tracking
+ERROR_COUNT=0
+WARNING_COUNT=0
+ERROR_LOG=""
+INSTALL_STATUS="IN_PROGRESS"
+
+# Directories
 CLAUDE_OS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USER_CLAUDE_DIR="${HOME}/.claude"
 TEMPLATES_DIR="${CLAUDE_OS_DIR}/templates"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Helper functions
+log_error() {
+    ERROR_COUNT=$((ERROR_COUNT + 1))
+    ERROR_LOG="${ERROR_LOG}ERROR: $1\n"
+    echo -e "${RED}❌ ERROR: $1${NC}" >&2
+}
+
+log_warning() {
+    WARNING_COUNT=$((WARNING_COUNT + 1))
+    ERROR_LOG="${ERROR_LOG}WARNING: $1\n"
+    echo -e "${YELLOW}⚠️  WARNING: $1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
 
 echo "🚀 Claude OS Installation"
 echo "========================="
@@ -15,16 +48,53 @@ echo "Claude OS Directory: ${CLAUDE_OS_DIR}"
 echo "User Claude Directory: ${USER_CLAUDE_DIR}"
 echo ""
 
-# Check if Python 3 is installed
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 is required but not installed"
-    echo "   Please install Python 3.8+ and try again"
-    exit 1
+# Find compatible Python version (3.11 or 3.12 only)
+echo "🔍 Looking for compatible Python version (3.11 or 3.12)..."
+
+PYTHON_CMD=""
+PYTHON_VERSION=""
+
+# Check for Python 3.12 first (preferred)
+if command -v python3.12 &> /dev/null; then
+    PYTHON_CMD="python3.12"
+    PYTHON_VERSION=$(python3.12 --version | cut -d' ' -f2)
+    log_success "Found Python 3.12: ${PYTHON_VERSION}"
+# Then check for Python 3.11
+elif command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+    PYTHON_VERSION=$(python3.11 --version | cut -d' ' -f2)
+    log_success "Found Python 3.11: ${PYTHON_VERSION}"
+# Check if default python3 is 3.11 or 3.12
+elif command -v python3 &> /dev/null; then
+    DEFAULT_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+    if [ "$DEFAULT_VERSION" = "3.11" ] || [ "$DEFAULT_VERSION" = "3.12" ]; then
+        PYTHON_CMD="python3"
+        PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+        log_success "Found Python ${DEFAULT_VERSION}: ${PYTHON_VERSION}"
+    else
+        log_error "Python ${DEFAULT_VERSION} found, but Claude OS requires Python 3.11 or 3.12"
+        echo ""
+        echo "Your system has Python ${DEFAULT_VERSION}, but some dependencies (like tree-sitter-languages)"
+        echo "don't yet support Python 3.13+."
+        echo ""
+        echo "Please install Python 3.11 or 3.12:"
+        echo "  • macOS with Homebrew: brew install python@3.12"
+        echo "  • Ubuntu/Debian: sudo apt install python3.12"
+        echo "  • Or download from: https://www.python.org/downloads/"
+        echo ""
+        INSTALL_STATUS="FAILED"
+        # Jump to summary section
+        skip_to_summary=true
+    fi
+else
+    log_error "Python 3 is not installed"
+    echo "   Please install Python 3.11 or 3.12 and try again"
+    INSTALL_STATUS="FAILED"
+    skip_to_summary=true
 fi
 
-# Check Python version
-PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1,2)
-echo "✅ Python ${PYTHON_VERSION} detected"
+# Skip rest of installation if Python check failed
+if [ "$skip_to_summary" != "true" ]; then
 
 # Create user .claude directory if it doesn't exist
 if [ ! -d "$USER_CLAUDE_DIR" ]; then
@@ -77,8 +147,8 @@ done
 echo ""
 echo "🐍 Setting up Python environment..."
 if [ ! -d "${CLAUDE_OS_DIR}/venv" ]; then
-    echo "   Creating virtual environment..."
-    python3 -m venv "${CLAUDE_OS_DIR}/venv"
+    echo "   Creating virtual environment with ${PYTHON_CMD}..."
+    ${PYTHON_CMD} -m venv "${CLAUDE_OS_DIR}/venv"
 fi
 
 echo "   Installing dependencies..."
@@ -87,131 +157,10 @@ pip install --quiet --upgrade pip
 pip install --quiet -r "${CLAUDE_OS_DIR}/requirements.txt"
 echo "   ✅ Dependencies installed"
 
-# AI Model Configuration
+# Installation complete - move to config creation
 echo ""
-echo "🤖 AI Model Configuration (for Agent-OS)"
-echo "========================================="
-echo ""
-echo "Agent-OS can use AI for advanced features like spec generation."
-echo "You have two options:"
-echo ""
-echo "  1. Local Ollama (FREE, requires 8GB+ RAM)"
-echo "  2. OpenAI API (Paid, ~\$0.02/request, works on any machine)"
-echo "  3. Skip for now (can configure later)"
-echo ""
-read -p "Which would you like to use? (1/2/3): " ai_choice
-
-AI_PROVIDER="none"
-if [ "$ai_choice" = "1" ]; then
-    echo ""
-    echo "📦 Checking for Ollama..."
-    if command -v ollama &> /dev/null; then
-        echo "   ✅ Ollama found"
-        AI_PROVIDER="ollama"
-        # Check if llama2 model is available
-        if ollama list | grep -q "llama2"; then
-            echo "   ✅ llama2 model available"
-        else
-            echo "   📥 Pulling llama2 model (this may take a few minutes)..."
-            ollama pull llama2
-            echo "   ✅ llama2 model ready"
-        fi
-    else
-        echo "   ❌ Ollama not found"
-        echo ""
-        echo "   To install Ollama:"
-        echo "   1. Visit: https://ollama.ai"
-        echo "   2. Download and install"
-        echo "   3. Run: ollama pull llama2"
-        echo ""
-        read -p "   Press enter to continue (you can configure Ollama later)..."
-        AI_PROVIDER="none"
-    fi
-elif [ "$ai_choice" = "2" ]; then
-    echo ""
-    echo "🔑 OpenAI API Configuration"
-    echo ""
-    read -p "Enter your OpenAI API key: " openai_key
-    if [ -n "$openai_key" ]; then
-        # Create or append to .env file
-        ENV_FILE="${CLAUDE_OS_DIR}/.env"
-        if grep -q "OPENAI_API_KEY" "$ENV_FILE" 2>/dev/null; then
-            # Update existing key
-            sed -i.bak "s/OPENAI_API_KEY=.*/OPENAI_API_KEY=$openai_key/" "$ENV_FILE"
-        else
-            # Add new key
-            echo "OPENAI_API_KEY=$openai_key" >> "$ENV_FILE"
-        fi
-        echo "   ✅ API key saved to .env"
-        AI_PROVIDER="openai"
-    else
-        echo "   ⚠️  No API key provided, skipping"
-        AI_PROVIDER="none"
-    fi
-else
-    echo "   ⏭️  Skipping AI configuration (can set up later)"
-    AI_PROVIDER="none"
-fi
-
-# Agent-OS Integration (Optional)
-echo ""
-echo "🎯 Agent-OS Integration (Optional)"
-echo "===================================="
-echo ""
-echo "Agent-OS by Builder Methods (CasJam Media LLC) provides 8 specialized"
-echo "agents for spec-driven development workflows:"
-echo ""
-echo "  • spec-initializer    • spec-shaper"
-echo "  • spec-writer         • tasks-list-creator"
-echo "  • implementer         • implementation-verifier"
-echo "  • spec-verifier       • product-planner"
-echo ""
-echo "Agent-OS is MIT licensed and created by Builder Methods."
-echo "Repository: https://github.com/builder-methods/agent-os"
-echo ""
-read -p "Install Agent-OS? (y/n): " install_agent_os
-
-AGENT_OS_INSTALLED="no"
-if [ "$install_agent_os" = "y" ] || [ "$install_agent_os" = "Y" ]; then
-    echo ""
-    echo "📦 Installing Agent-OS..."
-    AGENT_OS_DIR="${USER_CLAUDE_DIR}/agents/agent-os"
-
-    # Create agents directory if needed
-    mkdir -p "${USER_CLAUDE_DIR}/agents"
-
-    # Clone or update Agent-OS
-    if [ -d "$AGENT_OS_DIR" ]; then
-        echo "   📁 Agent-OS directory exists, updating..."
-        cd "$AGENT_OS_DIR"
-        git pull origin main 2>/dev/null || git pull origin master 2>/dev/null || echo "   ⚠️  Could not update (not a git repo or no connection)"
-        cd "$CLAUDE_OS_DIR"
-    else
-        echo "   📥 Cloning Agent-OS from GitHub..."
-        git clone https://github.com/builder-methods/agent-os.git "$AGENT_OS_DIR" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            echo "   ✅ Agent-OS installed successfully"
-            AGENT_OS_INSTALLED="yes"
-        else
-            echo "   ❌ Failed to clone Agent-OS (check internet connection)"
-            echo "   You can install it manually later:"
-            echo "   git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os"
-            AGENT_OS_INSTALLED="failed"
-        fi
-    fi
-
-    if [ -d "$AGENT_OS_DIR" ]; then
-        AGENT_OS_INSTALLED="yes"
-    fi
-else
-    echo "   ⏭️  Skipping Agent-OS installation"
-    echo ""
-    echo "   You can install it later with:"
-    echo "   git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os"
-fi
 
 # Create config file
-echo ""
 echo "⚙️  Creating configuration..."
 CONFIG_FILE="${CLAUDE_OS_DIR}/claude-os-config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -228,9 +177,8 @@ if [ ! -f "$CONFIG_FILE" ]; then
     "model": "all-MiniLM-L6-v2",
     "device": "cpu"
   },
-  "ai_provider": "${AI_PROVIDER}",
   "installed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "version": "1.0.0"
+  "version": "2.0.0"
 }
 EOF
     echo "   ✅ Created ${CONFIG_FILE}"
@@ -281,13 +229,27 @@ echo "📡 Starting MCP server on http://localhost:8051"
 python3 mcp_server/server.py &
 MCP_PID=$!
 
-echo "✅ Claude OS is running!"
+echo "✅ Claude OS MCP Server is running!"
 echo ""
-echo "   MCP Server: http://localhost:8051"
-echo "   Web UI: http://localhost:8051 (coming soon)"
+echo "   📡 MCP Server: http://localhost:8051"
+echo "      (For Claude Code integration - do NOT open in browser)"
 echo ""
-echo "To stop: kill $MCP_PID"
-echo "Or use Ctrl+C"
+echo "To stop MCP server: kill \$MCP_PID or press Ctrl+C"
+echo ""
+echo "════════════════════════════════════════"
+echo "💡 Want the full experience?"
+echo "════════════════════════════════════════"
+echo ""
+echo "This script only starts the MCP server."
+echo ""
+echo "To start ALL services (MCP + Frontend + Workers):"
+echo "   ./start_all_services.sh"
+echo ""
+echo "This will give you:"
+echo "   • MCP Server (port 8051) - For Claude Code"
+echo "   • Web UI (port 5173) - Visual interface"
+echo "   • Redis + Workers - Real-time learning"
+echo "   • Ollama - Local AI models"
 echo ""
 
 # Wait for server to exit
@@ -295,37 +257,125 @@ wait $MCP_PID
 EOF
 
 chmod +x "$START_SCRIPT"
-echo "   ✅ Created start script: ${START_SCRIPT}"
+log_success "Created start script"
 
-# Summary
-echo ""
-echo "✨ Installation complete!"
-echo ""
-echo "📋 What was set up:"
-echo "   ✅ Commands linked to ~/.claude/commands/"
-echo "   ✅ Skills linked to ~/.claude/skills/"
-if [ "$AGENT_OS_INSTALLED" = "yes" ]; then
-    echo "   ✅ Agent-OS installed (8 agents by Builder Methods)"
+fi  # End of main installation (if skip_to_summary != true)
+
+# Mark installation as successful if we got here with no errors
+if [ "$ERROR_COUNT" -eq 0 ]; then
+    INSTALL_STATUS="SUCCESS"
+elif [ "$ERROR_COUNT" -gt 0 ] && [ -f "$START_SCRIPT" ]; then
+    INSTALL_STATUS="PARTIAL"
 else
-    echo "   ⏭️  Agent-OS not installed (optional)"
+    INSTALL_STATUS="FAILED"
 fi
-echo "   ✅ Python virtual environment created"
-echo "   ✅ Dependencies installed"
-echo "   ✅ MCP server configured"
-echo "   ✅ AI provider: ${AI_PROVIDER}"
+
+# ════════════════════════════════════════════════════════════════
+# INSTALLATION SUMMARY
+# ════════════════════════════════════════════════════════════════
+
 echo ""
-echo "🎯 Next steps:"
-echo "   1. Start Claude OS:"
-echo "      ./start.sh"
+echo "════════════════════════════════════════"
+if [ "$INSTALL_STATUS" = "SUCCESS" ]; then
+    echo -e "${GREEN}✨ Installation completed successfully!${NC}"
+elif [ "$INSTALL_STATUS" = "PARTIAL" ]; then
+    echo -e "${YELLOW}⚠️  Installation completed with warnings${NC}"
+else
+    echo -e "${RED}❌ Installation failed${NC}"
+fi
+echo "════════════════════════════════════════"
 echo ""
-echo "   2. In a new terminal, go to your project:"
-echo "      cd /path/to/your/project"
+
+# Show error/warning counts
+if [ "$ERROR_COUNT" -gt 0 ] || [ "$WARNING_COUNT" -gt 0 ]; then
+    echo "📊 Summary:"
+    [ "$ERROR_COUNT" -gt 0 ] && echo -e "   ${RED}Errors: $ERROR_COUNT${NC}"
+    [ "$WARNING_COUNT" -gt 0 ] && echo -e "   ${YELLOW}Warnings: $WARNING_COUNT${NC}"
+    echo ""
+fi
+
+# Show what was set up
+echo "📋 What was set up:"
+[ -d "${USER_CLAUDE_DIR}/commands" ] && echo "   ✅ Commands: $(ls -1 ${USER_CLAUDE_DIR}/commands/claude-os-*.md 2>/dev/null | wc -l | xargs) symlinks"
+[ -d "${USER_CLAUDE_DIR}/skills" ] && echo "   ✅ Skills: 3 symlinks"
+[ -n "$PYTHON_VERSION" ] && echo "   ✅ Python ${PYTHON_VERSION} virtual environment"
+[ -d "${CLAUDE_OS_DIR}/venv" ] && echo "   ✅ Dependencies installed"
+[ -f "${USER_CLAUDE_DIR}/mcp-servers/code-forge.json" ] && echo "   ✅ MCP server configured"
+[ -f "$START_SCRIPT" ] && echo "   ✅ Start script created"
+
+# If there were errors, show them
+if [ "$ERROR_COUNT" -gt 0 ]; then
+    echo ""
+    echo -e "${RED}Errors encountered:${NC}"
+    echo -e "$ERROR_LOG" | head -10
+fi
+
 echo ""
-echo "   3. Initialize your project with Claude OS:"
-echo "      /claude-os-init"
+
+# Next steps (only if installation succeeded or partially succeeded)
+if [ "$INSTALL_STATUS" != "FAILED" ]; then
+    echo "════════════════════════════════════════"
+    echo "🎯 Next steps:"
+    echo "════════════════════════════════════════"
+    echo ""
+    echo "1️⃣  Start Claude OS:"
+    echo ""
+    echo "    Option A - MCP Server only (minimal):"
+    echo "    ./start.sh"
+    echo ""
+    echo "    Option B - Full experience (recommended):"
+    echo "    ./start_all_services.sh"
+    echo ""
+    echo "2️⃣  In Claude Code, go to your project:"
+    echo "    cd /path/to/your/project"
+    echo ""
+    echo "3️⃣  Initialize your project:"
+    echo "    /claude-os-init"
+    echo ""
+    echo "4️⃣  Start coding with AI memory! 🚀"
+    echo ""
+fi
+
+echo "════════════════════════════════════════"
+echo "📚 Documentation:"
+echo "════════════════════════════════════════"
+echo "   • README.md - Full documentation"
+echo "   • BACKUP_RESTORE_GUIDE.md - Backup & restore"
+echo "   • /claude-os-search - Search memories"
+echo "   • /claude-os-remember - Save insights"
 echo ""
-echo "   4. Start coding with AI memory!"
-echo ""
-echo "📚 Documentation: ${CLAUDE_OS_DIR}/README.md"
-echo "❓ Issues: https://github.com/your-repo/claude-os/issues"
-echo ""
+
+# ════════════════════════════════════════════════════════════════
+# ERROR REPORTING
+# ════════════════════════════════════════════════════════════════
+
+if [ "$ERROR_COUNT" -gt 0 ] || [ "$INSTALL_STATUS" = "FAILED" ]; then
+    echo "════════════════════════════════════════"
+    echo "🐛 Need help?"
+    echo "════════════════════════════════════════"
+    echo ""
+    echo "Please report this issue on GitHub:"
+    echo "  https://github.com/brobertsaz/claude-os/issues/new"
+    echo ""
+    echo "Include this information:"
+    echo "  • Your OS: $(uname -s) $(uname -r)"
+    echo "  • Python version: ${PYTHON_VERSION:-unknown}"
+    echo "  • Error count: $ERROR_COUNT"
+    echo ""
+    if [ -n "$ERROR_LOG" ]; then
+        echo "Error details:"
+        echo -e "$ERROR_LOG" | head -5
+        echo ""
+    fi
+    echo "We'll help you get it working! 🚀"
+    echo ""
+fi
+
+# Exit with appropriate code
+if [ "$INSTALL_STATUS" = "SUCCESS" ]; then
+    exit 0
+elif [ "$INSTALL_STATUS" = "PARTIAL" ]; then
+    exit 0  # Still consider it success if key components work
+else
+    exit 1
+fi

@@ -76,6 +76,9 @@ tmp/
 temp/
 *.tmp
 
+# Backups (contain sensitive data)
+backups/
+
 # OS
 Thumbs.db
 
