@@ -1,0 +1,74 @@
+name: Installation Issue
+description: Report problems with the install.sh script
+title: "[Install] "
+labels: ["installation", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an installation issue! This helps us improve Claude OS for everyone.
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running?
+      options:
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (Ubuntu/Debian)
+        - Linux (Other)
+        - Windows (WSL)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: Output of `uname -a` or system version
+      placeholder: "Darwin 25.0.0 or Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Output of `python3 --version`
+      placeholder: "Python 3.12.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Paste the complete output from install.sh, including any error messages
+      placeholder: |
+        Include the full terminal output here...
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: What steps did you take before the error occurred?
+      placeholder: |
+        1. Cloned the repo
+        2. Ran ./install.sh
+        3. Error appeared at...
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help (previous installations, system setup, etc.)
+      placeholder: Add any other context about the problem here
+    validations:
+      required: false

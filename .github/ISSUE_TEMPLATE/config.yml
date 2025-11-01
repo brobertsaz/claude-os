@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/brobertsaz/claude-os/blob/main/README.md
+    about: Check out the documentation first
+  - name: Start Scripts Guide
+    url: https://github.com/brobertsaz/claude-os/blob/main/START_SCRIPTS_GUIDE.md
+    about: Learn about start.sh vs start_all_services.sh
+  - name: Backup & Restore Guide
+    url: https://github.com/brobertsaz/claude-os/blob/main/BACKUP_RESTORE_GUIDE.md
+    about: How to backup and restore your data
