@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Settings, Database, MessageSquare, Plus, Trash2, FolderOpen, Zap, Edit } from 'lucide-react';
+import { Home, Settings, Database, MessageSquare, Plus, Trash2, FolderOpen, Zap, Edit, Activity } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import ChatInterface from '../components/ChatInterface';
 import KBManagement from '../components/KBManagement';
 import ProjectSetup from '../components/ProjectSetup';
 import DirectoryPicker from '../components/DirectoryPicker';
+import ServiceDashboard from '../components/ServiceDashboard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8051';
 
@@ -31,7 +32,7 @@ interface ProjectMCP {
 export default function MainApp() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedMCP, setSelectedMCP] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'mcps' | 'chat'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'mcps' | 'chat' | 'services'>('overview');
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showProjectSetup, setShowProjectSetup] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -322,6 +323,17 @@ export default function MainApp() {
                   <MessageSquare className="w-4 h-4 inline mr-2" />
                   Chat
                 </button>
+                <button
+                  onClick={() => setActiveTab('services')}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    activeTab === 'services'
+                      ? 'bg-electric-teal text-deep-night'
+                      : 'text-light-grey hover:text-white'
+                  }`}
+                >
+                  <Activity className="w-4 h-4 inline mr-2" />
+                  Services
+                </button>
               </div>
 
               {/* Tab Content */}
@@ -410,6 +422,8 @@ export default function MainApp() {
                       </div>
                     </div>
                   )
+                ) : activeTab === 'services' ? (
+                  <ServiceDashboard />
                 ) : (
                   selectedMCP ? (
                     <ChatInterface

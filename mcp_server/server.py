@@ -1605,6 +1605,291 @@ async def api_list_ollama_models():
         raise HTTPException(status_code=503, detail=str(e))
 
 
+# ============================================================================
+# SERVICE DASHBOARD ENDPOINTS (NEW - Real-time service monitoring)
+# ============================================================================
+
+import subprocess
+import shutil
+
+class ServiceControlRequest(BaseModel):
+    """Request model for service control."""
+    action: str  # start, stop, restart
+
+
+def check_process_running(process_name: str) -> dict:
+    """
+    Check if a process is running by name.
+
+    Returns:
+        dict with status, pid, memory, cpu
+    """
+    try:
+        # Use pgrep to find process
+        result = subprocess.run(
+            ["pgrep", "-f", process_name],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            pids = result.stdout.strip().split('\n')
+            pid = pids[0]  # Get first matching PID
+
+            # Get process stats using ps
+            ps_result = subprocess.run(
+                ["ps", "-p", pid, "-o", "pid,%cpu,%mem,command"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+
+            if ps_result.returncode == 0:
+                lines = ps_result.stdout.strip().split('\n')
+                if len(lines) > 1:
+                    parts = lines[1].split(None, 3)
+                    return {
+                        "running": True,
+                        "pid": int(pid),
+                        "cpu": float(parts[1]) if len(parts) > 1 else 0.0,
+                        "memory": float(parts[2]) if len(parts) > 2 else 0.0,
+                        "status": "running"
+                    }
+
+        return {
+            "running": False,
+            "pid": None,
+            "cpu": 0.0,
+            "memory": 0.0,
+            "status": "stopped"
+        }
+    except Exception as e:
+        logger.warning(f"Failed to check process {process_name}: {e}")
+        return {
+            "running": False,
+            "pid": None,
+            "cpu": 0.0,
+            "memory": 0.0,
+            "status": "unknown",
+            "error": str(e)
+        }
+
+
+def check_port_listening(port: int) -> bool:
+    """Check if a port is being listened on."""
+    try:
+        # Use netstat or ss to check if port is listening
+        result = subprocess.run(
+            ["sh", "-c", f"lsof -i :{port} -t || netstat -tuln | grep :{port} || ss -tuln | grep :{port}"],
+            capture_output=True,
+            text=True,
+            timeout=2
+        )
+        return result.returncode == 0 and result.stdout.strip() != ""
+    except Exception as e:
+        logger.warning(f"Failed to check port {port}: {e}")
+        return False
+
+
+@app.get("/api/services/status")
+async def api_get_services_status():
+    """
+    Get status of all Claude OS services.
+
+    Returns real-time status for:
+    - MCP Server (this server)
+    - Frontend (Vite dev server)
+    - Redis
+    - RQ Worker
+    - Ollama
+    - File Watcher
+    """
+    services = []
+
+    # 1. MCP Server (always running since we're responding)
+    mcp_status = {
+        "name": "MCP Server",
+        "type": "mcp_server",
+        "port": Config.MCP_SERVER_PORT,
+        "running": True,
+        "status": "running",
+        "pid": os.getpid(),
+        "cpu": 0.0,
+        "memory": 0.0,
+        "description": "Main API server and MCP endpoint"
+    }
+    services.append(mcp_status)
+
+    # 2. Frontend (Vite dev server on port 5173)
+    frontend_port = 5173
+    frontend_process = check_process_running("vite")
+    frontend_status = {
+        "name": "Frontend",
+        "type": "frontend",
+        "port": frontend_port,
+        "running": frontend_process["running"] or check_port_listening(frontend_port),
+        "status": frontend_process["status"],
+        "pid": frontend_process.get("pid"),
+        "cpu": frontend_process.get("cpu", 0.0),
+        "memory": frontend_process.get("memory", 0.0),
+        "description": "React web interface"
+    }
+    services.append(frontend_status)
+
+    # 3. Redis (port 6379)
+    redis_port = 6379
+    redis_process = check_process_running("redis-server")
+    redis_status = {
+        "name": "Redis",
+        "type": "redis",
+        "port": redis_port,
+        "running": redis_process["running"] or check_port_listening(redis_port),
+        "status": redis_process["status"],
+        "pid": redis_process.get("pid"),
+        "cpu": redis_process.get("cpu", 0.0),
+        "memory": redis_process.get("memory", 0.0),
+        "description": "Job queue and caching"
+    }
+    services.append(redis_status)
+
+    # 4. RQ Worker
+    rq_process = check_process_running("rq worker")
+    rq_status = {
+        "name": "RQ Worker",
+        "type": "rq_worker",
+        "port": None,
+        "running": rq_process["running"],
+        "status": rq_process["status"],
+        "pid": rq_process.get("pid"),
+        "cpu": rq_process.get("cpu", 0.0),
+        "memory": rq_process.get("memory", 0.0),
+        "description": "Background job processor"
+    }
+    services.append(rq_status)
+
+    # 5. Ollama (port 11434)
+    ollama_port = 11434
+    ollama_running = False
+    try:
+        response = requests.get(f"{Config.OLLAMA_HOST}/api/tags", timeout=1)
+        ollama_running = response.status_code == 200
+    except:
+        ollama_running = check_port_listening(ollama_port)
+
+    ollama_process = check_process_running("ollama")
+    ollama_status = {
+        "name": "Ollama",
+        "type": "ollama",
+        "port": ollama_port,
+        "running": ollama_running or ollama_process["running"],
+        "status": "running" if ollama_running else ollama_process["status"],
+        "pid": ollama_process.get("pid"),
+        "cpu": ollama_process.get("cpu", 0.0),
+        "memory": ollama_process.get("memory", 0.0),
+        "description": "Local AI model server"
+    }
+    services.append(ollama_status)
+
+    # 6. File Watcher
+    try:
+        watcher = get_global_watcher()
+        watcher_status_data = watcher.get_status()
+        watcher_running = watcher_status_data.get("is_running", False)
+    except:
+        watcher_running = False
+
+    watcher_status = {
+        "name": "File Watcher",
+        "type": "file_watcher",
+        "port": None,
+        "running": watcher_running,
+        "status": "running" if watcher_running else "stopped",
+        "pid": None,
+        "cpu": 0.0,
+        "memory": 0.0,
+        "description": "Automatic folder sync"
+    }
+    services.append(watcher_status)
+
+    # Calculate summary
+    total = len(services)
+    running = sum(1 for s in services if s["running"])
+    stopped = total - running
+
+    return {
+        "services": services,
+        "summary": {
+            "total": total,
+            "running": running,
+            "stopped": stopped,
+            "health": "healthy" if running >= total - 1 else ("degraded" if running > 0 else "critical")
+        },
+        "timestamp": time.time()
+    }
+
+
+@app.post("/api/services/{service_type}/control")
+async def api_control_service(service_type: str, request: ServiceControlRequest):
+    """
+    Control a service (start/stop/restart).
+
+    Note: This is a basic implementation. In production, you'd want more
+    sophisticated service management (systemd, supervisord, etc.)
+    """
+    action = request.action.lower()
+
+    if action not in ["start", "stop", "restart"]:
+        raise HTTPException(status_code=400, detail=f"Invalid action: {action}")
+
+    # For now, return a helpful message about manual control
+    # In a production system, you'd integrate with systemd or supervisord
+
+    if service_type == "mcp_server":
+        return {
+            "success": False,
+            "message": "Cannot control MCP server from itself. Use ./start.sh or stop_all_services.sh",
+            "service": service_type
+        }
+
+    service_commands = {
+        "frontend": {
+            "start": "cd frontend && npm run dev &",
+            "stop": "pkill -f 'vite'",
+            "script": "frontend/package.json"
+        },
+        "redis": {
+            "start": "redis-server --daemonize yes",
+            "stop": "redis-cli shutdown",
+            "script": None
+        },
+        "rq_worker": {
+            "start": "rq worker &",
+            "stop": "pkill -f 'rq worker'",
+            "script": None
+        },
+        "ollama": {
+            "start": "ollama serve &",
+            "stop": "pkill -f ollama",
+            "script": None
+        }
+    }
+
+    if service_type not in service_commands:
+        raise HTTPException(status_code=404, detail=f"Unknown service: {service_type}")
+
+    commands = service_commands[service_type]
+
+    return {
+        "success": False,
+        "message": f"Service control not fully implemented yet. Manual command:",
+        "manual_command": commands.get(action),
+        "service": service_type,
+        "action": action,
+        "note": "Use start_all_services.sh or stop_all_services.sh for full control"
+    }
+
+
 @app.get("/api/browse-directory")
 async def api_browse_directory(path: str = None):
     """REST API: Browse directories and return subdirectories."""
