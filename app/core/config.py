@@ -38,6 +38,7 @@ class Config(metaclass=ConfigMeta):
     SIMILARITY_TOP_K: int = int(os.getenv("SIMILARITY_TOP_K", "20"))
 
     # Reranking Configuration
+    ENABLE_RERANKER: bool = os.getenv("ENABLE_RERANKER", "false").lower() in ("true", "1", "yes")
     RERANK_MODEL: str = os.getenv("RERANK_MODEL", "cross-encoder/mmarco-mMiniLMv2-L12-H384")
     RERANK_TOP_K: int = int(os.getenv("RERANK_TOP_K", "10"))
 
@@ -198,4 +199,43 @@ class Config(metaclass=ConfigMeta):
         upload_path = Path(cls.UPLOAD_DIR)
         upload_path.mkdir(parents=True, exist_ok=True)
         return upload_path
+
+    @classmethod
+    def validate_config(cls) -> None:
+        """
+        Validate required configuration and environment variables.
+        Raises ValueError if critical configuration is missing or invalid.
+        """
+        errors = []
+
+        # Validate Ollama host is set
+        if not cls.OLLAMA_HOST:
+            errors.append("OLLAMA_HOST must be set")
+
+        # Validate database path is valid
+        try:
+            db_path = Path(cls.get_db_path())
+            if not db_path.parent.exists():
+                try:
+                    db_path.parent.mkdir(parents=True, exist_ok=True)
+                except Exception as e:
+                    errors.append(f"Cannot create database directory: {e}")
+        except Exception as e:
+            errors.append(f"Invalid database path: {e}")
+
+        # Validate MCP server port is valid
+        if not (1 <= cls.MCP_SERVER_PORT <= 65535):
+            errors.append(f"MCP_SERVER_PORT must be between 1-65535, got {cls.MCP_SERVER_PORT}")
+
+        # Validate RAG configuration values
+        if cls.CHUNK_SIZE <= 0:
+            errors.append(f"CHUNK_SIZE must be positive, got {cls.CHUNK_SIZE}")
+        if cls.CHUNK_OVERLAP < 0 or cls.CHUNK_OVERLAP >= cls.CHUNK_SIZE:
+            errors.append(f"CHUNK_OVERLAP must be between 0 and CHUNK_SIZE, got {cls.CHUNK_OVERLAP}")
+        if cls.TOP_K_RETRIEVAL <= 0:
+            errors.append(f"TOP_K_RETRIEVAL must be positive, got {cls.TOP_K_RETRIEVAL}")
+
+        if errors:
+            error_msg = "Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+            raise ValueError(error_msg)
 

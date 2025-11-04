@@ -131,9 +131,20 @@ class RAGEngine:
             similarity_top_k=Config.TOP_K_RETRIEVAL
         )
 
-        # Initialize reranker (DISABLED by default due to performance issues)
+        # Initialize reranker (configurable via ENABLE_RERANKER environment variable)
         self.reranker = None
-        logger.info("Reranker disabled for performance (enable in code if needed)")
+        if Config.ENABLE_RERANKER:
+            try:
+                self.reranker = SentenceTransformerRerank(
+                    model=Config.RERANK_MODEL,
+                    top_n=Config.RERANK_TOP_K
+                )
+                logger.info(f"Reranker enabled: {Config.RERANK_MODEL}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize reranker: {e}. Continuing without reranker.")
+                self.reranker = None
+        else:
+            logger.info("Reranker disabled (set ENABLE_RERANKER=true to enable)")
 
         # Create comprehensive prompt template optimized for M4 Pro performance
         qa_prompt_template = PromptTemplate(

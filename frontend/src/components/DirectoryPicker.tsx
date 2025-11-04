@@ -38,14 +38,11 @@ export default function DirectoryPicker({ onSelect, onClose, initialPath }: Dire
     setLoading(true);
     setError(null);
     try {
-      console.log(`[DirectoryPicker] Browsing: ${path || 'home'}`);
-
       const response = await axios.get<BrowseResponse>('/api/browse-directory', {
         params: path && path.trim() ? { path } : {},
         timeout: 10000
       });
 
-      console.log(`[DirectoryPicker] Response:`, response.data);
       setCurrentPath(response.data.current_path);
       setSubdirectories(response.data.subdirectories);
       setParentPath(response.data.parent_path);
