@@ -317,10 +317,10 @@ for row in cursor.fetchall():
 
 ```bash
 # Start just MCP Server
-./start_mcp_server.sh
+./scripts/start_mcp_server.sh
 
 # Start just Redis Workers
-./start_redis_workers.sh
+./scripts/start_redis_workers.sh
 
 # Restart everything
 ./restart_services.sh
@@ -988,7 +988,7 @@ rq info          # Should show 3 workers
 redis-cli LLEN rq:queue:claude-os:learning
 
 # Restart workers if needed
-./start_redis_workers.sh
+./scripts/start_redis_workers.sh
 ```
 
 ### "Ingest is timing out"

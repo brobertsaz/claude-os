@@ -95,29 +95,29 @@ Comprehensive test suite for Claude OS RAG system covering all critical componen
 
 ### All tests:
 ```bash
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 ### Unit tests only (fast):
 ```bash
-./run_tests.sh --unit
+./scripts/run_tests.sh --unit
 ```
 
 ### Integration tests:
 ```bash
-./run_tests.sh --integration
+./scripts/run_tests.sh --integration
 ```
 
 ### Specific category:
 ```bash
-./run_tests.sh --vector
-./run_tests.sh --rag
-./run_tests.sh --api
+./scripts/run_tests.sh --vector
+./scripts/run_tests.sh --rag
+./scripts/run_tests.sh --api
 ```
 
 ### With coverage:
 ```bash
-./run_tests.sh --coverage
+./scripts/run_tests.sh --coverage
 ```
 
 ---

@@ -415,7 +415,7 @@ When you say these, Claude automatically saves to memories:
 
 - **Full README**: `README.md`
 - **Deployment Guide**: `docs/DEPLOYMENT_GUIDE.md`
-- **Sharing Guide**: `SHARING_GUIDE.md`
+- **Sharing Guide**: `docs/guides/SHARING_GUIDE.md`
 
 ---
 

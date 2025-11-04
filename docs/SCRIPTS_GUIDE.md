@@ -6,7 +6,7 @@ Quick reference for managing Claude OS services on macOS.
 
 ```bash
 # First time setup (installs dependencies)
-./setup_native.sh
+./scripts/setup_native.sh
 
 # Start all services
 ./start_all_services.sh
@@ -40,7 +40,7 @@ Quick reference for managing Claude OS services on macOS.
 
 **Usage:**
 ```bash
-./setup_native.sh
+./scripts/setup_native.sh
 ```
 
 **Output:**
@@ -223,7 +223,7 @@ git clone <repo>
 cd claude-os
 
 # 2. Run setup
-./setup_native.sh
+./scripts/setup_native.sh
 
 # 3. Start services
 ./start_all_services.sh
@@ -345,7 +345,7 @@ cp data/claude-os.db.backup data/claude-os.db
 rm data/claude-os.db
 
 # Re-setup
-./setup_native.sh
+./scripts/setup_native.sh
 
 # Start fresh
 ./start_all_services.sh
@@ -453,7 +453,7 @@ tail -50 logs/frontend.log
 For issues:
 1. Check logs
 2. Try `./restart_services.sh`
-3. Try `./setup_native.sh` again
+3. Try `./scripts/setup_native.sh` again
 4. Check if Ollama is running: `ollama ps`
 
 ---
