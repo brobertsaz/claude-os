@@ -4,6 +4,7 @@ Exposes RAG functionality via Model Context Protocol with HTTP transport.
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -18,6 +19,9 @@ from pydantic import BaseModel
 import uvicorn
 import requests
 from typing import Optional
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.core.sqlite_manager import get_sqlite_manager
 from app.core.config import Config
@@ -47,14 +51,26 @@ RAG_ENGINE_CACHE_TTL = 3600  # 1 hour TTL with plenty of RAM
 # Initialize FastAPI
 app = FastAPI(title="Claude OS MCP Server")
 
-# Add CORS middleware
+# Add CORS middleware with security-conscious defaults
+# In production, set ALLOWED_ORIGINS env var to your specific domains
+allowed_origins_str = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:8051,http://127.0.0.1:5173,http://127.0.0.1:8051"
+)
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,  # Restricted to specific origins for security
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 def get_cached_rag_engine(kb_name: str) -> RAGEngine:
     """
@@ -559,14 +575,15 @@ async def api_list_documents(kb_name: str):
 
 
 @app.post("/api/kb/{kb_name}/chat")
-async def api_chat(kb_name: str, request: ChatRequest):
+@limiter.limit("20/minute")  # Rate limit: 20 queries per minute per IP
+async def api_chat(request: Request, kb_name: str, chat_request: ChatRequest):
     """REST API: Chat with a knowledge base."""
     result = await search_knowledge_base(
         kb_name=kb_name,
-        query=request.query,
-        use_hybrid=request.use_hybrid,
-        use_rerank=request.use_rerank,
-        use_agentic=request.use_agentic
+        query=chat_request.query,
+        use_hybrid=chat_request.use_hybrid,
+        use_rerank=chat_request.use_rerank,
+        use_agentic=chat_request.use_agentic
     )
     if "error" in result and result["error"]:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -663,7 +680,7 @@ async def api_delete_document(kb_name: str, filename: str):
             with conn.cursor() as cur:
                 # Get collection ID
                 cur.execute(
-                    "SELECT id FROM knowledge_bases WHERE name = %s",
+                    "SELECT id FROM knowledge_bases WHERE name = ?",
                     (kb_name,)
                 )
                 result = cur.fetchone()
@@ -676,7 +693,7 @@ async def api_delete_document(kb_name: str, filename: str):
                 cur.execute(
                     """
                     DELETE FROM documents
-                    WHERE kb_id = %s AND metadata->>'filename' = %s
+                    WHERE kb_id = ? AND json_extract(metadata, '$.filename') = ?
                     RETURNING id
                     """,
                     (collection_id, filename)
@@ -2030,6 +2047,14 @@ async def health_check():
 
 def main():
     """Start the MCP server."""
+    # Validate configuration before starting
+    try:
+        Config.validate_config()
+        logger.info("✅ Configuration validated successfully")
+    except ValueError as e:
+        logger.error(f"❌ Configuration validation failed:\n{e}")
+        sys.exit(1)
+
     logger.info(f"Starting Claude OS MCP Server on {Config.MCP_SERVER_HOST}:{Config.MCP_SERVER_PORT}")
     logger.info(f"MCP endpoint: http://{Config.MCP_SERVER_HOST}:{Config.MCP_SERVER_PORT}/mcp")
 
