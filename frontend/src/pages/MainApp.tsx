@@ -35,7 +35,7 @@ export default function MainApp() {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showProjectSetup, setShowProjectSetup] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectPath, setNewProjectPath] = useState('/Users/iamanmp/Projects');
+  const [newProjectPath, setNewProjectPath] = useState('');  // User will select via DirectoryPicker
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [showPathPicker, setShowPathPicker] = useState(false);
 
@@ -62,7 +62,6 @@ export default function MainApp() {
       if (!selectedProject) return [];
       try {
         const response = await axios.get(`/api/projects/${selectedProject.id}/mcps`);
-        console.log('[MainApp] Project MCPs response:', response.data);
         return Array.isArray(response.data.mcps) ? response.data.mcps : [];
       } catch (error) {
         console.error('[MainApp] Failed to fetch project MCPs:', error);
@@ -88,7 +87,7 @@ export default function MainApp() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setShowCreateProject(false);
       setNewProjectName('');
-      setNewProjectPath('/Users/iamanmp/Projects');
+      setNewProjectPath('');
       setNewProjectDesc('');
     },
   });
