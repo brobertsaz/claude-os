@@ -198,7 +198,7 @@ Visit `https://staging.pistn.com/login` and use your configured email/password.
 
 **Note:** If you don't configure these variables, authentication is disabled and the frontend is open access.
 
-See [`AUTH_SETUP.md`](/AUTH_SETUP.md) for detailed authentication documentation.
+See [`AUTH_SETUP.md`](/docs/guides/AUTH_SETUP.md) for detailed authentication documentation.
 
 ### 6. Update PISTN Rails App
 

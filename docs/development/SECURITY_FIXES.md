@@ -341,9 +341,9 @@ done
 ## 📚 Related Documentation
 
 - [Comprehensive Review](COMPREHENSIVE_REVIEW.md) - Full analysis of findings
-- [API Reference](docs/API_REFERENCE.md) - Complete API documentation
-- [Auth Setup Guide](AUTH_SETUP.md) - Authentication configuration
-- [Production Deployment](docs/PRODUCTION_DEPLOYMENT.md) - Deployment best practices
+- [API Reference](../API_REFERENCE.md) - Complete API documentation
+- [Auth Setup Guide](../guides/AUTH_SETUP.md) - Authentication configuration
+- [Production Deployment](../PRODUCTION_DEPLOYMENT.md) - Deployment best practices
 
 ---
 

@@ -27,7 +27,7 @@ This guide provides comprehensive information about testing Claude OS, a product
 ### Run All Tests
 
 ```bash
-./run_tests.sh
+./scripts/run_tests.sh
 ```
 
 That's it! The script will:
@@ -77,32 +77,32 @@ tests/
 
 ```bash
 # All tests
-./run_tests.sh
+./scripts/run_tests.sh
 
 # With coverage report
-./run_tests.sh --coverage
+./scripts/run_tests.sh --coverage
 
 # Verbose output
-./run_tests.sh --verbose
+./scripts/run_tests.sh --verbose
 ```
 
 ### By Category
 
 ```bash
 # Unit tests only (fast)
-./run_tests.sh --unit
+./scripts/run_tests.sh --unit
 
 # Integration tests
-./run_tests.sh --integration
+./scripts/run_tests.sh --integration
 
 # Vector operations
-./run_tests.sh --vector
+./scripts/run_tests.sh --vector
 
 # RAG engine
-./run_tests.sh --rag
+./scripts/run_tests.sh --rag
 
 # API endpoints
-./run_tests.sh --api
+./scripts/run_tests.sh --api
 ```
 
 ### Advanced Usage
@@ -213,7 +213,7 @@ See `.github/workflows/tests.yml` for configuration.
 ```bash
 # .git/hooks/pre-commit
 #!/bin/bash
-./run_tests.sh --unit
+./scripts/run_tests.sh --unit
 if [ $? -ne 0 ]; then
     echo "Tests failed! Commit aborted."
     exit 1
@@ -270,7 +270,7 @@ psql -d codeforge_test -f app/core/schema.sql
 ### Generate HTML Report
 
 ```bash
-./run_tests.sh --coverage
+./scripts/run_tests.sh --coverage
 open htmlcov/index.html  # macOS
 xdg-open htmlcov/index.html  # Linux
 ```
@@ -300,7 +300,7 @@ xdg-open htmlcov/index.html  # Linux
 - [ ] Test happy path
 - [ ] Test edge cases
 - [ ] Test error handling
-- [ ] Run `./run_tests.sh`
+- [ ] Run `./scripts/run_tests.sh`
 - [ ] Verify >80% coverage
 - [ ] Update documentation
 

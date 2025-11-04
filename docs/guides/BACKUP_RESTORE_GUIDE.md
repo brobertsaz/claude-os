@@ -7,7 +7,7 @@ This guide explains how to safely backup and restore your Claude OS installation
 ### 1. Backup Your Current Setup
 
 ```bash
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 ```
 
 This creates a timestamped backup in `backups/backup_YYYYMMDD_HHMMSS/` containing:
@@ -24,7 +24,7 @@ Backup size: 125M
 Backup timestamp: 20251101_135211
 
 To restore this backup later:
-  ./restore_claude_os.sh 20251101_135211
+  ./scripts/restore_claude_os.sh 20251101_135211
 ```
 
 ### 2. Test Fresh Installation
@@ -44,7 +44,7 @@ Now you can safely test the installation process:
 If you need to restore your backup:
 
 ```bash
-./restore_claude_os.sh 20251101_135211
+./scripts/restore_claude_os.sh 20251101_135211
 ```
 
 Replace `20251101_135211` with your actual backup timestamp.
@@ -96,7 +96,7 @@ Replace `20251101_135211` with your actual backup timestamp.
 ### Backup Command
 
 ```bash
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 ```
 
 **What it does:**
@@ -111,16 +111,16 @@ Replace `20251101_135211` with your actual backup timestamp.
 ### Restore Command
 
 ```bash
-./restore_claude_os.sh <timestamp>
+./scripts/restore_claude_os.sh <timestamp>
 ```
 
 **Examples:**
 ```bash
 # Restore specific backup
-./restore_claude_os.sh 20251101_135211
+./scripts/restore_claude_os.sh 20251101_135211
 
 # List available backups
-./restore_claude_os.sh
+./scripts/restore_claude_os.sh
 ```
 
 **What it does:**
@@ -140,7 +140,7 @@ Replace `20251101_135211` with your actual backup timestamp.
 
 1. **Backup first:**
    ```bash
-   ./backup_claude_os.sh
+   ./scripts/backup_claude_os.sh
    ```
 
 2. **Stop all services:**
@@ -183,7 +183,7 @@ Replace `20251101_135211` with your actual backup timestamp.
 
 6. **If something goes wrong, restore:**
    ```bash
-   ./restore_claude_os.sh 20251101_135211
+   ./scripts/restore_claude_os.sh 20251101_135211
    ./start.sh
    ```
 
@@ -195,7 +195,7 @@ Replace `20251101_135211` with your actual backup timestamp.
 
 ```bash
 # 1. Backup everything
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 
 # 2. Clean installation (keep data, test scripts)
 rm -rf venv
@@ -206,7 +206,7 @@ rm ~/.claude/skills/{memory,initialize-project,remember-this}
 ./install.sh
 
 # 4. Restore your data (database, configs)
-./restore_claude_os.sh <timestamp>
+./scripts/restore_claude_os.sh <timestamp>
 ./start.sh
 ```
 
@@ -214,7 +214,7 @@ rm ~/.claude/skills/{memory,initialize-project,remember-this}
 
 ```bash
 # 1. Backup everything
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 
 # 2. Full clean (simulate fresh machine)
 ./stop_all_services.sh
@@ -229,7 +229,7 @@ rm ~/.claude/skills/{memory,initialize-project,remember-this}
 ./start_all_services.sh
 
 # 4. Restore your data
-./restore_claude_os.sh <timestamp>
+./scripts/restore_claude_os.sh <timestamp>
 ./start.sh
 ```
 
@@ -237,7 +237,7 @@ rm ~/.claude/skills/{memory,initialize-project,remember-this}
 
 ```bash
 # 1. Backup current state
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 
 # 2. Create test project
 cd ~/test-project
@@ -245,7 +245,7 @@ cd ~/test-project
 
 # 3. If something breaks, restore
 cd ~/Projects/claude-os
-./restore_claude_os.sh <timestamp>
+./scripts/restore_claude_os.sh <timestamp>
 ```
 
 ---
@@ -281,9 +281,9 @@ tar -czf backups_archive_2025.tar.gz backups/
 The backup script creates **new backups** each time - it never overwrites:
 
 ```bash
-./backup_claude_os.sh  # Creates backup_20251101_135211
-./backup_claude_os.sh  # Creates backup_20251101_140530
-./backup_claude_os.sh  # Creates backup_20251101_141005
+./scripts/backup_claude_os.sh  # Creates backup_20251101_135211
+./scripts/backup_claude_os.sh  # Creates backup_20251101_140530
+./scripts/backup_claude_os.sh  # Creates backup_20251101_141005
 ```
 
 You can safely run it multiple times!
@@ -299,14 +299,14 @@ You can safely run it multiple times!
 ls -1 backups/ | grep backup_
 
 # Use exact timestamp from list
-./restore_claude_os.sh 20251101_135211
+./scripts/restore_claude_os.sh 20251101_135211
 ```
 
 ### "Permission denied"
 
 ```bash
 # Make scripts executable
-chmod +x backup_claude_os.sh restore_claude_os.sh
+chmod +x scripts/backup_claude_os.sh scripts/restore_claude_os.sh
 ```
 
 ### "Database locked" during backup
@@ -316,7 +316,7 @@ chmod +x backup_claude_os.sh restore_claude_os.sh
 ./stop_all_services.sh
 
 # Then backup
-./backup_claude_os.sh
+./scripts/backup_claude_os.sh
 ```
 
 ### Restore doesn't fix everything
@@ -329,7 +329,7 @@ The restore script restores **data** but not:
 
 **Full recovery process:**
 ```bash
-./restore_claude_os.sh <timestamp>
+./scripts/restore_claude_os.sh <timestamp>
 ./install.sh  # Recreate symlinks
 ./start.sh    # Start services
 ```
@@ -420,12 +420,12 @@ openssl enc -aes-256-cbc -pbkdf2 -d -in backup_encrypted.tar.gz.enc | \
 
 1. Your backup is ready: `backups/backup_20251101_135211/`
 2. You can safely test `./install.sh`
-3. If anything breaks: `./restore_claude_os.sh 20251101_135211`
+3. If anything breaks: `./scripts/restore_claude_os.sh 20251101_135211`
 4. Test away with confidence! 🚀
 
 ---
 
 **Questions?**
 - Check `backups/backup_*/MANIFEST.txt` for backup contents
-- Run `./restore_claude_os.sh` with no arguments to list backups
+- Run `./scripts/restore_claude_os.sh` with no arguments to list backups
 - Backups are fast (30 seconds) - backup often!
