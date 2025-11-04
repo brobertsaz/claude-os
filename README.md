@@ -429,6 +429,140 @@ Agent-OS agents deeply integrate with Claude OS:
 
 ---
 
+## 🎯 Spec Tracking & Kanban Board
+
+**Claude OS now automatically tracks your Agent-OS specs and displays them as an interactive Kanban board!**
+
+### What It Does
+
+When you use Agent-OS to create specs with `/create-spec`, Claude OS automatically:
+
+- 📋 **Parses tasks.md files** - Extracts all tasks, phases, dependencies, and metadata
+- 🗄️ **Stores in database** - Tracks progress, completion, and time estimates
+- 📊 **Displays as Kanban** - Visual board showing specs and tasks by status
+- ✅ **Updates in real-time** - Task status changes are reflected immediately
+- 🗃️ **Archives completed specs** - Keep your board focused on active work
+
+### Features
+
+**Automatic Syncing:**
+- Syncs all specs from your project's `agent-os/specs/` folder
+- Tracks task metadata (estimated time, dependencies, risk level)
+- Auto-detects completed tasks (marked with ✅ in tasks.md)
+
+**Progress Tracking:**
+- **Status auto-updates** based on completion:
+  - `planning` - No tasks completed yet
+  - `in_progress` - Some tasks completed
+  - `completed` - All tasks done
+- Progress percentage calculated automatically
+- Time estimates tracked (estimated vs actual minutes)
+
+**Archive Feature:**
+- Archive completed specs to keep your board clean
+- Archived specs hidden by default but can be viewed
+- Preserves all task history for future reference
+
+### API Endpoints
+
+All spec tracking functionality is exposed via REST API:
+
+```bash
+# Get all specs for a project
+GET /api/projects/{project_id}/specs
+
+# Get all tasks for a spec
+GET /api/specs/{spec_id}/tasks
+
+# Update task status
+PATCH /api/tasks/{task_id}/status
+{
+  "status": "in_progress",  # todo, in_progress, done, blocked
+  "actual_minutes": 15
+}
+
+# Sync specs from agent-os folder
+POST /api/projects/{project_id}/specs/sync
+
+# Get Kanban board view
+GET /api/projects/{project_id}/kanban?include_archived=false
+
+# Archive/unarchive specs
+POST /api/specs/{spec_id}/archive
+POST /api/specs/{spec_id}/unarchive
+```
+
+### How It Works
+
+```
+1. You create a spec with Agent-OS:
+   /create-spec → agent-os/specs/2025-01-15-user-auth/
+
+2. Claude OS discovers and parses it:
+   - Reads tasks.md
+   - Extracts metadata, tasks, phases
+   - Stores in SQLite database
+
+3. View in Kanban board:
+   - Todo: PHASE1-TASK1, PHASE1-TASK2
+   - In Progress: PHASE2-TASK1
+   - Done: PHASE1-TASK3, PHASE1-TASK4
+
+4. Track progress as you work:
+   - Update task status via API
+   - Spec status auto-updates
+   - Progress percentage calculated
+
+5. Archive when complete:
+   - Mark spec as archived
+   - Keeps history but cleans up board
+```
+
+### Database Schema
+
+Two new tables track specs and tasks:
+
+**`specs` table:**
+- Stores spec metadata (name, path, status)
+- Tracks total/completed tasks
+- Calculates progress percentage
+- Archive flag to hide completed specs
+
+**`spec_tasks` table:**
+- Individual tasks with codes (PHASE1-TASK1)
+- Status (todo/in_progress/done/blocked)
+- Time tracking (estimated vs actual)
+- Dependencies between tasks
+- Risk levels and phases
+
+### Example: Pistn Project
+
+```bash
+# Sync all Pistn specs
+curl -X POST http://localhost:8051/api/projects/1/specs/sync
+
+# Response:
+{
+  "synced": 3,
+  "updated": 0,
+  "total": 3,
+  "errors": []
+}
+
+# Get Kanban view
+curl http://localhost:8051/api/projects/1/kanban
+
+# Response shows:
+# - 3 specs with 52+ tasks
+# - Tasks grouped by status
+# - Progress percentages
+# - Time estimates
+```
+
+**This is the complete AI development system!**
+
+---
+
 ## 🏗️ Architecture
 
 ```

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Settings, Database, MessageSquare, Plus, Trash2, FolderOpen, Zap, Edit, Activity } from 'lucide-react';
+import { Home, Settings, Database, MessageSquare, Plus, Trash2, FolderOpen, Zap, Edit, Activity, Trello } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -9,6 +9,7 @@ import KBManagement from '../components/KBManagement';
 import ProjectSetup from '../components/ProjectSetup';
 import DirectoryPicker from '../components/DirectoryPicker';
 import ServiceDashboard from '../components/ServiceDashboard';
+import KanbanBoard from '../components/KanbanBoard';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8051';
 
@@ -32,7 +33,7 @@ interface ProjectMCP {
 export default function MainApp() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedMCP, setSelectedMCP] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'mcps' | 'chat' | 'services'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'mcps' | 'chat' | 'services' | 'kanban'>('overview');
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showProjectSetup, setShowProjectSetup] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -301,6 +302,17 @@ export default function MainApp() {
                   Overview
                 </button>
                 <button
+                  onClick={() => setActiveTab('kanban')}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                    activeTab === 'kanban'
+                      ? 'bg-electric-teal text-deep-night'
+                      : 'text-light-grey hover:text-white'
+                  }`}
+                >
+                  <Trello className="w-4 h-4 inline mr-2" />
+                  Kanban Board
+                </button>
+                <button
                   onClick={() => setActiveTab('mcps')}
                   className={`px-4 py-2 rounded-lg font-semibold transition-all ${
                     activeTab === 'mcps'
@@ -338,7 +350,9 @@ export default function MainApp() {
 
               {/* Tab Content */}
               <div className="flex-1 overflow-auto p-6">
-                {activeTab === 'overview' ? (
+                {activeTab === 'kanban' ? (
+                  <KanbanBoard projectId={selectedProject.id} />
+                ) : activeTab === 'overview' ? (
                   mcpsLoading ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">

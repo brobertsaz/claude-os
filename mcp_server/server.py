@@ -32,6 +32,7 @@ from app.core.agent_os_ingestion import AgentOSIngestion
 from app.core.agent_os_parser import AgentOSContentType
 from app.core.hooks import get_project_hook
 from app.core.file_watcher import get_global_watcher
+from app.core.spec_manager import SpecManager
 from functools import lru_cache
 import time
 from threading import Lock
@@ -1590,6 +1591,166 @@ async def api_watcher_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============================================================================
+# SPEC TRACKING ENDPOINTS (for agent-os integration and Kanban board)
+# ============================================================================
+
+@app.get("/api/projects/{project_id}/specs")
+async def api_get_project_specs(project_id: int):
+    """Get all specs for a project."""
+    try:
+        manager = SpecManager()
+        specs = manager.get_project_specs(project_id)
+        return {"project_id": project_id, "specs": specs}
+    except Exception as e:
+        logger.error(f"Failed to get specs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/specs/{spec_id}/tasks")
+async def api_get_spec_tasks(spec_id: int):
+    """Get all tasks for a spec."""
+    try:
+        manager = SpecManager()
+        tasks = manager.get_spec_tasks(spec_id)
+        return {"spec_id": spec_id, "tasks": tasks}
+    except Exception as e:
+        logger.error(f"Failed to get tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class TaskStatusUpdate(BaseModel):
+    status: str
+    actual_minutes: Optional[int] = None
+
+
+@app.patch("/api/tasks/{task_id}/status")
+async def api_update_task_status(task_id: int, update: TaskStatusUpdate):
+    """Update a task's status."""
+    try:
+        manager = SpecManager()
+        result = manager.update_task_status(
+            task_id,
+            update.status,
+            update.actual_minutes
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=404, detail=result.get('error', 'Task not found'))
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update task status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/specs/sync")
+async def api_sync_project_specs(project_id: int):
+    """Sync specs from project's agent-os folder."""
+    try:
+        # Get project path
+        manager_db = get_sqlite_manager()
+        project = manager_db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Sync specs
+        spec_manager = SpecManager()
+        result = spec_manager.sync_project_specs(project_id, project['path'])
+
+        return {
+            "project_id": project_id,
+            "message": "Specs synced successfully",
+            **result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to sync specs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/kanban")
+async def api_get_kanban_view(project_id: int, include_archived: bool = False):
+    """Get Kanban board view for a project."""
+    try:
+        manager = SpecManager()
+        # Get specs with archive filter
+        specs = manager.get_project_specs(project_id, include_archived)
+
+        # Build kanban manually with filtered specs
+        kanban = {
+            "project_id": project_id,
+            "specs": [],
+            "summary": {
+                "total_specs": len(specs),
+                "total_tasks": 0,
+                "completed_tasks": 0,
+                "archived_count": sum(1 for s in specs if s.get('archived', False))
+            }
+        }
+
+        for spec in specs:
+            tasks = manager.get_spec_tasks(spec['id'])
+
+            # Group tasks by status
+            task_groups = {
+                "todo": [t for t in tasks if t['status'] == 'todo'],
+                "in_progress": [t for t in tasks if t['status'] == 'in_progress'],
+                "done": [t for t in tasks if t['status'] == 'done'],
+                "blocked": [t for t in tasks if t['status'] == 'blocked']
+            }
+
+            kanban['specs'].append({
+                **spec,
+                "tasks": task_groups,
+                "task_count_by_status": {
+                    "todo": len(task_groups['todo']),
+                    "in_progress": len(task_groups['in_progress']),
+                    "done": len(task_groups['done']),
+                    "blocked": len(task_groups['blocked'])
+                }
+            })
+
+            kanban['summary']['total_tasks'] += spec['total_tasks']
+            kanban['summary']['completed_tasks'] += spec['completed_tasks']
+
+        return kanban
+    except Exception as e:
+        logger.error(f"Failed to get kanban view: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/specs/{spec_id}/archive")
+async def api_archive_spec(spec_id: int):
+    """Archive a spec."""
+    try:
+        manager = SpecManager()
+        result = manager.archive_spec(spec_id)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to archive spec: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/specs/{spec_id}/unarchive")
+async def api_unarchive_spec(spec_id: int):
+    """Unarchive a spec."""
+    try:
+        manager = SpecManager()
+        result = manager.unarchive_spec(spec_id)
+        return result
+    except Exception as e:
+        logger.error(f"Failed to unarchive spec: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# OLLAMA ENDPOINTS
+# ============================================================================
+
 @app.get("/api/ollama/models")
 async def api_list_ollama_models():
     """REST API: List available Ollama models."""
@@ -1795,7 +1956,8 @@ async def api_get_services_status():
     try:
         watcher = get_global_watcher()
         watcher_status_data = watcher.get_status()
-        watcher_running = watcher_status_data.get("is_running", False)
+        # Watcher is running if it has projects being watched
+        watcher_running = watcher_status_data.get("projects_watched", 0) > 0
     except:
         watcher_running = False
 

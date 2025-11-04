@@ -464,6 +464,122 @@ Agent-OS agents search Claude OS memories before creating specs, ensuring they b
 
 ---
 
+## 📊 **Spec Tracking & Kanban Board** (Visual Project Management)
+
+**NEW: Claude OS now automatically tracks all your Agent-OS specs and displays them as an interactive Kanban board!**
+
+```
+Agent-OS creates spec → Claude OS parses tasks.md → Kanban board displays progress
+```
+
+**What this means for you:**
+
+- **Automatic discovery** - Claude OS scans your `agent-os/specs/` folder
+- **Complete task tracking** - Every task, phase, dependency parsed and stored
+- **Visual progress** - See all specs and their tasks organized by status (Todo, In Progress, Done, Blocked)
+- **Real-time updates** - Update task status via API, progress auto-calculated
+- **Archive completed specs** - Keep your board focused on active work
+- **Time tracking** - Track estimated vs actual time for every task
+- **Dependency awareness** - See which tasks depend on others
+
+**The Kanban View:**
+
+```
+📋 Group Account Rendering [52 tasks, 45% complete]
+┌─────────────┬─────────────┬─────────────┬─────────────┐
+│   TODO      │ IN PROGRESS │    DONE     │  BLOCKED    │
+├─────────────┼─────────────┼─────────────┼─────────────┤
+│ PHASE2-TASK1│ PHASE1-TASK3│ PHASE1-TASK1│             │
+│ PHASE2-TASK2│             │ PHASE1-TASK2│             │
+│ PHASE3-TASK1│             │ ...23 more  │             │
+└─────────────┴─────────────┴─────────────┴─────────────┘
+
+📋 Manual Appointment Times [15 tasks, 100% complete] ✅ ARCHIVED
+```
+
+**How it works:**
+
+1. **Create spec with Agent-OS:**
+   ```
+   /create-spec → agent-os/specs/2025-01-15-user-auth/tasks.md
+   ```
+
+2. **Claude OS syncs automatically:**
+   ```
+   POST /api/projects/{id}/specs/sync
+   → Parses all tasks.md files
+   → Extracts metadata, phases, dependencies
+   → Stores in SQLite
+   ```
+
+3. **View progress in real-time:**
+   ```
+   GET /api/projects/{id}/kanban
+   → See all specs grouped by status
+   → Track completion percentage
+   → Monitor time estimates
+   ```
+
+4. **Update task status as you work:**
+   ```
+   PATCH /api/tasks/{id}/status
+   {
+     "status": "done",
+     "actual_minutes": 15
+   }
+   → Spec progress auto-updates
+   → Status changes from "planning" to "in_progress" to "completed"
+   ```
+
+5. **Archive when done:**
+   ```
+   POST /api/specs/{id}/archive
+   → Hides from default view
+   → Preserves all history
+   → Keeps board clean
+   ```
+
+**What gets tracked:**
+
+- **Spec metadata** - Name, date, status, progress percentage
+- **Individual tasks** - Task code (PHASE1-TASK1), title, description
+- **Task status** - todo, in_progress, done, blocked
+- **Time estimates** - Estimated minutes vs actual minutes spent
+- **Dependencies** - Which tasks must complete before others
+- **Risk levels** - Low, medium, high risk tasks
+- **Phases** - Task organization by implementation phase
+- **Completion timestamps** - When tasks started/completed
+
+**API Endpoints:**
+
+```bash
+# Sync all specs from agent-os folder
+POST /api/projects/{project_id}/specs/sync
+
+# Get Kanban board view
+GET /api/projects/{project_id}/kanban?include_archived=false
+
+# Get all tasks for a spec
+GET /api/specs/{spec_id}/tasks
+
+# Update task status
+PATCH /api/tasks/{task_id}/status
+{
+  "status": "in_progress",
+  "actual_minutes": 15
+}
+
+# Archive/unarchive specs
+POST /api/specs/{spec_id}/archive
+POST /api/specs/{spec_id}/unarchive
+```
+
+**The result:**
+
+Never lose track of implementation progress. See at a glance what's done, what's in flight, and what's next. Perfect for solo devs and teams alike.
+
+---
+
 ## ⚡ **Smart Commands & Triggers** (Your AI Assistant on Autopilot)
 
 Claude OS gives you powerful slash commands and automatic triggers.

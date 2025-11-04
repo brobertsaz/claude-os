@@ -25,40 +25,205 @@ The MCP server is called "code-forge" internally for backwards compatibility, bu
 
 **Claude CLI + Claude OS = Invincible!**
 
-## Session Check - FIRST THING AT START OF EVERY CONVERSATION
+## Mandatory Session Protocol - EVERY CONVERSATION IS A SESSION
 
-**CRITICAL: At the start of EVERY new conversation, automatically check session state and prompt the user:**
+**🚨 CRITICAL: You're ALWAYS in a session. At conversation start, prompt for session choice:**
 
-1. **Read Session State**
+```
+═══════════════════════════════════════════════════════════════
+🚀 CLAUDE OS - SESSION MANAGER
+═══════════════════════════════════════════════════════════════
+
+Project: {{PROJECT_NAME}}
+Last Session: [task-name] ([time-ago], [duration])
+Progress: [percentage]% complete
+
+Options:
+  1. Resume "[last-session-name]" [loads full context]
+  2. Start new session [what are you working on?]
+  3. Quick question [auto-session, minimal context]
+
+Choice: _
+═══════════════════════════════════════════════════════════════
+```
+
+**WAIT FOR USER TO CHOOSE 1, 2, or 3. Do not proceed without selection!**
+
+### What Each Option Does:
+
+**Option 1 (Resume):**
+- Load last session's full context
+- Show Kanban progress (if Agent-OS)
+- Load 5 relevant memories
+- Load coding standards
+- Display "where we left off" summary
+- Ready to continue immediately
+
+**Option 2 (New Session):**
+- Ask "What are you working on?"
+- Detect session type (feature/bug/exploration/maintenance/review)
+- Pause previous session (if exists)
+- Load relevant context for new task
+- Start tracking
+
+**Option 3 (Quick Question):**
+- Minimal context loading
+- Auto-ends after 5 min inactivity
+- Only saves if high value
+- Good for "How do I..." questions
+
+---
+
+## Session Start Protocol (After User Selects Option)
+
+**Once user chooses, AUTOMATICALLY perform these steps WITHOUT being asked:**
+
+### Phase 1: Detect Project Context (5 seconds)
+
+1. **Check Current Directory**
+   ```bash
+   pwd
+   ls -la | grep -E "(CLAUDE.md|.claude-os|agent-os)"
    ```
-   Read: /Users/iamanmp/Projects/claude-os/claude-os-state.json
+   ✓ Confirm this is a Claude OS project
+
+2. **Read Configuration Files**
+   ```
+   Read: .claude-os/config.json
+   Read: claude-os-state.json (if exists)
+   Read: agent-os/config.yml (if exists)
    ```
 
-2. **Prompt Based on State**
-   - **If active session exists:**
-     ```
-     "I see we have an active session: [task name] (started [time ago])
+### Phase 2: Load Git Context (5 seconds)
 
-     Would you like to:
-     a) Continue working on this (I'll load the context)
-     b) Start something new (I'll end this session first)
-     c) Just chat (no session needed)"
-     ```
+```bash
+git branch --show-current
+git status --short
+git log -3 --oneline
+```
 
-   - **If no active session:**
-     ```
-     "What are we working on today?
+Extract:
+- Current branch name
+- Uncommitted changes count
+- Recent commits
 
-     I can start a session with automatic context loading from my memories.
-     Just tell me what you're working on, or say 'just chatting' if no session needed."
-     ```
+### Phase 3: Search Project Memories (15 seconds)
 
-3. **Auto-load Context**
-   - If continuing: Automatically run the session start workflow (search memories, load patterns, show context)
-   - If new task: Offer to start a new session with context loading
-   - If just chatting: Skip session workflow
+**Build intelligent search query from:**
+- Last session task (from claude-os-state.json)
+- Current branch name
+- Recent commit messages
+- Add "+recent" modifier
 
-**Why this matters:** This ensures I always have context and we never start cold. Every conversation becomes smarter because I proactively load relevant memories and patterns.
+**Example query:** `"[branch-name] [last-task] recent"`
+
+**Search:**
+```
+Use: mcp__code-forge__search_knowledge_base
+KB: {{PROJECT_NAME}}-project_memories
+Return: Top 5 most relevant memories
+```
+
+### Phase 4: Load Coding Standards (10 seconds)
+
+**Search:**
+```
+Use: mcp__code-forge__search_knowledge_base
+KB: {{PROJECT_NAME}}-project_profile
+Query: "coding standards architecture conventions"
+```
+
+### Phase 5: Check Kanban Board (5 seconds)
+
+**If agent-os/ folder exists:**
+```
+Check: GET http://localhost:8051/api/projects/{id}/kanban
+Show: Active specs, in-progress tasks, completion percentage
+```
+
+### Phase 6: Present Session Summary (Display to User)
+
+**Format:**
+```
+═══════════════════════════════════════════════════════════════
+🚀 WELCOME BACK TO {{PROJECT_NAME}}!
+═══════════════════════════════════════════════════════════════
+
+📁 Project: {{PROJECT_NAME}}
+🌿 Branch: [current-branch]
+📅 Last Session: [time-ago]
+⏱️  Duration: [last-session-duration]
+
+═══════════════════════════════════════════════════════════════
+📚 CONTEXT LOADED
+═══════════════════════════════════════════════════════════════
+
+✓ [N] relevant memories found
+✓ Coding standards loaded
+✓ [N] architectural patterns available
+✓ Kanban board synced ([X]% complete)
+
+🎯 LAST TASK: [task-name]
+
+We completed:
+  ✓ [completed-items]
+
+Still working on:
+  ⏳ [in-progress-items]
+
+═══════════════════════════════════════════════════════════════
+💡 KEY INSIGHTS
+═══════════════════════════════════════════════════════════════
+
+[Top 3-5 key insights from memories]
+
+═══════════════════════════════════════════════════════════════
+🔄 AVAILABLE PATTERNS
+═══════════════════════════════════════════════════════════════
+
+[Relevant patterns from project_profile]
+
+═══════════════════════════════════════════════════════════════
+⚠️  STATUS
+═══════════════════════════════════════════════════════════════
+
+Git Status:
+  • [N] files modified
+  • [N] files untracked
+  • [Status of uncommitted changes]
+
+Blockers:
+  • [Any blockers or "None! ✓"]
+
+═══════════════════════════════════════════════════════════════
+🎯 SUGGESTED NEXT STEPS
+═══════════════════════════════════════════════════════════════
+
+Option 1: [Continue current task]
+Option 2: [Commit uncommitted work]
+Option 3: [Start something new]
+
+═══════════════════════════════════════════════════════════════
+
+What would you like to do?
+```
+
+### When to Skip Auto-Start
+
+**ONLY skip if:**
+- User message starts with "ignore context" or "fresh start"
+- User asks a direct question (e.g., "What is X?")
+- User is clearly asking for help/docs
+
+**In all other cases: RUN THE FULL PROTOCOL AUTOMATICALLY!**
+
+### Related Documentation
+
+- Full protocol: `/Users/iamanmp/Projects/claude-os/docs/guides/SESSION_START_PROTOCOL.md`
+- Ideal workflow: `/Users/iamanmp/Projects/claude-os/docs/guides/IDEAL_SESSION_WORKFLOW.md`
+- Session commands: `/Users/iamanmp/Projects/claude-os/templates/commands/claude-os-session.md`
+
+**Why this matters:** Zero context loss. Every session picks up exactly where we left off. No re-explaining, no starting cold, no wasted time.
 
 ## MCP Knowledge Bases - ALWAYS CHECK THESE FIRST
 
