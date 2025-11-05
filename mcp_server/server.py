@@ -1592,6 +1592,85 @@ async def api_watcher_status():
 
 
 # ============================================================================
+# SPEC WATCHER ENDPOINTS (for real-time agent-os spec syncing)
+# ============================================================================
+
+@app.post("/api/spec-watcher/start/{project_id}")
+async def api_start_spec_watcher(project_id: int):
+    """Start spec watcher for a project."""
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        # Get project path
+        db_manager = get_sqlite_manager()
+        project = db_manager.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        spec_watcher = get_global_spec_watcher()
+        spec_watcher.start_project(project_id, project['path'])
+
+        return {
+            "project_id": project_id,
+            "message": "Spec watcher started",
+            "status": spec_watcher.get_status()
+        }
+    except Exception as e:
+        logger.error(f"Failed to start spec watcher: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/spec-watcher/stop/{project_id}")
+async def api_stop_spec_watcher(project_id: int):
+    """Stop spec watcher for a project."""
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        spec_watcher = get_global_spec_watcher()
+        spec_watcher.stop_project(project_id)
+
+        return {
+            "project_id": project_id,
+            "message": "Spec watcher stopped",
+            "status": spec_watcher.get_status()
+        }
+    except Exception as e:
+        logger.error(f"Failed to stop spec watcher: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/spec-watcher/start-all")
+async def api_start_all_spec_watchers():
+    """Start spec watchers for all projects."""
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        spec_watcher = get_global_spec_watcher()
+        spec_watcher.start_all()
+
+        return {
+            "message": "Spec watchers started for all projects",
+            "status": spec_watcher.get_status()
+        }
+    except Exception as e:
+        logger.error(f"Failed to start all spec watchers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/spec-watcher/status")
+async def api_spec_watcher_status():
+    """Get spec watcher status."""
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        spec_watcher = get_global_spec_watcher()
+        return {"status": spec_watcher.get_status()}
+    except Exception as e:
+        logger.error(f"Failed to get spec watcher status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # SPEC TRACKING ENDPOINTS (for agent-os integration and Kanban board)
 # ============================================================================
 
@@ -2490,6 +2569,47 @@ async def health_check():
     status_code = 200 if health_status["status"] in ["healthy", "degraded"] else 503
 
     return JSONResponse(content=health_status, status_code=status_code)
+
+
+# ============================================================================
+# STARTUP/SHUTDOWN EVENTS
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Run tasks on server startup."""
+    logger.info("🚀 Starting up Claude OS MCP Server...")
+
+    # Auto-start spec watchers for all projects
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        spec_watcher = get_global_spec_watcher()
+        spec_watcher.start_all()
+
+        status = spec_watcher.get_status()
+        if status['enabled']:
+            logger.info(f"✅ Spec watchers started for {status['projects_watched']} project(s)")
+        else:
+            logger.info("ℹ️  No projects found - spec watchers will start when projects are created")
+    except Exception as e:
+        logger.error(f"❌ Failed to start spec watchers: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Run tasks on server shutdown."""
+    logger.info("👋 Shutting down Claude OS MCP Server...")
+
+    # Stop all spec watchers
+    try:
+        from app.core.spec_watcher import get_global_spec_watcher
+
+        spec_watcher = get_global_spec_watcher()
+        spec_watcher.stop_all()
+        logger.info("✅ Spec watchers stopped")
+    except Exception as e:
+        logger.error(f"❌ Failed to stop spec watchers: {e}")
 
 
 def main():

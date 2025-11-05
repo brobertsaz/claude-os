@@ -11,11 +11,13 @@ Complete reference for all Claude OS MCP Server API endpoints.
 1. [Knowledge Base Operations](#knowledge-base-operations)
 2. [Hybrid Indexing](#hybrid-indexing-new)
 3. [Project Management](#project-management)
-4. [Hooks System](#hooks-system)
-5. [File Watcher](#file-watcher)
-6. [Authentication](#authentication)
-7. [Utilities](#utilities)
-8. [Health Check](#health-check)
+4. [Agent-OS Spec Tracking](#agent-os-spec-tracking-new)
+5. [Real-Time Spec Watcher](#real-time-spec-watcher-new)
+6. [Hooks System](#hooks-system)
+7. [File Watcher](#file-watcher)
+8. [Authentication](#authentication)
+9. [Utilities](#utilities)
+10. [Health Check](#health-check)
 
 ---
 
@@ -490,6 +492,218 @@ DELETE /api/projects/{id}
   "message": "Project and all associated knowledge bases deleted"
 }
 ```
+
+---
+
+## Agent-OS Spec Tracking (NEW)
+
+Real-time tracking and visualization of agent-os specifications and tasks through the Kanban board.
+
+### Get Project Kanban Board
+```http
+GET /api/projects/{id}/kanban?include_archived=false
+```
+
+Returns complete Kanban view with all specs and tasks grouped by status.
+
+**Response:**
+```json
+{
+  "project_id": 1,
+  "specs": [
+    {
+      "id": 1,
+      "name": "Manual Appointment Times",
+      "slug": "manual-appointment-times",
+      "folder_name": "2025-10-29-manual-appointment-times",
+      "path": "/path/to/project/agent-os/specs/2025-10-29-manual-appointment-times",
+      "total_tasks": 71,
+      "completed_tasks": 43,
+      "status": "in_progress",
+      "progress": 60.6,
+      "archived": false,
+      "tasks": {
+        "todo": [...],
+        "in_progress": [...],
+        "done": [...],
+        "blocked": [...]
+      },
+      "task_count_by_status": {
+        "todo": 28,
+        "in_progress": 0,
+        "done": 43,
+        "blocked": 0
+      }
+    }
+  ],
+  "summary": {
+    "total_specs": 3,
+    "total_tasks": 123,
+    "completed_tasks": 56
+  }
+}
+```
+
+### Sync Project Specs
+```http
+POST /api/projects/{id}/specs/sync
+```
+
+Manually trigger sync of all spec files from `agent-os/specs/` folder to database.
+
+**Response:**
+```json
+{
+  "project_id": 1,
+  "message": "Specs synced successfully",
+  "synced": 0,
+  "updated": 3,
+  "total": 3,
+  "errors": []
+}
+```
+
+### Get Spec Tasks
+```http
+GET /api/specs/{spec_id}/tasks
+```
+
+Returns all tasks for a specific spec.
+
+**Response:**
+```json
+{
+  "spec_id": 1,
+  "tasks": [
+    {
+      "id": 53,
+      "task_code": "PHASE1-TASK1",
+      "phase": "Phase 1",
+      "title": "Complete database layer",
+      "description": "Implement all database models and migrations",
+      "status": "done",
+      "estimated_minutes": 60,
+      "actual_minutes": 120,
+      "risk_level": "medium",
+      "dependencies": [],
+      "started_at": "2025-10-29T10:00:00Z",
+      "completed_at": "2025-10-29T12:00:00Z"
+    }
+  ]
+}
+```
+
+### Update Task Status
+```http
+PATCH /api/tasks/{task_id}/status
+Content-Type: application/json
+
+{
+  "status": "in_progress",
+  "actual_minutes": 90
+}
+```
+
+**Valid Statuses:**
+- `todo` - Not started
+- `in_progress` - Currently working
+- `done` - Completed
+- `blocked` - Waiting on dependencies
+
+**Response:**
+```json
+{
+  "success": true,
+  "old_status": "todo",
+  "new_status": "in_progress"
+}
+```
+
+### Archive Spec
+```http
+POST /api/specs/{spec_id}/archive
+```
+
+Archives a completed spec to declutter the Kanban board.
+
+### Unarchive Spec
+```http
+POST /api/specs/{spec_id}/unarchive
+```
+
+Restores an archived spec.
+
+---
+
+## Real-Time Spec Watcher (NEW)
+
+Automatic file system monitoring for `agent-os/specs/` folders. Detects changes to spec files and auto-syncs to database for real-time Kanban updates.
+
+**See:** `docs/guides/REALTIME_KANBAN_GUIDE.md` for complete documentation.
+
+### Get Watcher Status
+```http
+GET /api/spec-watcher/status
+```
+
+**Response:**
+```json
+{
+  "status": {
+    "enabled": true,
+    "projects_watched": 1,
+    "projects": {
+      "1": {
+        "project_path": "/Users/you/Projects/myapp",
+        "specs_path": "/Users/you/Projects/myapp/agent-os/specs",
+        "watching": true
+      }
+    }
+  }
+}
+```
+
+### Start Spec Watcher
+```http
+POST /api/spec-watcher/start/{project_id}
+```
+
+Starts real-time file watching for a specific project's specs folder.
+
+**Response:**
+```json
+{
+  "project_id": 1,
+  "message": "Spec watcher started",
+  "status": {
+    "enabled": true,
+    "projects_watched": 1
+  }
+}
+```
+
+### Stop Spec Watcher
+```http
+POST /api/spec-watcher/stop/{project_id}
+```
+
+Stops file watching for a specific project.
+
+### Start All Spec Watchers
+```http
+POST /api/spec-watcher/start-all
+```
+
+Starts spec watchers for all projects in the database.
+
+**Auto-Start:** Spec watchers automatically start when MCP server boots.
+
+**How it works:**
+1. Monitors `agent-os/specs/**/*.md` files
+2. Detects changes with 2-second debounce
+3. Auto-parses tasks in checkbox format
+4. Updates database within 3 seconds
+5. Kanban board auto-refreshes every 3 seconds
 
 ---
 

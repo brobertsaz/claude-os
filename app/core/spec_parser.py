@@ -84,17 +84,21 @@ class TasksParser:
         """Parse all tasks from the markdown."""
         tasks = []
 
-        # Find all task sections (e.g., ### PHASE1-TASK1:)
+        # Try original format first (### PHASE1-TASK1:)
         task_pattern = r'###\s+(PHASE\d+-TASK\d+):\s*(.+?)(?=###|\Z)'
-        matches = re.finditer(task_pattern, self.content, re.DOTALL)
+        matches = list(re.finditer(task_pattern, self.content, re.DOTALL))
 
-        for match in matches:
-            task_code = match.group(1)
-            task_content = match.group(2)
-
-            task = self._parse_single_task(task_code, task_content)
-            if task:
-                tasks.append(task)
+        if matches:
+            # Original format found
+            for match in matches:
+                task_code = match.group(1)
+                task_content = match.group(2)
+                task = self._parse_single_task(task_code, task_content)
+                if task:
+                    tasks.append(task)
+        else:
+            # Try checkbox format (- [ ] or - [x])
+            tasks = self._parse_checkbox_tasks()
 
         return tasks
 
@@ -177,6 +181,58 @@ class TasksParser:
             return int(hours * 60)
 
         return 0  # Default if can't parse
+
+    def _parse_checkbox_tasks(self) -> List[Dict]:
+        """Parse tasks in checkbox format (- [ ] or - [x])."""
+        tasks = []
+        current_phase = "Phase 1"
+        task_counter = 1
+
+        # Match checkbox lines: - [ ] or - [x] followed by task code and title
+        # Examples:
+        #   - [x] 1.0 Complete database layer
+        #   - [ ] 2.1 Write 2-8 focused tests
+        checkbox_pattern = r'^[\s]*-\s+\[([ x])\]\s+(\d+\.\d+)\s+(.+?)$'
+
+        lines = self.content.split('\n')
+        for i, line in enumerate(lines):
+            match = re.match(checkbox_pattern, line)
+            if match:
+                is_checked = match.group(1) == 'x'
+                task_number = match.group(2)
+                title = match.group(3).strip()
+
+                # Determine phase from task number (1.x = Phase 1, 2.x = Phase 2, etc.)
+                phase_num = int(task_number.split('.')[0])
+                current_phase = f"Phase {phase_num}"
+
+                # Extract additional details from following indented lines
+                description_lines = []
+                j = i + 1
+                while j < len(lines) and (lines[j].startswith('    ') or lines[j].startswith('\t')):
+                    desc_line = lines[j].strip()
+                    if desc_line and not desc_line.startswith('- ['):
+                        description_lines.append(desc_line)
+                    j += 1
+
+                description = ' '.join(description_lines) if description_lines else ''
+
+                # Build task
+                task = {
+                    'task_code': f'PHASE{phase_num}-TASK{task_counter}',
+                    'phase': current_phase,
+                    'title': title,
+                    'description': description[:500] if description else '',  # Limit description length
+                    'estimated_minutes': 60,  # Default 1 hour
+                    'risk_level': 'medium',  # Default medium risk
+                    'dependencies': [],
+                    'status': 'done' if is_checked else 'todo'
+                }
+
+                tasks.append(task)
+                task_counter += 1
+
+        return tasks
 
 
 def find_spec_folders(project_path: str) -> List[str]:

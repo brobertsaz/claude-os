@@ -45,6 +45,7 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 ### Key Features
 
 ✅ **Lightning-Fast Indexing** - NEW! Tree-sitter hybrid indexing: 10,000 files in 30 seconds (vs 3-5 hours)
+✅ **Real-Time Kanban Board** - NEW! Auto-syncing task visualization for agent-os specs (updates within 3 seconds)
 ✅ **One-Command Project Init** - `/claude-os-init` and you're done
 ✅ **Automatic Context Loading** - Starts every session with relevant memories
 ✅ **Session Management** - Track work, save progress, resume later
@@ -97,6 +98,53 @@ Inspired by [Aider's](https://github.com/Aider-AI/aider) approach, Claude OS now
 | **Query speed** | Semantic search | Instant structural + semantic |
 
 📖 **Read the full design:** [docs/HYBRID_INDEXING_DESIGN.md](docs/HYBRID_INDEXING_DESIGN.md)
+
+---
+
+## 🎨 Visual Interface
+
+**Claude OS provides a beautiful, intuitive web interface for managing your AI development workflow:**
+
+<table>
+<tr>
+<td width="50%">
+
+### Welcome Screen
+
+![Welcome](frontend/public/assets/screenshots/welcome-screen.png)
+Get started with Claude OS
+
+</td>
+<td width="50%">
+
+### Project Overview
+
+![Overview](frontend/public/assets/screenshots/project-overview-page.png)
+View project details and MCP status
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### Kanban Board
+
+![Kanban](frontend/public/assets/screenshots/project-kanban-page.png)
+Track spec implementation progress
+
+</td>
+<td width="50%">
+
+### Services Dashboard
+
+![Services](frontend/public/assets/screenshots/project-services-dashboard-page.png)
+Monitor all Claude OS services
+
+</td>
+</tr>
+</table>
+
+**📖 See the complete visual guide:** [docs/guides/VISUAL_GUIDE.md](docs/guides/VISUAL_GUIDE.md)
 
 ---
 
@@ -415,7 +463,6 @@ your-project/
 └── .claude/agents/agent-os/  # 8 agents (symlinked)
 ```
 
-
 ### Integration with Claude OS
 
 Agent-OS agents deeply integrate with Claude OS:
@@ -431,7 +478,10 @@ Agent-OS agents deeply integrate with Claude OS:
 
 ## 🎯 Spec Tracking & Kanban Board
 
-**Claude OS now automatically tracks your Agent-OS specs and displays them as an interactive Kanban board!**
+**NEW: Real-time auto-syncing Kanban board for Agent-OS specs!**
+
+![Kanban Board](frontend/public/assets/screenshots/project-kanban-page.png)
+*Visual Kanban board showing specs, tasks, and progress tracking*
 
 ### What It Does
 
@@ -440,17 +490,31 @@ When you use Agent-OS to create specs with `/create-spec`, Claude OS automatical
 - 📋 **Parses tasks.md files** - Extracts all tasks, phases, dependencies, and metadata
 - 🗄️ **Stores in database** - Tracks progress, completion, and time estimates
 - 📊 **Displays as Kanban** - Visual board showing specs and tasks by status
-- ✅ **Updates in real-time** - Task status changes are reflected immediately
+- ⚡ **Real-time sync** - NEW! Auto-detects file changes and updates within 3 seconds
+- 👀 **File watching** - Monitors `agent-os/specs/` folder for changes
+- ✅ **Auto-refresh** - Board polls every 3 seconds for live updates
 - 🗃️ **Archives completed specs** - Keep your board focused on active work
 
 ### Features
 
+**Real-Time File Watching (NEW!):**
+
+- Automatically monitors your `agent-os/specs/` folder
+- Detects changes to `tasks.md` and `spec.md` files
+- 2-second debounce to batch rapid edits
+- Auto-syncs to database within 3 seconds
+- Frontend auto-refreshes every 3 seconds
+- **Total latency: ~6 seconds from file save to board update**
+
 **Automatic Syncing:**
+
 - Syncs all specs from your project's `agent-os/specs/` folder
 - Tracks task metadata (estimated time, dependencies, risk level)
-- Auto-detects completed tasks (marked with ✅ in tasks.md)
+- Auto-detects completed tasks (marked with ✅ or `[x]` in tasks.md)
+- Supports both checkbox format and classic format
 
 **Progress Tracking:**
+
 - **Status auto-updates** based on completion:
   - `planning` - No tasks completed yet
   - `in_progress` - Some tasks completed
@@ -459,6 +523,7 @@ When you use Agent-OS to create specs with `/create-spec`, Claude OS automatical
 - Time estimates tracked (estimated vs actual minutes)
 
 **Archive Feature:**
+
 - Archive completed specs to keep your board clean
 - Archived specs hidden by default but can be viewed
 - Preserves all task history for future reference
@@ -481,7 +546,7 @@ PATCH /api/tasks/{task_id}/status
   "actual_minutes": 15
 }
 
-# Sync specs from agent-os folder
+# Sync specs from agent-os folder (manual)
 POST /api/projects/{project_id}/specs/sync
 
 # Get Kanban board view
@@ -490,7 +555,15 @@ GET /api/projects/{project_id}/kanban?include_archived=false
 # Archive/unarchive specs
 POST /api/specs/{spec_id}/archive
 POST /api/specs/{spec_id}/unarchive
+
+# NEW: Real-time spec watcher control
+GET /api/spec-watcher/status
+POST /api/spec-watcher/start/{project_id}
+POST /api/spec-watcher/stop/{project_id}
+POST /api/spec-watcher/start-all
 ```
+
+**See:** `docs/guides/REALTIME_KANBAN_GUIDE.md` for complete documentation.
 
 ### How It Works
 
@@ -498,22 +571,30 @@ POST /api/specs/{spec_id}/unarchive
 1. You create a spec with Agent-OS:
    /create-spec → agent-os/specs/2025-01-15-user-auth/
 
-2. Claude OS discovers and parses it:
+2. Spec Watcher detects the new folder:
+   - Auto-starts when MCP server boots
+   - Monitors agent-os/specs/ directory
+   - 2-second debounce for batch changes
+
+3. Auto-sync to database:
    - Reads tasks.md
+   - Parses checkbox format: - [x] Task title
    - Extracts metadata, tasks, phases
    - Stores in SQLite database
+   - ✅ Completes within 3 seconds
 
-3. View in Kanban board:
+4. View in Kanban board (auto-refreshes every 3 seconds):
    - Todo: PHASE1-TASK1, PHASE1-TASK2
    - In Progress: PHASE2-TASK1
    - Done: PHASE1-TASK3, PHASE1-TASK4
 
-4. Track progress as you work:
-   - Update task status via API
-   - Spec status auto-updates
-   - Progress percentage calculated
+5. As you work, agent-os updates tasks.md:
+   - File watcher detects change
+   - Auto-syncs to database
+   - Board refreshes automatically
+   - Total latency: ~6 seconds
 
-5. Archive when complete:
+6. Archive when complete:
    - Mark spec as archived
    - Keeps history but cleans up board
 ```
@@ -523,12 +604,14 @@ POST /api/specs/{spec_id}/unarchive
 Two new tables track specs and tasks:
 
 **`specs` table:**
+
 - Stores spec metadata (name, path, status)
 - Tracks total/completed tasks
 - Calculates progress percentage
 - Archive flag to hide completed specs
 
 **`spec_tasks` table:**
+
 - Individual tasks with codes (PHASE1-TASK1)
 - Status (todo/in_progress/done/blocked)
 - Time tracking (estimated vs actual)
@@ -902,6 +985,7 @@ claude-os/
 
 ### Core Features
 
+- **[docs/guides/REALTIME_KANBAN_GUIDE.md](docs/guides/REALTIME_KANBAN_GUIDE.md)** - ⚡ **NEW! Real-time Kanban board** (auto-sync, file watching, API reference)
 - **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns automatically
 - **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning usage
 - **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory guide

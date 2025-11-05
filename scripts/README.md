@@ -166,6 +166,88 @@ RUN /opt/claude-os/scripts/index-codebase.sh MyApp /app http://claude-os:8051
 
 ---
 
+## Screenshot Capture Script
+
+**`capture-screenshots.js`** - Automatically capture beautiful screenshots of the Claude OS interface using Playwright.
+
+### Usage
+
+```bash
+# From frontend directory
+cd frontend
+npm run screenshots
+
+# Or directly
+node ../scripts/capture-screenshots.js
+```
+
+### Prerequisites
+
+1. **Services running:**
+   ```bash
+   ./start.sh  # Starts MCP server (8051) and frontend (5173)
+   ```
+
+2. **At least one project created** (e.g., Pistn)
+
+3. **Playwright installed:**
+   ```bash
+   cd frontend
+   npx playwright install chromium
+   ```
+
+### What Gets Captured
+
+Automatically captures 9 screenshots:
+
+1. `welcome-screen.png` - Landing page
+2. `projects-list-page.png` - Projects overview
+3. `project-overview-page.png` - Project details & MCP status
+4. `project-kanban-page.png` - Kanban board (full page)
+5. `kanban-task-detail-modal.png` - Task detail popup
+6. `project-mcp-page.png` - Knowledge base management
+7. `project-chat-page.png` - Chat interface
+8. `project-services-dashboard-page.png` - Service monitoring
+9. `mobile-welcome-screen.png` - Mobile version (375x812)
+
+### Output
+
+All screenshots saved to:
+```
+frontend/public/assets/screenshots/
+```
+
+### When to Re-capture
+
+**Update screenshots when:**
+- UI design changes
+- New features added
+- Before major releases
+- For updated documentation
+
+**Quick update:**
+```bash
+# 1. Ensure services running
+./start.sh
+
+# 2. Run screenshot capture
+cd frontend && npm run screenshots
+
+# 3. Commit updated screenshots
+git add public/assets/screenshots/
+git commit -m "📸 Update UI screenshots"
+```
+
+### Configuration
+
+Edit `scripts/capture-screenshots.js` to customize:
+- Viewport size (default: 1920x1080)
+- Wait times for animations
+- Which pages to capture
+- Headless mode for CI/CD
+
+---
+
 ## Future Scripts
 
 Additional utility scripts will be added here:
@@ -174,6 +256,8 @@ Additional utility scripts will be added here:
 - `migrate-project.sh` - Migrate project between Claude OS instances
 - `export-memories.sh` - Export project memories as markdown
 - `sync-team-knowledge.sh` - Sync knowledge bases across team
+- `test-e2e.js` - End-to-end UI testing with Playwright
+- `seed-data.js` - Seed test data for demos
 
 ---
 

@@ -69,7 +69,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
       });
       return response.data;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 3000, // Refetch every 3 seconds for real-time updates
   });
 
   // Sync specs mutation
