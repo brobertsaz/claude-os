@@ -20,7 +20,7 @@ curl -X DELETE "http://localhost:8051/api/kb/Project%20KB/documents/api.md"
   "success": true,
   "message": "Deleted 1 document(s)",
   "filename": "api.md",
-  "kb_name": "Project KB"
+  "kb_name": "Pistn Agent OS"
 }
 ```
 
@@ -48,14 +48,14 @@ LIMIT 10;
 # Delete specific document(s)
 DELETE FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'project-memories'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 )
 AND json_extract(metadata, '$.filename') = 'api.md';
 
 # Verify deletion
 SELECT COUNT(*) FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'project-memories'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 );
 ```
 
@@ -67,7 +67,7 @@ WHERE kb_id = (
 
 ```bash
 # Delete entire KB and recreate it fresh
-curl -X DELETE "http://localhost:8051/api/kb/Project%20KB"
+curl -X DELETE "http://localhost:8051/api/kb/Pistn%20Agent%20OS"
 ```
 
 Or via SQLite:
@@ -78,14 +78,14 @@ sqlite3 data/claude-os.db
 -- Delete KB and all documents
 DELETE FROM documents
 WHERE kb_id = (
-  SELECT id FROM knowledge_bases WHERE name = 'project-memories'
+  SELECT id FROM knowledge_bases WHERE name = 'Pistn-project_memories'
 );
 
-DELETE FROM knowledge_bases WHERE name = 'project-memories';
+DELETE FROM knowledge_bases WHERE name = 'Pistn-project_memories';
 
 -- Recreate the KB fresh
 INSERT INTO knowledge_bases (name, kb_type, slug)
-VALUES ('project-memories', 'generic', 'project-memories');
+VALUES ('Pistn-project_memories', 'generic', 'pistn-project-memories');
 ```
 
 ---
@@ -97,18 +97,18 @@ VALUES ('project-memories', 'generic', 'project-memories');
 ```bash
 # Delete all spec documents
 for spec_file in "spec.md" "requirements.md" "IMPLEMENTATION.md"; do
-  curl -X DELETE "http://localhost:8051/api/kb/Project%20KB/documents/$spec_file"
+  curl -X DELETE "http://localhost:8051/api/kb/Pistn%20Agent%20OS/documents/$spec_file"
 done
 
 # Then re-import fresh versions
-curl -X POST "http://localhost:8051/api/kb/Project%20KB/import?directory_path=%2FUsers%2Fiamanmp%2FProjects%2Fpistn%2Fagent-os"
+curl -X POST "http://localhost:8051/api/kb/Pistn%20Agent%20OS/import?directory_path=%2FUsers%2Fiamanmp%2FProjects%2Fpistn%2Fagent-os"
 ```
 
 ### Scenario 2: Clean Up Old Documentation Before Adding New
 
 ```bash
 # List what's in the KB
-curl -s "http://localhost:8051/api/kb/Project%20KB/documents" | python3 -c "
+curl -s "http://localhost:8051/api/kb/Pistn%20Agent%20OS/documents" | python3 -c "
 import sys, json
 docs = json.load(sys.stdin).get('documents', [])
 for doc in docs:
@@ -121,19 +121,19 @@ for doc in docs:
 
 ```bash
 # Delete the entire KB
-curl -X DELETE "http://localhost:8051/api/kb/Project%20KB"
+curl -X DELETE "http://localhost:8051/api/kb/Pistn%20Agent%20OS"
 
 # Recreate it
 curl -X POST "http://localhost:8051/api/kb" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Project KB",
+    "name": "Pistn Agent OS",
     "kb_type": "agent-os",
-    "description": "Project KB code"
+    "description": "Pistn Agent OS code"
   }'
 
 # Re-import everything fresh
-curl -X POST "http://localhost:8051/api/kb/Project%20KB/import?directory_path=%2FUsers%2Fuser%2FProjects%2Fproject%2Fkb"
+curl -X POST "http://localhost:8051/api/kb/Pistn%20Agent%20OS/import?directory_path=%2FUsers%2Fiamanmp%2FProjects%2Fpistn%2Fagent-os"
 ```
 
 ---
@@ -146,7 +146,7 @@ The filename might not match exactly. To find the correct filename:
 
 ```bash
 # List all documents in KB
-curl -s "http://localhost:8051/api/kb/Project%20KB/documents" | python3 -m json.tool
+curl -s "http://localhost:8051/api/kb/Pistn%20Agent%20OS/documents" | python3 -m json.tool
 ```
 
 ### Delete endpoint returns "Not Found"

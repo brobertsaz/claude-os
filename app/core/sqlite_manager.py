@@ -21,7 +21,7 @@ def generate_slug(name: str) -> str:
     Generate a URL-friendly slug from a KB name.
 
     Examples:
-        "Pistn Agent OS" -> "pistn-agent-os"
+        "Project Agent OS" -> "project-agent-os"
         "My Code Base!" -> "my-code-base"
         "Test_KB 123" -> "test-kb-123"
     """

@@ -37,15 +37,15 @@ except ImportError as e:
     sys.exit(1)
 
 # =============================================================================
-# DEMO 1: Create Mock Repository Structure (Simulating Pistn)
+# DEMO 1: Create Mock Repository Structure (Simulating a Large Rails Project)
 # =============================================================================
 
 print("=" * 70)
-print("DEMO 1: Simulating Pistn Project Structure")
+print("DEMO 1: Simulating Large Rails Project Structure")
 print("=" * 70)
 print()
 
-print("Creating mock data for a Rails application (like Pistn)...")
+print("Creating mock data for a Rails application...")
 print()
 
 # Create mock tags representing a Rails app structure
@@ -246,7 +246,7 @@ project_sizes = [
     ("Small (200 files)", 200, 2000, "~5 seconds"),
     ("Medium (1,000 files)", 1000, 10000, "~15 seconds"),
     ("Large (5,000 files)", 5000, 50000, "~25 seconds"),
-    ("Pistn (10,000 files)", 10000, 100000, "~30 seconds"),
+    ("Very Large (10,000 files)", 10000, 100000, "~30 seconds"),
 ]
 
 print("Expected Performance (Phase 1 - Structural Indexing):")
@@ -261,7 +261,7 @@ print("vs. Traditional Embedding-Based Indexing:")
 print()
 print(f"{'Project Size':<25} {'Old Time':<20} {'New Time':<15} {'Speedup'}")
 print("-" * 70)
-print(f"{'Pistn (10,000 files)':<25} {'3-5 hours':<20} {'30 seconds':<15} {'600x faster!'}")
+print(f"{'Very Large (10,000 files)':<25} {'3-5 hours':<20} {'30 seconds':<15} {'600x faster!'}")
 print()
 
 # =============================================================================

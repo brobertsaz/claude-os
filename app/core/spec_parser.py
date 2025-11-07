@@ -289,11 +289,12 @@ def parse_spec_folder(spec_folder_path: str) -> Optional[Dict]:
 
 
 if __name__ == "__main__":
-    # Test with Pistn specs
-    pistn_path = "/Users/iamanmp/Projects/pistn"
-    spec_folders = find_spec_folders(pistn_path)
+    # Test with project specs
+    import sys
+    project_path = sys.argv[1] if len(sys.argv) > 1 else "."
+    spec_folders = find_spec_folders(project_path)
 
-    print(f"Found {len(spec_folders)} specs in Pistn:")
+    print(f"Found {len(spec_folders)} specs in project:")
     for folder in spec_folders:
         spec_data = parse_spec_folder(folder)
         if spec_data:
