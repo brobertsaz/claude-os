@@ -1,0 +1,23 @@
+name = "claude-os-mcp"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# D1 Database (SQLite)
+[[d1_databases]]
+binding = "DB"
+database_name = "claude-os-db"
+database_id = "your-database-id-here"  # Get this from: wrangler d1 create claude-os-db
+
+# Vectorize (Vector Search)
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "claude-os-vectors"
+index_id = "your-vectorize-id-here"  # Get this from: wrangler vectorize create
+
+# Workers AI (Embeddings & LLM)
+[ai]
+binding = "AI"
+
+# Environment variables
+[vars]
+MCP_VERSION = "1.0.0"
