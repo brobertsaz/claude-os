@@ -858,6 +858,48 @@ Each project has `.claude-os/config.json`:
 
 ---
 
+## 🗑️ Uninstalling Claude OS
+
+To completely remove Claude OS from your system:
+
+```bash
+cd /path/to/claude-os
+./uninstall.sh
+```
+
+**The uninstall script removes:**
+
+- Command symlinks from `~/.claude/commands/`
+- Skill symlinks from `~/.claude/skills/`
+- MCP server config from `~/.claude/mcp-servers/`
+- Python virtual environment (`venv/`)
+- Config files and logs
+- Optionally: your knowledge base data
+
+**What it does NOT remove:**
+
+- The `claude-os/` directory itself (delete manually with `rm -rf`)
+- Ollama (see [Ollama uninstall docs](https://ollama.ai/docs/uninstall))
+- Redis (`brew uninstall redis` on macOS)
+
+**Manual Uninstall:**
+
+If you prefer to uninstall manually:
+
+```bash
+# Remove symlinks
+rm ~/.claude/commands/claude-os-*.md
+rm -rf ~/.claude/skills/initialize-project
+rm -rf ~/.claude/skills/remember-this
+rm -rf ~/.claude/skills/memory
+rm ~/.claude/mcp-servers/code-forge.json
+
+# Remove Claude OS directory
+rm -rf /path/to/claude-os
+```
+
+---
+
 ## 🐛 Troubleshooting
 
 ### "Command not found: /claude-os-init"
