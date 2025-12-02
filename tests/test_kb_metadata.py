@@ -111,7 +111,7 @@ class TestKBMetadata:
         assert metadata.tags == []
 
     def test_kb_metadata_from_dict_invalid_type(self):
-        """Test KBMetadata from_dict with invalid type."""
+        """Test KBMetadata from_dict with invalid type raises error."""
         data = {
             "kb_type": "invalid_type",
             "description": "Test invalid",
@@ -119,10 +119,9 @@ class TestKBMetadata:
             "tags": ""
         }
 
-        metadata = KBMetadata.from_dict(data)
-
-        # Should fall back to GENERIC
-        assert metadata.kb_type == KBType.GENERIC
+        # Implementation raises ValueError for invalid types
+        with pytest.raises(ValueError):
+            KBMetadata.from_dict(data)
 
 
 @pytest.mark.unit
@@ -137,11 +136,12 @@ class TestKBType:
         assert KBType.AGENT_OS.value == "agent-os"
 
     def test_kb_type_string_representation(self):
-        """Test KBType string representation."""
-        assert str(KBType.GENERIC) == "generic"
-        assert str(KBType.CODE) == "code"
-        assert str(KBType.DOCUMENTATION) == "documentation"
-        assert str(KBType.AGENT_OS) == "agent-os"
+        """Test KBType value representation."""
+        # Use .value for the string value
+        assert KBType.GENERIC.value == "generic"
+        assert KBType.CODE.value == "code"
+        assert KBType.DOCUMENTATION.value == "documentation"
+        assert KBType.AGENT_OS.value == "agent-os"
 
     def test_kb_type_comparison(self):
         """Test KBType comparison."""

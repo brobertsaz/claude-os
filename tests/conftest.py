@@ -173,12 +173,16 @@ More content here.
 
 
 @pytest.fixture
-def api_client():
-    """Create a test client for FastAPI."""
+def api_client(clean_db):
+    """Create a test client for FastAPI with test database."""
+    from unittest.mock import patch
     from fastapi.testclient import TestClient
     from mcp_server.server import app
 
-    return TestClient(app)
+    # Patch get_sqlite_manager to return the test database
+    with patch('app.core.sqlite_manager.get_sqlite_manager', return_value=clean_db):
+        with patch('mcp_server.server.get_sqlite_manager', return_value=clean_db):
+            yield TestClient(app)
 
 
 # Markers for test categorization

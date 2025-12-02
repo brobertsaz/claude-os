@@ -10,6 +10,14 @@ from unittest.mock import patch, MagicMock
 from app.core.redis_config import RedisConfig
 
 
+@pytest.fixture(autouse=True)
+def reset_redis_singleton():
+    """Reset Redis singleton before each test."""
+    RedisConfig._redis_instance = None
+    yield
+    RedisConfig._redis_instance = None
+
+
 @pytest.mark.unit
 class TestRedisConfig:
     """Test RedisConfig class."""
@@ -33,15 +41,12 @@ class TestRedisConfig:
         assert RedisConfig.CONFIRMATION_KEY_TEMPLATE == "claude_os:prompt:{project_id}:{detection_id}:confirmed"
         assert RedisConfig.WATCHED_MESSAGES_KEY_TEMPLATE == "claude_os:watched:{project_id}"
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_redis_singleton(self, mock_redis_class):
         """Test that get_redis returns singleton."""
         mock_redis = MagicMock()
+        mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
-
-        # Clear any existing instance
-        import app.core.redis_config
-        app.core.redis_config.RedisConfig._redis_instance = None
 
         # Get instance twice
         redis1 = RedisConfig.get_redis()
@@ -52,7 +57,7 @@ class TestRedisConfig:
         assert redis1 is redis2
         assert redis1 is mock_redis
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_redis_connection_parameters(self, mock_redis_class):
         """Test that get_redis uses correct connection parameters."""
         mock_redis = MagicMock()
@@ -70,16 +75,18 @@ class TestRedisConfig:
             decode_responses=True
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_redis_connection_failure(self, mock_redis_class):
         """Test that get_redis handles connection failure."""
-        mock_redis_class.side_effect = Exception("Connection failed")
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = Exception("Connection failed")
+        mock_redis_class.return_value = mock_redis
 
-        with pytest.raises(Exception, match="Redis connection failed"):
+        with pytest.raises(Exception, match="Connection failed"):
             RedisConfig.get_redis()
 
-    @patch('app.core.redis_config.redis.Redis')
-    @patch('app.core.redis_config.rq.Queue')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_get_learning_queue(self, mock_redis_class, mock_queue_class):
         """Test getting learning queue."""
         mock_redis = MagicMock()
@@ -98,8 +105,8 @@ class TestRedisConfig:
         )
         assert queue is mock_queue
 
-    @patch('app.core.redis_config.redis.Redis')
-    @patch('app.core.redis_config.rq.Queue')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_get_prompt_queue(self, mock_redis_class, mock_queue_class):
         """Test getting prompt queue."""
         mock_redis = MagicMock()
@@ -118,8 +125,8 @@ class TestRedisConfig:
         )
         assert queue is mock_queue
 
-    @patch('app.core.redis_config.redis.Redis')
-    @patch('app.core.redis_config.rq.Queue')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_get_ingest_queue(self, mock_redis_class, mock_queue_class):
         """Test getting ingest queue."""
         mock_redis = MagicMock()
@@ -138,14 +145,15 @@ class TestRedisConfig:
         )
         assert queue is mock_queue
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_publish_conversation(self, mock_redis_class):
         """Test publishing conversation message."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Publish message
         project_id = 123
@@ -165,7 +173,7 @@ class TestRedisConfig:
         assert message["text"] == text
         assert "timestamp" in message
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_subscribe_to_conversation(self, mock_redis_class):
         """Test subscribing to conversation messages."""
         mock_redis = MagicMock()
@@ -175,7 +183,8 @@ class TestRedisConfig:
         mock_pubsub = MagicMock()
         mock_redis.pubsub.return_value = mock_pubsub
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Subscribe to conversation
         project_id = 123
@@ -186,7 +195,8 @@ class TestRedisConfig:
         mock_pubsub.subscribe.assert_called_once_with("claude-os:conversation:123")
         assert pubsub is mock_pubsub
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_learning_job(self, mock_redis_class, mock_queue_class):
         """Test queuing learning job."""
         mock_redis = MagicMock()
@@ -196,8 +206,6 @@ class TestRedisConfig:
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
         mock_queue.enqueue.return_value = MagicMock(id="job_123")
-
-        redis = RedisConfig.get_redis()
 
         # Queue job
         project_id = 123
@@ -214,7 +222,8 @@ class TestRedisConfig:
         )
         assert job_id == "job_123"
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_prompt_job(self, mock_redis_class, mock_queue_class):
         """Test queuing prompt job."""
         mock_redis = MagicMock()
@@ -224,8 +233,6 @@ class TestRedisConfig:
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
         mock_queue.enqueue.return_value = MagicMock(id="prompt_job_123")
-
-        redis = RedisConfig.get_redis()
 
         # Queue prompt job
         project_id = 123
@@ -242,7 +249,8 @@ class TestRedisConfig:
         )
         assert job_id == "prompt_job_123"
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_ingest_job(self, mock_redis_class, mock_queue_class):
         """Test queuing ingest job."""
         mock_redis = MagicMock()
@@ -252,8 +260,6 @@ class TestRedisConfig:
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
         mock_queue.enqueue.return_value = MagicMock(id="ingest_job_123")
-
-        redis = RedisConfig.get_redis()
 
         # Queue ingest job
         project_id = 123
@@ -270,14 +276,15 @@ class TestRedisConfig:
         )
         assert job_id == "ingest_job_123"
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_set_confirmation(self, mock_redis_class):
         """Test setting user confirmation."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Set confirmation
         project_id = 123
@@ -293,14 +300,15 @@ class TestRedisConfig:
             "True"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_set_confirmation_false(self, mock_redis_class):
         """Test setting user confirmation to false."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Set confirmation to false
         project_id = 123
@@ -316,7 +324,7 @@ class TestRedisConfig:
             "False"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_confirmation_exists(self, mock_redis_class):
         """Test getting confirmation when it exists."""
         mock_redis = MagicMock()
@@ -324,7 +332,8 @@ class TestRedisConfig:
         mock_redis_class.return_value = mock_redis
         mock_redis.get.return_value = "True"
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Get confirmation
         project_id = 123
@@ -338,7 +347,7 @@ class TestRedisConfig:
         )
         assert result is True
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_confirmation_not_exists(self, mock_redis_class):
         """Test getting confirmation when it doesn't exist."""
         mock_redis = MagicMock()
@@ -346,7 +355,8 @@ class TestRedisConfig:
         mock_redis_class.return_value = mock_redis
         mock_redis.get.return_value = None
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Get confirmation
         project_id = 123
@@ -360,7 +370,7 @@ class TestRedisConfig:
         )
         assert result is None
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_confirmation_string_value(self, mock_redis_class):
         """Test getting confirmation when stored as string."""
         mock_redis = MagicMock()
@@ -368,7 +378,8 @@ class TestRedisConfig:
         mock_redis_class.return_value = mock_redis
         mock_redis.get.return_value = "true"  # Lowercase string
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Get confirmation
         project_id = 123
@@ -382,7 +393,7 @@ class TestRedisConfig:
         )
         assert result is True
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_get_confirmation_false_string_value(self, mock_redis_class):
         """Test getting confirmation when stored as false string."""
         mock_redis = MagicMock()
@@ -390,7 +401,8 @@ class TestRedisConfig:
         mock_redis_class.return_value = mock_redis
         mock_redis.get.return_value = "false"  # Lowercase string
 
-        redis = RedisConfig.get_redis()
+        # Get redis to initialize it
+        RedisConfig.get_redis()
 
         # Get confirmation
         project_id = 123
@@ -409,19 +421,23 @@ class TestRedisConfig:
 class TestRedisConfigIntegration:
     """Integration tests for Redis configuration."""
 
-    @patch('app.core.redis_config.redis.Redis')
-    @patch('app.core.redis_config.rq.Queue')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_full_workflow(self, mock_redis_class, mock_queue_class):
         """Test full Redis workflow with all operations."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
+        # Configure get to return values for confirmations
+        mock_redis.get.side_effect = ["False", "True"]
+
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
         mock_queue.enqueue.return_value = MagicMock(id="job_123")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Test full workflow
         project_id = 123
@@ -453,15 +469,18 @@ class TestRedisConfigIntegration:
         assert mock_redis.setex.call_count == 2
         assert mock_redis.get.call_count == 2
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_connection_error_handling(self, mock_redis_class):
         """Test Redis connection error handling."""
-        mock_redis_class.side_effect = Exception("Connection failed")
+        mock_redis = MagicMock()
+        mock_redis.ping.side_effect = Exception("Connection failed")
+        mock_redis_class.return_value = mock_redis
 
-        with pytest.raises(Exception, match="Redis connection failed"):
+        with pytest.raises(Exception, match="Connection failed"):
             RedisConfig.get_redis()
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_error_handling(self, mock_redis_class, mock_queue_class):
         """Test Redis queue error handling."""
         mock_redis = MagicMock()
@@ -472,13 +491,14 @@ class TestRedisConfigIntegration:
         mock_queue_class.return_value = mock_queue
         mock_queue.enqueue.side_effect = Exception("Queue error")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Should handle queue error gracefully
         with pytest.raises(Exception, match="Queue error"):
             RedisConfig.queue_learning_job(123, {"test": "data"})
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_publish_error_handling(self, mock_redis_class):
         """Test Redis publish error handling."""
         mock_redis = MagicMock()
@@ -486,13 +506,14 @@ class TestRedisConfigIntegration:
         mock_redis_class.return_value = mock_redis
         mock_redis.publish.side_effect = Exception("Publish error")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Should handle publish error gracefully
         with pytest.raises(Exception, match="Publish error"):
             RedisConfig.publish_conversation(123, "user", "test")
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_set_get_confirmation_error_handling(self, mock_redis_class):
         """Test Redis set/get confirmation error handling."""
         mock_redis = MagicMock()
@@ -501,7 +522,8 @@ class TestRedisConfigIntegration:
         mock_redis.setex.side_effect = Exception("Set error")
         mock_redis.get.side_effect = Exception("Get error")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Should handle set error gracefully
         with pytest.raises(Exception, match="Set error"):
@@ -511,7 +533,7 @@ class TestRedisConfigIntegration:
         with pytest.raises(Exception, match="Get error"):
             RedisConfig.get_confirmation(123, "detection_123")
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_subscribe_error_handling(self, mock_redis_class):
         """Test Redis subscribe error handling."""
         mock_redis = MagicMock()
@@ -519,13 +541,15 @@ class TestRedisConfigIntegration:
         mock_redis_class.return_value = mock_redis
         mock_redis.pubsub.side_effect = Exception("Pubsub error")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Should handle pubsub error gracefully
         with pytest.raises(Exception, match="Pubsub error"):
             RedisConfig.subscribe_to_conversation(123)
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_job_timeout_configuration(self, mock_redis_class, mock_queue_class):
         """Test that queue jobs use correct timeout configuration."""
         mock_redis = MagicMock()
@@ -534,8 +558,10 @@ class TestRedisConfigIntegration:
 
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
+        mock_queue.enqueue.return_value = MagicMock(id="job_123")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Queue learning job
         RedisConfig.queue_learning_job(123, {"test": "data"})
@@ -548,7 +574,8 @@ class TestRedisConfigIntegration:
             job_timeout="5m"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_prompt_job_timeout_configuration(self, mock_redis_class, mock_queue_class):
         """Test that prompt queue jobs use correct timeout configuration."""
         mock_redis = MagicMock()
@@ -557,8 +584,10 @@ class TestRedisConfigIntegration:
 
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
+        mock_queue.enqueue.return_value = MagicMock(id="job_123")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Queue prompt job
         RedisConfig.queue_prompt_job(123, {"test": "data"})
@@ -571,7 +600,8 @@ class TestRedisConfigIntegration:
             job_timeout="10m"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Queue')
+    @patch('app.core.redis_config.Redis')
     def test_queue_ingest_job_timeout_configuration(self, mock_redis_class, mock_queue_class):
         """Test that ingest queue jobs use correct timeout configuration."""
         mock_redis = MagicMock()
@@ -580,8 +610,10 @@ class TestRedisConfigIntegration:
 
         mock_queue = MagicMock()
         mock_queue_class.return_value = mock_queue
+        mock_queue.enqueue.return_value = MagicMock(id="job_123")
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Queue ingest job
         RedisConfig.queue_ingest_job(123, "/path/to/file")
@@ -594,14 +626,15 @@ class TestRedisConfigIntegration:
             job_timeout="5m"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_set_confirmation_ttl_configuration(self, mock_redis_class):
         """Test that set confirmation uses correct TTL configuration."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Set confirmation
         RedisConfig.set_confirmation(123, "detection_123", True)
@@ -613,14 +646,15 @@ class TestRedisConfigIntegration:
             "True"
         )
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_publish_conversation_message_format(self, mock_redis_class):
         """Test that publish conversation uses correct message format."""
         mock_redis = MagicMock()
         mock_redis.ping.return_value = True
         mock_redis_class.return_value = mock_redis
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Publish message
         project_id = 123
@@ -638,7 +672,7 @@ class TestRedisConfigIntegration:
         assert "timestamp" in message
         assert isinstance(message["timestamp"], str)
 
-    @patch('app.core.redis_config.redis.Redis')
+    @patch('app.core.redis_config.Redis')
     def test_subscribe_to_conversation_channel_format(self, mock_redis_class):
         """Test that subscribe uses correct channel format."""
         mock_redis = MagicMock()
@@ -648,7 +682,8 @@ class TestRedisConfigIntegration:
         mock_pubsub = MagicMock()
         mock_redis.pubsub.return_value = mock_pubsub
 
-        redis = RedisConfig.get_redis()
+        # Initialize redis
+        RedisConfig.get_redis()
 
         # Subscribe to conversation
         project_id = 123

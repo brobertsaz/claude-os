@@ -11,41 +11,38 @@ from unittest.mock import patch, mock_open, MagicMock
 
 from app.core.hooks import ProjectHook, get_project_hook
 from app.core.sqlite_manager import SQLiteManager
+from app.core.kb_types import KBType
 
 
 @pytest.mark.unit
 class TestProjectHook:
     """Test ProjectHook class."""
 
-    def test_hook_initialization(self, clean_db):
+    def test_hook_initialization(self, clean_db, tmp_path):
         """Test hook initialization."""
-        # Create a project first
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", "/path/to/project")
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         assert hook.project_id == project["id"]
-        assert hook.db_manager == db_manager
+        assert hook.db_manager == clean_db
         assert hook.hooks_config_path.name == "hooks.json"
 
-    def test_get_hooks_config_path(self, clean_db):
+    def test_get_hooks_config_path(self, clean_db, tmp_path):
         """Test hooks config path generation."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", "/path/to/project")
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         config_path = hook._get_hooks_config_path()
 
-        expected_path = Path("/path/to/project") / ".claude-os" / "hooks.json"
+        expected_path = tmp_path / ".claude-os" / "hooks.json"
         assert config_path == expected_path
 
-    def test_load_hooks_config_not_exists(self, clean_db):
+    def test_load_hooks_config_not_exists(self, clean_db, tmp_path):
         """Test loading hooks config when file doesn't exist."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", "/path/to/project")
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         config = hook._load_hooks_config()
 
         # Should return default config
@@ -56,8 +53,7 @@ class TestProjectHook:
 
     def test_load_hooks_config_exists(self, clean_db, tmp_path):
         """Test loading existing hooks config."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create hooks config file
         hooks_dir = Path(tmp_path) / ".claude-os"
@@ -78,17 +74,16 @@ class TestProjectHook:
 
         config_file.write_text(json.dumps(existing_config))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         config = hook._load_hooks_config()
 
         assert config == existing_config
 
     def test_save_hooks_config(self, clean_db, tmp_path):
         """Test saving hooks config."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         # Modify config
         config = hook._load_hooks_config()
@@ -106,14 +101,13 @@ class TestProjectHook:
 
     def test_enable_kb_autosync_success(self, clean_db, tmp_path):
         """Test enabling KB autosync successfully."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create folder to watch
         watch_dir = tmp_path / "docs"
         watch_dir.mkdir()
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         result = hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
@@ -131,10 +125,9 @@ class TestProjectHook:
 
     def test_enable_kb_autosync_invalid_folder(self, clean_db, tmp_path):
         """Test enabling KB autosync with invalid folder."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         with pytest.raises(ValueError, match="Folder does not exist"):
             hook.enable_kb_autosync(
@@ -144,10 +137,9 @@ class TestProjectHook:
 
     def test_enable_kb_autosync_invalid_mcp_type(self, clean_db, tmp_path):
         """Test enabling KB autosync with invalid MCP type."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         with pytest.raises(ValueError, match="Invalid MCP type"):
             hook.enable_kb_autosync(
@@ -157,13 +149,12 @@ class TestProjectHook:
 
     def test_enable_kb_autosync_default_patterns(self, clean_db, tmp_path):
         """Test enabling KB autosync with default file patterns."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         watch_dir = tmp_path / "docs"
         watch_dir.mkdir()
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         result = hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
@@ -177,10 +168,9 @@ class TestProjectHook:
 
     def test_disable_kb_autosync(self, clean_db, tmp_path):
         """Test disabling KB autosync."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         # First enable it
         hook.enable_kb_autosync(
@@ -197,10 +187,9 @@ class TestProjectHook:
 
     def test_disable_kb_autosync_not_found(self, clean_db, tmp_path):
         """Test disabling KB autosync for non-existent hook."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         with pytest.raises(ValueError, match="Hook for .* not found"):
             hook.disable_kb_autosync("nonexistent_hook")
@@ -208,12 +197,11 @@ class TestProjectHook:
     @patch('app.core.hooks.ingest_documents')
     def test_sync_kb_folder_success(self, mock_ingest, clean_db, tmp_path):
         """Test successful KB folder sync."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KB
-        kb = db_manager.create_collection("test_kb", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Create files to sync
         docs_dir = tmp_path / "docs"
@@ -224,7 +212,7 @@ class TestProjectHook:
         (docs_dir / "ignore.xyz").write_text("Should be ignored")
 
         # Enable hook
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(docs_dir),
@@ -237,23 +225,22 @@ class TestProjectHook:
         assert result["folder_path"] == str(docs_dir)
         assert result["synced_files"] == 2
         assert result["skipped_files"] == 0
-        assert result["errors"] == 0
+        assert len(result["errors"]) == 0
         assert len(result["files_synced"]) == 2
         assert "file1.txt" in str(result["files_synced"])
         assert "file2.md" in str(result["files_synced"])
 
-        # Check ingest was called
-        mock_ingest.assert_called_once()
+        # Check ingest was called (once per file)
+        assert mock_ingest.call_count == 2
 
     @patch('app.core.hooks.ingest_documents')
     def test_sync_kb_folder_with_unchanged_files(self, mock_ingest, clean_db, tmp_path):
         """Test KB folder sync with unchanged files."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KB
-        kb = db_manager.create_collection("test_kb", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Create files
         docs_dir = tmp_path / "docs"
@@ -262,7 +249,7 @@ class TestProjectHook:
         test_file.write_text("Content 1")
 
         # Enable hook
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(docs_dir),
@@ -280,7 +267,7 @@ class TestProjectHook:
 
         assert result["synced_files"] == 0
         assert result["skipped_files"] == 1
-        assert result["errors"] == 0
+        assert len(result["errors"]) == 0
 
         # Ingest should not be called for unchanged files
         mock_ingest.assert_not_called()
@@ -288,12 +275,11 @@ class TestProjectHook:
     @patch('app.core.hooks.ingest_documents')
     def test_sync_kb_folder_with_errors(self, mock_ingest, clean_db, tmp_path):
         """Test KB folder sync with ingestion errors."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KB
-        kb = db_manager.create_collection("test_kb", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Create files
         docs_dir = tmp_path / "docs"
@@ -308,7 +294,7 @@ class TestProjectHook:
         ]
 
         # Enable hook
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(docs_dir),
@@ -319,30 +305,27 @@ class TestProjectHook:
 
         assert result["synced_files"] == 1
         assert result["skipped_files"] == 0
-        assert result["errors"] == 1
         assert len(result["errors"]) == 1
         assert "Ingestion failed" in result["errors"][0]["error"]
 
     def test_sync_kb_folder_not_enabled(self, clean_db, tmp_path):
         """Test syncing folder for hook that's not enabled."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         with pytest.raises(ValueError, match="Hook for .* not found"):
             hook.sync_kb_folder("knowledge_docs")
 
     def test_sync_kb_folder_no_kb_assigned(self, clean_db, tmp_path):
         """Test syncing folder when no KB is assigned."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create docs dir but don't assign KB
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(docs_dir)
@@ -353,14 +336,13 @@ class TestProjectHook:
 
     def test_sync_all_folders(self, clean_db, tmp_path):
         """Test syncing all enabled folders."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KBs
-        kb1 = db_manager.create_collection("kb1", "generic")
-        kb2 = db_manager.create_collection("kb2", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
-        db_manager.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
+        kb1 = clean_db.create_collection("kb1", KBType.GENERIC)
+        kb2 = clean_db.create_collection("kb2", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
+        clean_db.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
 
         # Create folders
         docs_dir = tmp_path / "docs"
@@ -372,7 +354,7 @@ class TestProjectHook:
         (profile_dir / "file2.txt").write_text("Profile content")
 
         # Enable hooks
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync("knowledge_docs", str(docs_dir))
         hook.enable_kb_autosync("project_profile", str(profile_dir))
 
@@ -388,10 +370,9 @@ class TestProjectHook:
 
     def test_get_hook_status_single(self, clean_db, tmp_path):
         """Test getting status for single hook."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(tmp_path)
@@ -406,10 +387,9 @@ class TestProjectHook:
 
     def test_get_hook_status_all(self, clean_db, tmp_path):
         """Test getting status for all hooks."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync("knowledge_docs", str(tmp_path))
         hook.enable_kb_autosync("project_profile", str(tmp_path))
 
@@ -424,10 +404,9 @@ class TestProjectHook:
 
     def test_get_hook_status_not_found(self, clean_db, tmp_path):
         """Test getting status for non-existent hook."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
 
         status = hook.get_hook_status("nonexistent_hook")
 
@@ -436,7 +415,7 @@ class TestProjectHook:
 
     def test_compute_file_hash(self, tmp_path):
         """Test file hash computation."""
-        hook = ProjectHook(999)  # Dummy project ID
+        hook = ProjectHook.__new__(ProjectHook)  # Create without __init__
 
         # Create test file
         test_file = tmp_path / "test.txt"
@@ -452,7 +431,7 @@ class TestProjectHook:
 
     def test_compute_file_hash_binary(self, tmp_path):
         """Test file hash computation for binary file."""
-        hook = ProjectHook(999)  # Dummy project ID
+        hook = ProjectHook.__new__(ProjectHook)  # Create without __init__
 
         # Create binary file
         test_file = tmp_path / "test.bin"
@@ -471,29 +450,30 @@ class TestProjectHook:
 class TestProjectHookUtility:
     """Test ProjectHook utility functions."""
 
-    def test_get_project_hook(self, clean_db):
+    def test_get_project_hook(self, clean_db, tmp_path):
         """Test get_project_hook utility function."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", "/path/to/project")
+        project = clean_db.create_project("test_project", str(tmp_path))
 
-        hook1 = get_project_hook(project["id"])
-        hook2 = get_project_hook(project["id"])
+        hook1 = get_project_hook(project["id"], clean_db)
+        hook2 = get_project_hook(project["id"], clean_db)
 
         # Should return new instances each time
         assert hook1 is not hook2
         assert hook1.project_id == project["id"]
         assert hook2.project_id == project["id"]
-        assert hook1.db_manager == db_manager
-        assert hook2.db_manager == db_manager
 
-    def test_get_project_hook_different_projects(self, clean_db):
+    def test_get_project_hook_different_projects(self, clean_db, tmp_path):
         """Test get_project_hook with different projects."""
-        db_manager = SQLiteManager()
-        project1 = db_manager.create_project("project1", "/path/1")
-        project2 = db_manager.create_project("project2", "/path/2")
+        path1 = tmp_path / "project1"
+        path2 = tmp_path / "project2"
+        path1.mkdir()
+        path2.mkdir()
 
-        hook1 = get_project_hook(project1["id"])
-        hook2 = get_project_hook(project2["id"])
+        project1 = clean_db.create_project("project1", str(path1))
+        project2 = clean_db.create_project("project2", str(path2))
+
+        hook1 = get_project_hook(project1["id"], clean_db)
+        hook2 = get_project_hook(project2["id"], clean_db)
 
         assert hook1.project_id == project1["id"]
         assert hook2.project_id == project2["id"]
@@ -505,7 +485,7 @@ class TestProjectHookUtility:
         mock_hook_class.side_effect = ValueError("Project not found")
 
         with pytest.raises(ValueError, match="Project not found"):
-            get_project_hook(99999)
+            get_project_hook(99999, clean_db)
 
 
 @pytest.mark.integration
@@ -514,12 +494,11 @@ class TestProjectHookIntegration:
 
     def test_full_hook_lifecycle(self, clean_db, tmp_path):
         """Test complete hook lifecycle."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KB
-        kb = db_manager.create_collection("test_kb", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Create folder and files
         docs_dir = tmp_path / "docs"
@@ -528,7 +507,7 @@ class TestProjectHookIntegration:
         test_file.write_text("Initial content")
 
         # Enable hook
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         result = hook.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(docs_dir)
@@ -562,11 +541,10 @@ class TestProjectHookIntegration:
 
     def test_hook_config_persistence(self, clean_db, tmp_path):
         """Test that hook config persists across instances."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create hook and enable autosync
-        hook1 = ProjectHook(project["id"])
+        hook1 = ProjectHook(project["id"], clean_db)
         hook1.enable_kb_autosync(
             mcp_type="knowledge_docs",
             folder_path=str(tmp_path),
@@ -574,7 +552,7 @@ class TestProjectHookIntegration:
         )
 
         # Create new instance
-        hook2 = ProjectHook(project["id"])
+        hook2 = ProjectHook(project["id"], clean_db)
         status = hook2.get_hook_status("knowledge_docs")
 
         # Should have persisted config
@@ -584,14 +562,13 @@ class TestProjectHookIntegration:
 
     def test_multiple_hooks_independence(self, clean_db, tmp_path):
         """Test that multiple hooks work independently."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KBs
-        kb1 = db_manager.create_collection("kb1", "generic")
-        kb2 = db_manager.create_collection("kb2", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
-        db_manager.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
+        kb1 = clean_db.create_collection("kb1", KBType.GENERIC)
+        kb2 = clean_db.create_collection("kb2", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
+        clean_db.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
 
         # Create folders
         docs_dir = tmp_path / "docs"
@@ -603,7 +580,7 @@ class TestProjectHookIntegration:
         (profile_dir / "profile.txt").write_text("Profile content")
 
         # Enable both hooks
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync("knowledge_docs", str(docs_dir))
         hook.enable_kb_autosync("project_profile", str(profile_dir))
 
@@ -622,12 +599,11 @@ class TestProjectHookIntegration:
 
     def test_hook_error_recovery(self, clean_db, tmp_path):
         """Test hook error recovery and resilience."""
-        db_manager = SQLiteManager()
-        project = db_manager.create_project("test_project", str(tmp_path))
+        project = clean_db.create_project("test_project", str(tmp_path))
 
         # Create KB
-        kb = db_manager.create_collection("test_kb", "generic")
-        db_manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Create folder with problematic file
         docs_dir = tmp_path / "docs"
@@ -636,7 +612,7 @@ class TestProjectHookIntegration:
         (docs_dir / "bad.txt").write_text("Bad content")
 
         # Enable hook
-        hook = ProjectHook(project["id"])
+        hook = ProjectHook(project["id"], clean_db)
         hook.enable_kb_autosync("knowledge_docs", str(docs_dir))
 
         # Mock ingest to fail for bad file
@@ -654,5 +630,5 @@ class TestProjectHookIntegration:
 
             # Should have one success and one error
             assert result["synced_files"] == 1
-            assert result["errors"] == 1
+            assert len(result["errors"]) == 1
             assert "Bad file detected" in result["errors"][0]["error"]

@@ -21,10 +21,15 @@ logger = logging.getLogger(__name__)
 class ProjectHook:
     """Manages hooks for a specific project."""
 
-    def __init__(self, project_id: int):
-        """Initialize hook manager for a project."""
+    def __init__(self, project_id: int, db_manager=None):
+        """Initialize hook manager for a project.
+
+        Args:
+            project_id: The project ID
+            db_manager: Optional SQLiteManager instance (for testing)
+        """
         self.project_id = project_id
-        self.db_manager = get_sqlite_manager()
+        self.db_manager = db_manager if db_manager is not None else get_sqlite_manager()
         self.hooks_config_path = self._get_hooks_config_path()
 
     def _get_hooks_config_path(self) -> Path:
@@ -269,6 +274,11 @@ class ProjectHook:
         return sha256_hash.hexdigest()
 
 
-def get_project_hook(project_id: int) -> ProjectHook:
-    """Get or create ProjectHook instance for a project."""
-    return ProjectHook(project_id)
+def get_project_hook(project_id: int, db_manager=None) -> ProjectHook:
+    """Get or create ProjectHook instance for a project.
+
+    Args:
+        project_id: The project ID
+        db_manager: Optional SQLiteManager instance (for testing)
+    """
+    return ProjectHook(project_id, db_manager)
