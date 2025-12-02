@@ -9,6 +9,32 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Detect OS and package manager
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        OS="macos"
+        PKG_MANAGER="brew"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        OS="linux"
+        if command -v apt-get &> /dev/null; then
+            PKG_MANAGER="apt"
+        elif command -v dnf &> /dev/null; then
+            PKG_MANAGER="dnf"
+        elif command -v yum &> /dev/null; then
+            PKG_MANAGER="yum"
+        elif command -v pacman &> /dev/null; then
+            PKG_MANAGER="pacman"
+        else
+            PKG_MANAGER="unknown"
+        fi
+    else
+        OS="unknown"
+        PKG_MANAGER="unknown"
+    fi
+}
+
+detect_os
+
 # Banner
 clear
 echo -e "${CYAN}"
@@ -99,11 +125,13 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${BLUE}Step 4: Setting Up Ollama (LLM Engine)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}\n"
 
-if ! command -v ollama &> /dev/null; then
+if command -v ollama &> /dev/null; then
+    echo -e "${GREEN}✅ Ollama already installed${NC}"
+else
     echo -e "${YELLOW}⚠️  Ollama not found${NC}"
     echo "Installing Ollama..."
 
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$OS" == "macos" ]]; then
         # macOS
         if ! command -v brew &> /dev/null; then
             echo -e "${RED}❌ Homebrew not found (required for macOS)${NC}"
@@ -111,17 +139,16 @@ if ! command -v ollama &> /dev/null; then
             exit 1
         fi
         brew install ollama
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
+    elif [[ "$OS" == "linux" ]]; then
+        # Linux - use universal installer (works on all distros)
         curl -fsSL https://ollama.ai/install.sh | sh
     else
         echo -e "${RED}❌ Unsupported OS${NC}"
         echo "Please install Ollama manually from https://ollama.ai"
         exit 1
     fi
+    echo -e "${GREEN}✅ Ollama installed${NC}"
 fi
-
-echo -e "${GREEN}✅ Ollama is available${NC}"
 
 echo "Checking if Ollama is running..."
 if curl -s http://localhost:11434/api/tags &> /dev/null; then
@@ -129,8 +156,11 @@ if curl -s http://localhost:11434/api/tags &> /dev/null; then
 else
     echo -e "${YELLOW}⚠️  Ollama is not running${NC}"
     echo "Starting Ollama..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$OS" == "macos" ]]; then
         brew services start ollama &> /dev/null || true
+    elif [[ "$OS" == "linux" ]]; then
+        # Start ollama directly (no sudo needed)
+        ollama serve &> /dev/null &
     else
         ollama serve &> /dev/null &
     fi
@@ -163,22 +193,41 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${BLUE}Step 5: Setting Up Redis (Cache & Queue System)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}\n"
 
-if ! command -v redis-cli &> /dev/null; then
+if command -v redis-cli &> /dev/null; then
+    echo -e "${GREEN}✅ Redis already installed${NC}"
+else
     echo -e "${YELLOW}⚠️  Redis not found${NC}"
     echo "Installing Redis..."
 
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$OS" == "macos" ]]; then
         brew install redis
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        sudo apt-get install -y redis-server
+    elif [[ "$OS" == "linux" ]]; then
+        case "$PKG_MANAGER" in
+            apt)
+                sudo apt-get update && sudo apt-get install -y redis-server
+                ;;
+            dnf)
+                sudo dnf install -y redis
+                ;;
+            yum)
+                sudo yum install -y redis
+                ;;
+            pacman)
+                sudo pacman -S --noconfirm redis
+                ;;
+            *)
+                echo -e "${RED}❌ Unknown package manager${NC}"
+                echo "Please install Redis manually from https://redis.io"
+                exit 1
+                ;;
+        esac
     else
         echo -e "${RED}❌ Unsupported OS${NC}"
         echo "Please install Redis manually from https://redis.io"
         exit 1
     fi
+    echo -e "${GREEN}✅ Redis installed${NC}"
 fi
-
-echo -e "${GREEN}✅ Redis is available${NC}"
 
 echo "Checking if Redis is running..."
 if redis-cli ping &> /dev/null; then
@@ -186,8 +235,11 @@ if redis-cli ping &> /dev/null; then
 else
     echo -e "${YELLOW}⚠️  Redis is not running${NC}"
     echo "Starting Redis..."
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "$OS" == "macos" ]]; then
         brew services start redis > /dev/null 2>&1 || true
+    elif [[ "$OS" == "linux" ]]; then
+        # Start redis directly (no sudo needed)
+        redis-server --daemonize yes > /dev/null 2>&1 || true
     else
         redis-server --daemonize yes > /dev/null 2>&1 || true
     fi

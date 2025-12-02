@@ -80,6 +80,8 @@ elif command -v python3 &> /dev/null; then
         echo "Please install Python 3.11 or 3.12:"
         echo "  • macOS with Homebrew: brew install python@3.12"
         echo "  • Ubuntu/Debian: sudo apt install python3.12"
+        echo "  • Fedora/RHEL: sudo dnf install python3.12"
+        echo "  • Arch Linux: sudo pacman -S python"
         echo "  • Or download from: https://www.python.org/downloads/"
         echo ""
         INSTALL_STATUS="FAILED"
@@ -88,7 +90,14 @@ elif command -v python3 &> /dev/null; then
     fi
 else
     log_error "Python 3 is not installed"
-    echo "   Please install Python 3.11 or 3.12 and try again"
+    echo ""
+    echo "Please install Python 3.11 or 3.12:"
+    echo "  • macOS with Homebrew: brew install python@3.12"
+    echo "  • Ubuntu/Debian: sudo apt install python3.12"
+    echo "  • Fedora/RHEL: sudo dnf install python3.12"
+    echo "  • Arch Linux: sudo pacman -S python"
+    echo "  • Or download from: https://www.python.org/downloads/"
+    echo ""
     INSTALL_STATUS="FAILED"
     skip_to_summary=true
 fi

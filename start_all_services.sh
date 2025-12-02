@@ -8,6 +8,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Detect OS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="macos"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    OS="linux"
+else
+    OS="unknown"
+fi
+
 echo -e "${BLUE}=================================================="
 echo "🚀 Claude OS - Starting All Services"
 echo "=================================================${NC}"
@@ -55,7 +64,14 @@ if check_port 11434; then
     echo -e "   ${GREEN}✓ Ollama is running on port 11434${NC}"
 else
     echo -e "   ${YELLOW}⚠ Ollama is not running, attempting to start...${NC}"
-    brew services start ollama > /dev/null 2>&1 || true
+    if [[ "$OS" == "macos" ]]; then
+        brew services start ollama > /dev/null 2>&1 || true
+    elif [[ "$OS" == "linux" ]]; then
+        # Try direct execution first (no sudo needed), fall back to user systemctl
+        ollama serve > /dev/null 2>&1 &
+    else
+        ollama serve > /dev/null 2>&1 &
+    fi
     echo -n "   Waiting for Ollama to start"
     if wait_for_port 11434 "Ollama"; then
         :
@@ -108,11 +124,23 @@ echo ""
 
 # ===== 4. Check Redis =====
 echo -e "${YELLOW}4. Checking Redis...${NC}"
-if redis-cli ping &> /dev/null; then
+if ! command -v redis-server &> /dev/null; then
+    echo -e "   ${YELLOW}⚠ Redis is not installed${NC}"
+    if [[ "$OS" == "macos" ]]; then
+        echo "   Install with: brew install redis"
+    elif [[ "$OS" == "linux" ]]; then
+        echo "   Install with: sudo apt install redis-server  (or dnf/pacman)"
+    fi
+    echo "   Or run ./setup.sh for full installation"
+elif redis-cli ping &> /dev/null; then
     echo -e "   ${GREEN}✓ Redis is running${NC}"
 else
     echo -e "   ${YELLOW}⚠ Redis is not running, attempting to start...${NC}"
-    brew services start redis > /dev/null 2>&1 || redis-server --daemonize yes > /dev/null 2>&1 || true
+    if [[ "$OS" == "macos" ]]; then
+        brew services start redis > /dev/null 2>&1 || redis-server --daemonize yes > /dev/null 2>&1 || true
+    else
+        redis-server --daemonize yes > /dev/null 2>&1 || true
+    fi
     sleep 2
     if redis-cli ping &> /dev/null; then
         echo -e "   ${GREEN}✓ Redis started successfully${NC}"

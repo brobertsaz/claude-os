@@ -170,13 +170,11 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 
 ## 💻 Installation & Setup
 
-> **Note:** The `install.sh` script currently supports macOS only. Linux and Windows support coming soon.
-
 ### Prerequisites
 
 **Required:**
 
-- macOS (for `install.sh`)
+- macOS or Linux (Ubuntu, Debian, Fedora, RHEL, Arch)
 - Python 3.11 or 3.12 (`python3 --version`)
   - **Note:** Python 3.13+ not yet supported due to dependency constraints
 - Git (`git --version`)
@@ -185,6 +183,8 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 
 - Node.js 16+ (for React UI)
 - Ollama (for local AI) or OpenAI API key
+
+> **Note:** Windows support coming soon.
 
 ### Quick Installation
 
@@ -797,7 +797,7 @@ Each project has `.claude-os/config.json`:
 
 ### Installation & Setup
 
-#### `./install.sh` - Quick Setup (macOS only)
+#### `./install.sh` - Quick Setup (macOS & Linux)
 
 ```bash
 ./install.sh
@@ -811,6 +811,8 @@ Each project has `.claude-os/config.json`:
 - ✅ Installs dependencies
 - ✅ Configures MCP server
 
+**Supported Linux distros:** Ubuntu, Debian, Fedora, RHEL, Arch
+
 #### `./setup.sh` - Full Setup (with Ollama + Redis)
 
 ```bash
@@ -819,10 +821,12 @@ Each project has `.claude-os/config.json`:
 
 **Complete installation:**
 
-- ✅ Installs Ollama + Redis (if needed)
+- ✅ Installs Ollama + Redis (if not already installed)
 - ✅ Downloads LLM models (~5-10 GB)
 - ✅ Sets up Python environment
 - ✅ Creates database
+
+**Linux package managers supported:** apt (Debian/Ubuntu), dnf (Fedora), yum (RHEL), pacman (Arch)
 
 ### Service Management
 
