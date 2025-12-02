@@ -10,12 +10,12 @@ The user ran: `/claude-os-search [query]`
 
 1. **Parse the query**:
    - Extract search terms from the command
-   - Identify if user specified a KB name (e.g., "search Pistn-project_memories for auth patterns")
-   - Default to searching `Pistn-project_memories` if not specified
+   - Identify if user specified a KB name (e.g., "search myapp-project_memories for auth patterns")
+   - Default to searching `{project}-project_memories` if not specified
 
 2. **Execute the search**:
    - Use the `mcp__claude-os__search_knowledge_base` tool (note: internally it might still show as `mcp__code-forge__search_knowledge_base` but it's Claude OS)
-   - Set `kb_name` to the target KB (default: `Pistn-project_memories`)
+   - Set `kb_name` to the target KB (default: `{project}-project_memories`)
    - Set `query` to the search terms
    - Consider using `use_hybrid: true` for better results
    - Consider using `use_rerank: true` for relevance ranking
@@ -28,15 +28,15 @@ The user ran: `/claude-os-search [query]`
 
 4. **If no results**:
    - Try broader search terms
-   - Try different KB (e.g., search `Pistn-knowledge_docs` instead)
+   - Try different KB (e.g., search `{project}-knowledge_docs` instead)
    - Suggest user save this as new knowledge if it's something we discover
 
 ## Available KBs
 
-- `Pistn-project_memories` - **Search here first** - Project decisions, patterns, solutions
-- `Pistn-project_profile` - Architecture, standards, practices
-- `Pistn-project_index` - Codebase index
-- `Pistn-knowledge_docs` - Documentation and guides
+- `{project}-project_memories` - **Search here first** - Project decisions, patterns, solutions
+- `{project}-project_profile` - Architecture, standards, practices
+- `{project}-project_index` - Codebase index
+- `{project}-knowledge_docs` - Documentation and guides
 
 ## Search Features
 
@@ -48,14 +48,14 @@ The user ran: `/claude-os-search [query]`
 ## Examples
 
 **Example 1**: `/claude-os-search appointment scheduling logic`
-- Search: `Pistn-project_memories` for appointment-related content
+- Search: `{project}-project_memories` for appointment-related content
 - Use hybrid search for better recall
 
-**Example 2**: `/claude-os-search Tekmetric integration patterns in Pistn-knowledge_docs`
-- Search: `Pistn-knowledge_docs` KB specifically
+**Example 2**: `/claude-os-search API integration patterns in myapp-knowledge_docs`
+- Search: `myapp-knowledge_docs` KB specifically
 - Look for integration documentation
 
-**Example 3**: `/claude-os-search complex query about how blocks and appointments interact`
+**Example 3**: `/claude-os-search complex query about how models interact`
 - Use: `use_agentic: true` for multi-step reasoning
 
 ## After Search

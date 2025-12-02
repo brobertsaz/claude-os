@@ -53,9 +53,9 @@ Each memory includes:
 
 ### Example 1: Save Technical Insight
 ```
-You: "Remember: Block 122 is 43KB and the most complex block in PISTN.
+You: "Remember: The UserProfile component is the most complex in our app.
       It has a 4-step wizard, 600+ lines of inline JavaScript, and handles
-      phone verification, vehicle lookup, and service selection."
+      phone verification, profile lookup, and settings management."
 
 → I save to memory with tags: ["Block122", "Architecture", "Complexity"]
 → I confirm: "✓ Saved to memory: Block 122 complexity analysis"

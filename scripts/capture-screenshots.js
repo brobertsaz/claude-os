@@ -10,7 +10,7 @@
  * Prerequisites:
  *   - Frontend running on http://localhost:5173
  *   - MCP server running on http://localhost:8051
- *   - At least one project created (e.g., Pistn)
+ *   - At least one project created
  */
 
 const { chromium } = require(require('path').join(__dirname, '../frontend/node_modules/playwright'));
@@ -64,7 +64,7 @@ async function captureScreenshots() {
     });
     console.log('✅ Saved: projects-list-page.png\n');
 
-    // Select first project (Pistn)
+    // Select first project
     const firstProject = await page.locator('.p-3.rounded-lg.border').first();
     await firstProject.click();
     await page.waitForTimeout(WAIT_TIME);

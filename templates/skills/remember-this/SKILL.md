@@ -32,7 +32,7 @@ When you invoke this skill:
 
 1. **I extract the key information** from your statement
 2. **I create a formatted markdown document** with proper structure
-3. **I upload it to Claude OS** (default: Pistn-project_memories KB)
+3. **I upload it to Claude OS** (default: {project}-project_memories KB)
 4. **I confirm what was saved** and where
 5. **I reference it in future conversations** automatically
 
@@ -63,7 +63,7 @@ User: "Remember this: When creating a new service, always follow this structure:
 initialize with domain objects and params, have a single perform method that returns
 model on success or error string on failure, use private methods for complex logic."
 
-→ Saves to: "PISTN Service Pattern Guide.md" in Pistn KB
+→ Saves to: "Service Pattern Guide.md" in project KB
 → I reference it: "Like the pattern you documented, services should..."
 ```
 
@@ -89,7 +89,7 @@ we need semantic role-based organization of child blocks, not just a flat list."
 
 You can specify:
 
-- **KB Name**: "Remember this [content] - save to Pistn Agent OS"
+- **KB Name**: "Remember this [content] - save to my-project-memories"
 - **Document Title**: "Remember this [content] - as 'My Custom Title'"
 - **Tags/Category**: "Remember this [content] - category: Integration"
 
@@ -104,4 +104,4 @@ You can specify:
 
 ---
 
-**Pro Tip**: Use this skill liberally! Every insight you share gets permanently indexed and makes me a better PISTN developer.
+**Pro Tip**: Use this skill liberally! Every insight you share gets permanently indexed and makes me a better developer for your project.

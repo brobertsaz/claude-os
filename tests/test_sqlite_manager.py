@@ -20,7 +20,7 @@ class TestSQLiteManager:
     def test_generate_slug(self):
         """Test slug generation function."""
         test_cases = [
-            ("Pistn Agent OS", "pistn-agent-os"),
+            ("My Agent OS", "my-agent-os"),
             ("My Code Base!", "my-code-base"),
             ("Test_KB 123", "test-kb-123"),
             ("Hello World", "hello-world"),
@@ -44,9 +44,7 @@ class TestSQLiteManager:
 
     def test_create_collection(self, clean_db):
         """Test creating a knowledge base collection."""
-        manager = SQLiteManager()
-
-        result = manager.create_collection(
+        result = clean_db.create_collection(
             name="test_collection",
             kb_type=KBType.GENERIC,
             description="Test collection",
@@ -62,163 +60,200 @@ class TestSQLiteManager:
 
     def test_create_collection_duplicate_name(self, clean_db):
         """Test creating collection with duplicate name."""
-        manager = SQLiteManager()
-
         # Create first collection
-        manager.create_collection("duplicate_test", KBType.GENERIC)
+        clean_db.create_collection("duplicate_test", KBType.GENERIC)
 
         # Try to create duplicate
         with pytest.raises(ValueError, match="already exists"):
-            manager.create_collection("duplicate_test", KBType.CODE)
+            clean_db.create_collection("duplicate_test", KBType.CODE)
 
     def test_create_collection_slug_conflict(self, clean_db):
         """Test creating collection with slug conflict."""
-        manager = SQLiteManager()
-
         # Create first collection
-        manager.create_collection("Test Collection", KBType.GENERIC)
+        clean_db.create_collection("Test Collection", KBType.GENERIC)
 
         # Try to create collection with similar slug
         with pytest.raises(ValueError, match="slug conflict"):
-            manager.create_collection("test-collection", KBType.CODE)
+            clean_db.create_collection("test-collection", KBType.CODE)
 
-    def test_list_collections(self, sample_kb):
+    def test_list_collections(self, clean_db):
         """Test listing all collections."""
-        manager = SQLiteManager()
-        collections = manager.list_collections()
+        # Create a sample kb first
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
+
+        collections = clean_db.list_collections()
 
         assert isinstance(collections, list)
         assert len(collections) >= 1
-        assert any(col["name"] == sample_kb["name"] for col in collections)
+        assert any(col["name"] == kb_data["name"] for col in collections)
 
-    def test_get_collection_metadata(self, sample_kb):
+    def test_get_collection_metadata(self, clean_db):
         """Test getting collection metadata."""
-        manager = SQLiteManager()
-        metadata = manager.get_collection_metadata(sample_kb["name"])
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        assert metadata["kb_type"] == sample_kb["kb_type"]
+        metadata = clean_db.get_collection_metadata(kb_data["name"])
+
+        assert metadata["kb_type"] == KBType.GENERIC.value
         assert "description" in metadata
         assert "created_at" in metadata
 
     def test_get_collection_metadata_not_found(self, clean_db):
         """Test getting metadata for non-existent collection."""
-        manager = SQLiteManager()
-
         with pytest.raises(ValueError, match="not found"):
-            manager.get_collection_metadata("nonexistent_collection")
+            clean_db.get_collection_metadata("nonexistent_collection")
 
-    def test_delete_collection(self, sample_kb):
+    def test_delete_collection(self, clean_db):
         """Test deleting a collection."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
         # Verify collection exists
-        assert manager.collection_exists(sample_kb["name"])
+        assert clean_db.collection_exists(kb_data["name"])
 
         # Delete it
-        result = manager.delete_collection(sample_kb["name"])
+        result = clean_db.delete_collection(kb_data["name"])
         assert result is True
 
         # Verify it's gone
-        assert not manager.collection_exists(sample_kb["name"])
+        assert not clean_db.collection_exists(kb_data["name"])
 
     def test_delete_collection_not_found(self, clean_db):
         """Test deleting non-existent collection."""
-        manager = SQLiteManager()
-
-        result = manager.delete_collection("nonexistent_collection")
+        result = clean_db.delete_collection("nonexistent_collection")
         assert result is False
 
-    def test_collection_exists(self, sample_kb):
+    def test_collection_exists(self, clean_db):
         """Test checking if collection exists."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        assert manager.collection_exists(sample_kb["name"]) is True
-        assert manager.collection_exists("nonexistent_collection") is False
+        assert clean_db.collection_exists(kb_data["name"]) is True
+        assert clean_db.collection_exists("nonexistent_collection") is False
 
-    def test_get_collection_count(self, sample_kb, sample_documents):
+    def test_get_collection_count(self, clean_db):
         """Test getting document count for collection."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        count = manager.get_collection_count(sample_kb["name"])
-        assert count == len(sample_documents)
+        # Add some documents
+        documents = ["Test document 1", "Test document 2"]
+        embeddings = [[0.1] * 768, [0.2] * 768]
+        metadatas = [{"filename": "doc1.txt"}, {"filename": "doc2.txt"}]
+        ids = ["doc1", "doc2"]
+
+        clean_db.add_documents(
+            kb_name=kb_data["name"],
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids
+        )
+
+        count = clean_db.get_collection_count(kb_data["name"])
+        assert count == 2
 
     def test_get_collection_count_empty(self, clean_db):
         """Test getting document count for empty collection."""
-        manager = SQLiteManager()
-
         # Create empty collection
-        manager.create_collection("empty_collection", KBType.GENERIC)
+        clean_db.create_collection("empty_collection", KBType.GENERIC)
 
-        count = manager.get_collection_count("empty_collection")
+        count = clean_db.get_collection_count("empty_collection")
         assert count == 0
 
-    def test_get_collection_by_id(self, sample_kb):
+    def test_get_collection_by_id(self, clean_db):
         """Test getting collection by ID."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        collection = manager.get_collection_by_id(sample_kb["id"])
+        collection = clean_db.get_collection_by_id(kb_data["id"])
         assert collection is not None
-        assert collection["name"] == sample_kb["name"]
-        assert collection["id"] == sample_kb["id"]
+        assert collection["name"] == kb_data["name"]
+        assert collection["id"] == kb_data["id"]
 
     def test_get_collection_by_id_not_found(self, clean_db):
         """Test getting non-existent collection by ID."""
-        manager = SQLiteManager()
-
-        collection = manager.get_collection_by_id(99999)
+        collection = clean_db.get_collection_by_id(99999)
         assert collection is None
 
     def test_list_collections_by_type(self, clean_db):
         """Test listing collections filtered by type."""
-        manager = SQLiteManager()
-
         # Create collections of different types
-        manager.create_collection("generic_kb", KBType.GENERIC)
-        manager.create_collection("code_kb", KBType.CODE)
-        manager.create_collection("docs_kb", KBType.DOCUMENTATION)
+        clean_db.create_collection("generic_kb", KBType.GENERIC)
+        clean_db.create_collection("code_kb", KBType.CODE)
+        clean_db.create_collection("docs_kb", KBType.DOCUMENTATION)
 
         # Get only code collections
-        code_collections = manager.list_collections_by_type(KBType.CODE)
+        code_collections = clean_db.list_collections_by_type(KBType.CODE)
         assert len(code_collections) == 1
         assert code_collections[0]["metadata"]["kb_type"] == "code"
 
-    def test_get_kb_by_slug(self, sample_kb):
+    def test_get_kb_by_slug(self, clean_db):
         """Test getting KB by slug."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        kb_name = manager.get_kb_by_slug(sample_kb["slug"])
-        assert kb_name == sample_kb["name"]
+        kb_name = clean_db.get_kb_by_slug(kb_data["slug"])
+        assert kb_name == kb_data["name"]
 
     def test_get_kb_by_slug_not_found(self, clean_db):
         """Test getting non-existent KB by slug."""
-        manager = SQLiteManager()
-
-        kb_name = manager.get_kb_by_slug("nonexistent-slug")
+        kb_name = clean_db.get_kb_by_slug("nonexistent-slug")
         assert kb_name is None
 
-    def test_slug_exists(self, sample_kb):
+    def test_slug_exists(self, clean_db):
         """Test checking if slug exists."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
-        assert manager.slug_exists(sample_kb["slug"]) is True
-        assert manager.slug_exists("nonexistent-slug") is False
+        assert clean_db.slug_exists(kb_data["slug"]) is True
+        assert clean_db.slug_exists("nonexistent-slug") is False
 
 
 @pytest.mark.integration
 class TestSQLiteManagerDocuments:
     """Test SQLite manager document operations."""
 
-    def test_add_documents(self, sample_kb, clean_db):
+    def test_add_documents(self, clean_db):
         """Test adding documents to collection."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
 
         documents = ["Test document 1", "Test document 2"]
         embeddings = [[0.1] * 768, [0.2] * 768]
         metadatas = [{"filename": "doc1.txt"}, {"filename": "doc2.txt"}]
         ids = ["doc1", "doc2"]
 
-        manager.add_documents(
-            kb_name=sample_kb["name"],
+        clean_db.add_documents(
+            kb_name=kb_data["name"],
             documents=documents,
             embeddings=embeddings,
             metadatas=metadatas,
@@ -226,15 +261,13 @@ class TestSQLiteManagerDocuments:
         )
 
         # Verify documents were added
-        count = manager.get_collection_count(sample_kb["name"])
+        count = clean_db.get_collection_count(kb_data["name"])
         assert count == 2
 
     def test_add_documents_nonexistent_collection(self, clean_db):
         """Test adding documents to non-existent collection."""
-        manager = SQLiteManager()
-
         with pytest.raises(ValueError, match="not found"):
-            manager.add_documents(
+            clean_db.add_documents(
                 kb_name="nonexistent_collection",
                 documents=["test"],
                 embeddings=[[0.1] * 768],
@@ -242,32 +275,64 @@ class TestSQLiteManagerDocuments:
                 ids=["test"]
             )
 
-    def test_get_documents_by_metadata(self, sample_kb, sample_documents):
+    def test_get_documents_by_metadata(self, clean_db):
         """Test retrieving documents by metadata filter."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
+
+        # Add documents with metadata
+        for i in range(5):
+            np.random.seed(42 + i)
+            embedding = np.random.randn(768).tolist()
+            clean_db.add_documents(
+                kb_name=kb_data["name"],
+                documents=[f"This is test document {i}"],
+                embeddings=[embedding],
+                metadatas=[{"filename": f"test_{i}.txt", "chunk_index": i}],
+                ids=[f"node_doc_{i}"]
+            )
 
         # Get all documents
-        all_docs = manager.get_documents_by_metadata(
-            kb_name=sample_kb["name"],
+        all_docs = clean_db.get_documents_by_metadata(
+            kb_name=kb_data["name"],
             where={}
         )
-        assert len(all_docs) == len(sample_documents)
+        assert len(all_docs) == 5
 
         # Filter by filename
-        filtered_docs = manager.get_documents_by_metadata(
-            kb_name=sample_kb["name"],
+        filtered_docs = clean_db.get_documents_by_metadata(
+            kb_name=kb_data["name"],
             where={"filename": "test_0.txt"}
         )
         assert len(filtered_docs) == 1
         assert filtered_docs[0]["metadata"]["filename"] == "test_0.txt"
 
-    def test_query_documents(self, sample_kb, sample_documents):
+    def test_query_documents(self, clean_db):
         """Test querying documents by vector similarity."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
+
+        # Add documents
+        for i in range(5):
+            np.random.seed(42 + i)
+            embedding = np.random.randn(768).tolist()
+            clean_db.add_documents(
+                kb_name=kb_data["name"],
+                documents=[f"This is test document {i}"],
+                embeddings=[embedding],
+                metadatas=[{"filename": f"test_{i}.txt"}],
+                ids=[f"node_doc_{i}"]
+            )
 
         query_embedding = [0.1] * 768
-        results = manager.query_documents(
-            kb_name=sample_kb["name"],
+        results = clean_db.query_documents(
+            kb_name=kb_data["name"],
             query_embedding=query_embedding,
             n_results=3
         )
@@ -280,21 +345,35 @@ class TestSQLiteManagerDocuments:
 
     def test_query_documents_nonexistent_collection(self, clean_db):
         """Test querying non-existent collection."""
-        manager = SQLiteManager()
-
         with pytest.raises(ValueError, match="not found"):
-            manager.query_documents(
+            clean_db.query_documents(
                 kb_name="nonexistent_collection",
                 query_embedding=[0.1] * 768
             )
 
-    def test_query_similar(self, sample_kb, sample_documents):
+    def test_query_similar(self, clean_db):
         """Test querying similar documents by KB ID."""
-        manager = SQLiteManager()
+        kb_data = clean_db.create_collection(
+            name="test_kb",
+            kb_type=KBType.GENERIC,
+            description="Test knowledge base"
+        )
+
+        # Add documents
+        for i in range(5):
+            np.random.seed(42 + i)
+            embedding = np.random.randn(768).tolist()
+            clean_db.add_documents(
+                kb_name=kb_data["name"],
+                documents=[f"This is test document {i}"],
+                embeddings=[embedding],
+                metadatas=[{"filename": f"test_{i}.txt"}],
+                ids=[f"node_doc_{i}"]
+            )
 
         query_embedding = [0.1] * 768
-        results = manager.query_similar(
-            kb_id=sample_kb["id"],
+        results = clean_db.query_similar(
+            kb_id=kb_data["id"],
             query_embedding=query_embedding,
             top_k=3
         )
@@ -317,9 +396,7 @@ class TestSQLiteManagerProjects:
 
     def test_create_project(self, clean_db):
         """Test creating a project."""
-        manager = SQLiteManager()
-
-        result = manager.create_project(
+        result = clean_db.create_project(
             name="test_project",
             path="/path/to/project",
             description="Test project",
@@ -335,19 +412,15 @@ class TestSQLiteManagerProjects:
 
     def test_create_project_duplicate(self, clean_db):
         """Test creating duplicate project."""
-        manager = SQLiteManager()
-
-        manager.create_project("duplicate_project", "/path/1")
+        clean_db.create_project("duplicate_project", "/path/1")
 
         with pytest.raises(ValueError, match="already exists"):
-            manager.create_project("duplicate_project", "/path/2")
+            clean_db.create_project("duplicate_project", "/path/2")
 
     def test_get_project(self, clean_db):
         """Test getting project by ID."""
-        manager = SQLiteManager()
-
-        created = manager.create_project("test_project", "/path/to/project")
-        retrieved = manager.get_project(created["id"])
+        created = clean_db.create_project("test_project", "/path/to/project")
+        retrieved = clean_db.get_project(created["id"])
 
         assert retrieved is not None
         assert retrieved["name"] == "test_project"
@@ -355,20 +428,16 @@ class TestSQLiteManagerProjects:
 
     def test_get_project_not_found(self, clean_db):
         """Test getting non-existent project."""
-        manager = SQLiteManager()
-
-        project = manager.get_project(99999)
+        project = clean_db.get_project(99999)
         assert project is None
 
     def test_list_projects(self, clean_db):
         """Test listing all projects."""
-        manager = SQLiteManager()
-
         # Create multiple projects
-        manager.create_project("project1", "/path/1")
-        manager.create_project("project2", "/path/2")
+        clean_db.create_project("project1", "/path/1")
+        clean_db.create_project("project2", "/path/2")
 
-        projects = manager.list_projects()
+        projects = clean_db.list_projects()
         assert len(projects) >= 2
 
         project_names = [p["name"] for p in projects]
@@ -377,14 +446,12 @@ class TestSQLiteManagerProjects:
 
     def test_assign_kb_to_project(self, clean_db):
         """Test assigning KB to project."""
-        manager = SQLiteManager()
-
         # Create project and KB
-        project = manager.create_project("test_project", "/path")
-        kb = manager.create_collection("test_kb", KBType.GENERIC)
+        project = clean_db.create_project("test_project", "/path")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
 
         # Assign KB to project
-        assignment = manager.assign_kb_to_project(
+        assignment = clean_db.assign_kb_to_project(
             project_id=project["id"],
             kb_id=kb["id"],
             mcp_type="knowledge_docs"
@@ -396,46 +463,40 @@ class TestSQLiteManagerProjects:
 
     def test_get_project_kbs(self, clean_db):
         """Test getting KB assignments for project."""
-        manager = SQLiteManager()
-
         # Create project and KBs
-        project = manager.create_project("test_project", "/path")
-        kb1 = manager.create_collection("kb1", KBType.GENERIC)
-        kb2 = manager.create_collection("kb2", KBType.CODE)
+        project = clean_db.create_project("test_project", "/path")
+        kb1 = clean_db.create_collection("kb1", KBType.GENERIC)
+        kb2 = clean_db.create_collection("kb2", KBType.CODE)
 
         # Assign KBs
-        manager.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
-        manager.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
+        clean_db.assign_kb_to_project(project["id"], kb1["id"], "knowledge_docs")
+        clean_db.assign_kb_to_project(project["id"], kb2["id"], "project_profile")
 
         # Get assignments
-        kbs = manager.get_project_kbs(project["id"])
+        kbs = clean_db.get_project_kbs(project["id"])
         assert kbs["knowledge_docs"] == kb1["id"]
         assert kbs["project_profile"] == kb2["id"]
 
     def test_get_project_mcps_detailed(self, clean_db):
         """Test getting detailed MCP info for project."""
-        manager = SQLiteManager()
-
         # Create project and KB
-        project = manager.create_project("test_project", "/path")
-        kb = manager.create_collection("test_kb", KBType.GENERIC)
+        project = clean_db.create_project("test_project", "/path")
+        kb = clean_db.create_collection("test_kb", KBType.GENERIC)
 
         # Assign KB
-        manager.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
+        clean_db.assign_kb_to_project(project["id"], kb["id"], "knowledge_docs")
 
         # Get detailed info
-        mcps = manager.get_project_mcps_detailed(project["id"])
+        mcps = clean_db.get_project_mcps_detailed(project["id"])
         assert "knowledge_docs" in mcps
         assert mcps["knowledge_docs"]["kb_id"] == kb["id"]
         assert mcps["knowledge_docs"]["kb_name"] == "test_kb"
 
     def test_set_kb_folder(self, clean_db):
         """Test setting KB folder configuration."""
-        manager = SQLiteManager()
+        project = clean_db.create_project("test_project", "/path")
 
-        project = manager.create_project("test_project", "/path")
-
-        folder_config = manager.set_kb_folder(
+        folder_config = clean_db.set_kb_folder(
             project_id=project["id"],
             mcp_type="knowledge_docs",
             folder_path="/path/to/docs",
@@ -449,16 +510,14 @@ class TestSQLiteManagerProjects:
 
     def test_get_kb_folders(self, clean_db):
         """Test getting KB folder configurations."""
-        manager = SQLiteManager()
-
-        project = manager.create_project("test_project", "/path")
+        project = clean_db.create_project("test_project", "/path")
 
         # Set multiple folder configs
-        manager.set_kb_folder(project["id"], "knowledge_docs", "/docs", True)
-        manager.set_kb_folder(project["id"], "project_profile", "/profile", False)
+        clean_db.set_kb_folder(project["id"], "knowledge_docs", "/docs", True)
+        clean_db.set_kb_folder(project["id"], "project_profile", "/profile", False)
 
         # Get all configs
-        folders = manager.get_kb_folders(project["id"])
+        folders = clean_db.get_kb_folders(project["id"])
         assert folders["knowledge_docs"]["folder_path"] == "/docs"
         assert folders["knowledge_docs"]["auto_sync"] is True
         assert folders["project_profile"]["folder_path"] == "/profile"

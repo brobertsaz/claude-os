@@ -19,19 +19,19 @@ The user ran: `/claude-os-list [optional: KB name]`
 ```
 📚 Claude OS Knowledge Bases
 
-1. Pistn-project_memories (agent-os)
+1. myapp-project_memories (agent-os)
    - Your project memory for decisions, patterns, solutions
    - [X] documents
 
-2. Pistn-project_profile (agent-os)
+2. myapp-project_profile (agent-os)
    - Architecture, coding standards, practices
    - [X] documents
 
-3. Pistn-project_index (code)
+3. myapp-project_index (code)
    - Automated codebase index
    - [X] documents
 
-4. Pistn-knowledge_docs (documentation)
+4. myapp-knowledge_docs (documentation)
    - Documentation and guides
    - [X] documents
 ```
@@ -49,9 +49,9 @@ The user ran: `/claude-os-list [optional: KB name]`
 
 3. **Present clearly**:
 ```
-📁 Documents in Pistn-project_memories
+📁 Documents in myapp-project_memories
 
-1. appointment_dashboard_redesign.md (2025-10-28)
+1. dashboard_redesign.md (2025-10-28)
 2. authentication_pattern_decisions.md (2025-10-15)
 3. n_plus_one_query_solution.md (2025-10-10)
 ...
@@ -59,20 +59,20 @@ The user ran: `/claude-os-list [optional: KB name]`
 
 ## Available KBs
 
-- `Pistn-project_memories` - **Your primary memory** - decisions, patterns, solutions
-- `Pistn-project_profile` - Architecture, standards, practices
-- `Pistn-project_index` - Codebase index (automated)
-- `Pistn-knowledge_docs` - Documentation
+- `{project}-project_memories` - **Your primary memory** - decisions, patterns, solutions
+- `{project}-project_profile` - Architecture, standards, practices
+- `{project}-project_index` - Codebase index (automated)
+- `{project}-knowledge_docs` - Documentation
 
 ## Examples
 
 **Example 1**: `/claude-os-list`
 - Show all KBs with stats
 
-**Example 2**: `/claude-os-list Pistn-project_memories`
+**Example 2**: `/claude-os-list myapp-project_memories`
 - Show all documents in project_memories KB
 
-**Example 3**: `/claude-os-list Pistn-knowledge_docs`
+**Example 3**: `/claude-os-list myapp-knowledge_docs`
 - Show all documentation files
 
 ## Use Cases

@@ -42,8 +42,8 @@ Read: {claude_os_dir}/claude-os-state.json
 ```
 [AUTOMATIC MEMORY SEARCH]
 mcp__code-forge__search_knowledge_base
-Query: "appointment dashboard redesign security recent work"
-KB: Pistn-project_memories
+Query: "dashboard redesign security recent work"
+KB: {project}-project_memories
 ```
 
 **Phase 3: Get Git Context**
@@ -303,7 +303,7 @@ Type /claude-os-session end when done
 
 1. **Search Memories**
    - Use task name + "recent" as query
-   - Search Pistn-project_memories
+   - Search {project}-project_memories
    - Load top 5 results
 
 2. **Load Patterns**

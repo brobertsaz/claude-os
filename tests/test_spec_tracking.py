@@ -25,7 +25,7 @@ class TestTasksParser:
         tasks_md.write_text("""
 # Group Account Rendering - Tasks Breakdown
 
-**Project:** PISTN
+**Project:** MyApp
 **Spec:** Group Account Rendering
 **Created:** 2025-10-15
 **Status:** Ready for Implementation
@@ -34,7 +34,7 @@ class TestTasksParser:
         parser = TasksParser(str(tasks_md))
         parsed = parser.parse()
 
-        assert parsed['metadata']['project'] == 'PISTN'
+        assert parsed['metadata']['project'] == 'MyApp'
         assert parsed['metadata']['spec_name'] == 'Group Account Rendering'
         assert parsed['metadata']['created'] == '2025-10-15'
         assert 'ready' in parsed['metadata']['status'].lower()

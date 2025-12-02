@@ -16,8 +16,8 @@ Utility scripts for managing and operating Claude OS.
 
 **Local Development (Mac):**
 ```bash
-# Index PISTN codebase locally
-./scripts/index-codebase.sh Pistn ~/Projects/pistn http://localhost:8051
+# Index your codebase locally
+./scripts/index-codebase.sh MyApp ~/Projects/myapp http://localhost:8051
 
 # Index from current directory
 cd ~/Projects/myapp
@@ -26,12 +26,12 @@ cd ~/Projects/myapp
 
 **Production Server:**
 ```bash
-# Index PISTN on production server
-/opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051
+# Index on production server
+/opt/claude-os/scripts/index-codebase.sh MyApp /var/www/myapp/current http://localhost:8051
 
 # Run after deployment to update index
 cd /opt/claude-os
-./scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051
+./scripts/index-codebase.sh MyApp /var/www/myapp/current http://localhost:8051
 ```
 
 ### What It Indexes
@@ -86,7 +86,7 @@ Simply run the script again with the same parameters. It will update the existin
 ```bash
 # Set up a weekly cron job (production server)
 # Add to crontab: crontab -e
-0 2 * * 0 /opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051 >> /opt/claude-os/logs/indexing.log 2>&1
+0 2 * * 0 /opt/claude-os/scripts/index-codebase.sh MyApp /var/www/myapp/current http://localhost:8051 >> /opt/claude-os/logs/indexing.log 2>&1
 ```
 
 ### Requirements
@@ -141,7 +141,7 @@ namespace :claude_os do
   task :index do
     on roles(:app) do
       within release_path do
-        execute "/opt/claude-os/scripts/index-codebase.sh Pistn #{release_path} http://localhost:8051"
+        execute "/opt/claude-os/scripts/index-codebase.sh MyApp #{release_path} http://localhost:8051"
       end
     end
   end
@@ -161,7 +161,7 @@ RUN /opt/claude-os/scripts/index-codebase.sh MyApp /app http://claude-os:8051
 # .github/workflows/deploy.yml
 - name: Index codebase in Claude OS
   run: |
-    ssh deploy@server "/opt/claude-os/scripts/index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051"
+    ssh deploy@server "/opt/claude-os/scripts/index-codebase.sh MyApp /var/www/myapp/current http://localhost:8051"
 ```
 
 ---
@@ -188,7 +188,7 @@ node ../scripts/capture-screenshots.js
    ./start.sh  # Starts MCP server (8051) and frontend (5173)
    ```
 
-2. **At least one project created** (e.g., Pistn)
+2. **At least one project created**
 
 3. **Playwright installed:**
    ```bash

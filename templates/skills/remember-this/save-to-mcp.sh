@@ -5,7 +5,7 @@
 
 TITLE="${1:-Captured Context}"
 CONTENT="${2:-}"
-KB_NAME="${3:-Pistn-project_memories}"
+KB_NAME="${3:-project_memories}"
 CATEGORY="${4:-General}"
 
 # Sanitize KB name for URL

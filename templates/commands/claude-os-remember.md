@@ -8,7 +8,7 @@ The user ran: `/claude-os-remember [optional: content]`
 
 ## Your Task
 
-This is a **quick shorthand** for saving to `Pistn-project_memories`.
+This is a **quick shorthand** for saving to `{project}-project_memories`.
 
 1. **Capture the context**:
    - If user provided content after the command, use that
@@ -51,10 +51,10 @@ This is a **quick shorthand** for saving to `Pistn-project_memories`.
 
 4. **Save immediately**:
    - Create temp file: `/tmp/[sanitized_title].md`
-   - Upload to `Pistn-project_memories`:
+   - Upload to `{project}-project_memories`:
    ```bash
    curl -s -X POST \
-     "http://localhost:8051/api/kb/Pistn-project_memories/upload" \
+     "http://localhost:8051/api/kb/{project}-project_memories/upload" \
      -F "file=@/tmp/[filename].md" \
      -w "\n%{http_code}"
    ```
@@ -83,8 +83,8 @@ Use `/claude-os-save` when:
 - Ask for confirmation of what to remember
 - Save with auto-generated title and category
 
-**Example 2**: `/claude-os-remember The decision to use sidebar navigation for appointment settings`
-- I extract: "Appointment Settings Sidebar Decision"
+**Example 2**: `/claude-os-remember The decision to use sidebar navigation for settings`
+- I extract: "Settings Sidebar Decision"
 - Category: Design Decision
 - Create structured markdown from recent context
 - Save immediately

@@ -479,7 +479,7 @@ If any step fails:
 
 ## Important Notes
 
-- **Don't run on Pistn project** - It's already set up!
+- **Don't run on already initialized projects** - Check if `.claude-os/` exists first!
 - Always validate inputs before API calls
 - Use proper error handling with try/catch
 - Save all configuration for potential later use

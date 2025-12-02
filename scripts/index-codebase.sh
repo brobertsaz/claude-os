@@ -7,8 +7,8 @@
 #   ./index-codebase.sh [project_name] [project_path] [claude_os_url]
 #
 # Examples:
-#   ./index-codebase.sh Pistn /var/www/pistn/current http://localhost:8051
 #   ./index-codebase.sh MyApp ~/Projects/myapp http://localhost:8051
+#   ./index-codebase.sh MyApp /var/www/myapp/current http://localhost:8051
 
 set -e
 
@@ -31,8 +31,8 @@ if [ -z "$PROJECT_NAME" ]; then
     echo "Usage: $0 <project_name> [project_path] [claude_os_url]"
     echo ""
     echo "Examples:"
-    echo "  $0 Pistn /var/www/pistn/current http://localhost:8051"
     echo "  $0 MyApp ~/Projects/myapp http://localhost:8051"
+    echo "  $0 MyApp /var/www/myapp/current http://localhost:8051"
     exit 1
 fi
 

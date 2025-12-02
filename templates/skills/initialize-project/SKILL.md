@@ -32,15 +32,15 @@ Simply say one of:
 
 **Example Workflow:**
 ```
-You: "analyze-project: 4"
+You: "analyze-project: 1"
 
-→ Loads PISTN project from Claude OS (ID #4)
-→ Registers 4 MCPs (pistn-project-profile, etc.)
-→ Analyzes Rails codebase
+→ Loads project from Claude OS (ID #1)
+→ Registers 4 MCPs (myapp-project-profile, etc.)
+→ Analyzes codebase
 → Generates 3 docs locally
 → Displays summary:
 
-   PROJECT: Pistn (ID: 4)
+   PROJECT: MyApp (ID: 1)
    TYPE: Rails
    ... (save this to native memory)
 
@@ -51,7 +51,7 @@ You: "analyze-project: 4"
 ```
 You (saving to memory): "Remember: [paste the summary above]"
 
-When working on PISTN: "Load pistn-project-profile"
+When working on the project: "Load myapp-project-profile"
 → Loads that specific MCP into context only when needed
 ```
 

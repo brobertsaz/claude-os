@@ -15,7 +15,7 @@ The user ran: `/claude-os-save`
 
 2. **Ask for details** (if not provided):
    - Title for the document
-   - KB name (default: `Pistn-project_memories`)
+   - KB name (default: `{project}-project_memories`)
    - Category (e.g., Architecture, Integration, Pattern, Troubleshooting, Design Decision)
 
 3. **Format the content** as markdown:
@@ -54,18 +54,18 @@ The user ran: `/claude-os-save`
 
 ## Available KBs
 
-- `Pistn-project_memories` - Project decisions, patterns, solutions
-- `Pistn-project_profile` - Architecture, standards, practices (usually don't write here)
-- `Pistn-project_index` - Codebase index (automated, don't write here)
-- `Pistn-knowledge_docs` - Documentation (usually don't write here)
+- `{project}-project_memories` - Project decisions, patterns, solutions
+- `{project}-project_profile` - Architecture, standards, practices (usually don't write here)
+- `{project}-project_index` - Codebase index (automated, don't write here)
+- `{project}-knowledge_docs` - Documentation (usually don't write here)
 
 ## Examples
 
 **Example 1**: `/claude-os-save Design decision for new feature`
 - Ask for: Category, details about the decision
-- Save to: Pistn-project_memories
+- Save to: {project}-project_memories
 
-**Example 2**: `/claude-os-save This bug fix about N+1 queries - KB: Pistn-project_memories - Category: Troubleshooting`
+**Example 2**: `/claude-os-save This bug fix about N+1 queries - KB: myapp-project_memories - Category: Troubleshooting`
 - Extract: title, KB, category from command
 - Ask for: the actual content/details
 

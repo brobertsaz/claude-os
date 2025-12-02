@@ -94,7 +94,7 @@ invoked to save your content to Claude OS memories.
 Examples:
   User: "Remember this: We use service objects for business logic"
   → Auto-invokes remember-this skill
-  → Saves to Pistn-project_memories
+  → Saves to {project}-project_memories
 
 To add/remove triggers:
   /claude-os-triggers add remember_this "keep this in mind:"

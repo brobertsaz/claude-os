@@ -64,7 +64,7 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 
 Previous versions embedded EVERY file, which was painfully slow for large codebases:
 
-- **Pistn project (10,000 Ruby files):** 3-5 hours to index
+- **Large projects (10,000+ files):** 3-5 hours to index
 - Must complete before Claude can start working
 - High resource usage, blocks productive coding
 
@@ -91,7 +91,7 @@ Inspired by [Aider's](https://github.com/Aider-AI/aider) approach, Claude OS now
 
 | Feature | Before | After (Hybrid) |
 |---------|--------|----------------|
-| **Pistn (10k files)** | 3-5 hours | **30 seconds** + 20 min optional |
+| **Large project (10k files)** | 3-5 hours | **30 seconds** + 20 min optional |
 | **Files embedded** | 100,000+ chunks | ~20,000 chunks (80% reduction) |
 | **Start coding** | After full index | **Immediately!** |
 | **Resource usage** | High Ollama load | Minimal CPU/memory |
@@ -618,10 +618,10 @@ Two new tables track specs and tasks:
 - Dependencies between tasks
 - Risk levels and phases
 
-### Example: Pistn Project
+### Example Usage
 
 ```bash
-# Sync all Pistn specs
+# Sync all specs for your project
 curl -X POST http://localhost:8051/api/projects/1/specs/sync
 
 # Response:
@@ -636,7 +636,7 @@ curl -X POST http://localhost:8051/api/projects/1/specs/sync
 curl http://localhost:8051/api/projects/1/kanban
 
 # Response shows:
-# - 3 specs with 52+ tasks
+# - Your specs with tasks
 # - Tasks grouped by status
 # - Progress percentages
 # - Time estimates

@@ -55,6 +55,26 @@
       ],
       "case_sensitive": false,
       "enabled": false
+    },
+    "auto_save_insights": {
+      "description": "Auto-save ★ Insight blocks to Claude OS memories when they contain project-specific discoveries",
+      "action": "auto_remember_insight",
+      "trigger_type": "output_pattern",
+      "pattern": "★ Insight",
+      "save_criteria": [
+        "Model attribute names or method names (e.g., 'street' not 'street_address')",
+        "Codebase-specific patterns or conventions",
+        "Bug fixes with non-obvious solutions",
+        "Rails/STI gotchas specific to this project",
+        "Integration patterns (Google Maps, Tekmetric, etc.)"
+      ],
+      "skip_criteria": [
+        "General programming knowledge",
+        "Standard Rails conventions everyone knows",
+        "Temporary debugging info"
+      ],
+      "case_sensitive": false,
+      "enabled": true
     }
   },
   "settings": {

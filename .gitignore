@@ -82,3 +82,15 @@ backups/
 # OS
 Thumbs.db
 
+claude-os-state.json
+claude-os-config.json
+
+# Project-specific docs (not for distribution)
+docs/
+
+# Export files (contain project-specific data)
+exports/
+
+# Marketing materials (not for distribution)
+brochure.html
+presentation.html
