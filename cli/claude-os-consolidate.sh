@@ -4,8 +4,10 @@
 
 set -e  # Exit on error
 
-CLAUDE_OS_DIR="/Users/iamanmp/Projects/claude-os"
-USER_CLAUDE_DIR="/Users/iamanmp/.claude"
+# Dynamically determine Claude OS directory from script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLAUDE_OS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+USER_CLAUDE_DIR="${HOME}/.claude"
 TEMPLATES_DIR="${CLAUDE_OS_DIR}/templates"
 
 echo "🔧 Claude OS Consolidation Script"
@@ -124,7 +126,7 @@ if [ -f "$INIT_SKILL_MD" ]; then
     cp "$INIT_SKILL_MD" "${INIT_SKILL_MD}.backup"
 
     # Replace hardcoded user paths with relative paths
-    sed -i.bak 's|/Users/iamanmp/.claude/|~/.claude/|g' "$INIT_SKILL_MD"
+    sed -i.bak 's|'"${USER_CLAUDE_DIR}"'/|~/.claude/|g' "$INIT_SKILL_MD"
     rm -f "${INIT_SKILL_MD}.bak"
     echo "   ✅ Updated initialize-project/SKILL.md"
 fi
@@ -136,7 +138,7 @@ if [ -f "$REMEMBER_SKILL_MD" ]; then
     cp "$REMEMBER_SKILL_MD" "${REMEMBER_SKILL_MD}.backup"
 
     # Replace hardcoded user paths
-    sed -i.bak 's|/Users/iamanmp/.claude/|~/.claude/|g' "$REMEMBER_SKILL_MD"
+    sed -i.bak 's|'"${USER_CLAUDE_DIR}"'/|~/.claude/|g' "$REMEMBER_SKILL_MD"
     rm -f "${REMEMBER_SKILL_MD}.bak"
     echo "   ✅ Updated remember-this/SKILL.md"
 fi

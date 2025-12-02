@@ -72,7 +72,7 @@ Changes will apply to NEW projects only. Existing projects keep their CLAUDE.md 
 
 ## Consolidation Scripts
 
-See `/Users/iamanmp/Projects/claude-os/cli/` for scripts to:
+See the `cli/` directory in this repository for scripts to:
 - Move commands from `~/.claude/commands/` to `templates/commands/`
 - Move skills from `~/.claude/skills/` to `templates/skills/`
 - Update existing projects to use templates

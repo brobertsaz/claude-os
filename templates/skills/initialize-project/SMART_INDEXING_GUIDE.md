@@ -105,8 +105,8 @@ Expands the project index with previously unindexed files.
 ```bash
 python3 incremental_indexer.py <project_id> <project_path> [api_url] [batch_size]
 
-# Example: Index next 50 files in PISTN
-python3 incremental_indexer.py 4 /Users/iamanmp/Projects/pistn http://localhost:8051 50
+# Example: Index next 50 files in your project
+python3 incremental_indexer.py <project_id> ~/Projects/my-project http://localhost:8051 50
 ```
 
 Returns JSON with progress:
@@ -125,7 +125,7 @@ If you want to expand the index before the scheduled 10-commit mark:
 
 ```bash
 # Manually trigger expansion
-python3 /Users/iamanmp/.claude/skills/analyze-project/incremental_indexer.py 4 /Users/iamanmp/Projects/pistn
+python3 ~/.claude/skills/analyze-project/incremental_indexer.py <project_id> ~/Projects/my-project
 ```
 
 ## Monitoring Progress

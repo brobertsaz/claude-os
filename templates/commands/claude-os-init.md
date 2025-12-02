@@ -15,6 +15,12 @@ You are helping the user initialize a new project with Claude OS. This is a mult
 
 ## Process
 
+### Step 0: Determine Claude OS Directory
+
+Derive `{claude_os_dir}` from the path of this command file - it is two directories up from this file's location. For example, if this file is at `/home/user/repos/claude-os/templates/commands/claude-os-init.md`, then `{claude_os_dir}` is `/home/user/repos/claude-os`.
+
+Use this path for all template references below.
+
 ### Step 1: Gather Project Information
 
 Ask the user the following questions (provide smart defaults when possible):
@@ -143,13 +149,14 @@ mkdir -p .claude-os
 ```
 
 **Copy and customize CLAUDE.md:**
-- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/CLAUDE.md.template`
+- Read template from: `{claude_os_dir}/templates/project-files/CLAUDE.md.template`
 - Replace variables:
   - `{{PROJECT_NAME}}` → project_name
   - `{{PROJECT_DESCRIPTION}}` → description
   - `{{TECH_STACK}}` → tech_stack
   - `{{DATABASE}}` → database
   - `{{DEV_ENVIRONMENT}}` → dev_environment
+  - `{{CLAUDE_OS_DIR}}` → {claude_os_dir}
   - `{{PROJECT_SPECIFIC_CONTENT}}` → empty for now
   - `{{DEVELOPMENT_GUIDELINES}}` → empty for now
   - `{{COMMON_TASKS}}` → empty for now
@@ -157,7 +164,7 @@ mkdir -p .claude-os
 - Write to: `./CLAUDE.md`
 
 **Create .claude-os/config.json:**
-- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/config.json.template`
+- Read template from: `{claude_os_dir}/templates/project-files/.claude-os/config.json.template`
 - Replace variables:
   - `{{PROJECT_NAME}}` → project_name
   - `{{CLAUDE_OS_URL}}` → claude_os_url
@@ -169,12 +176,12 @@ mkdir -p .claude-os
 - Write to: `./.claude-os/config.json`
 
 **Create .claude-os/hooks.json:**
-- Read template from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/hooks.json.template`
+- Read template from: `{claude_os_dir}/templates/project-files/.claude-os/hooks.json.template`
 - Replace `{{PROJECT_NAME}}` → project_name
 - Write to: `./.claude-os/hooks.json`
 
 **Copy .gitignore:**
-- Copy from: `/Users/iamanmp/Projects/claude-os/templates/project-files/.claude-os/.gitignore`
+- Copy from: `{claude_os_dir}/templates/project-files/.claude-os/.gitignore`
 - Write to: `./.claude-os/.gitignore`
 
 **If Agent-OS is enabled (`ENABLE_AGENT_OS=true`):**
@@ -190,17 +197,17 @@ mkdir -p .claude-os
    ```
 
 2. **Copy agent-os config:**
-   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/config.yml.template`
+   - Read: `{claude_os_dir}/templates/project-files/agent-os/config.yml.template`
    - Replace `{{TIMESTAMP}}` with current timestamp
    - Write to: `./agent-os/config.yml`
 
 3. **Copy agent-os README:**
-   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/README.md`
+   - Read: `{claude_os_dir}/templates/project-files/agent-os/README.md`
    - Replace `{{PROJECT_NAME}}` → project_name
    - Write to: `./agent-os/README.md`
 
 4. **Copy agent-os .gitignore:**
-   - Copy: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os/.gitignore`
+   - Copy: `{claude_os_dir}/templates/project-files/agent-os/.gitignore`
    - Write to: `./agent-os/.gitignore`
 
 5. **Symlink agent-os agents:**
@@ -208,11 +215,11 @@ mkdir -p .claude-os
    mkdir -p .claude/agents/agent-os
 
    # Symlink all agents
-   ln -s /Users/iamanmp/Projects/claude-os/templates/agents/*.md .claude/agents/agent-os/
+   ln -s {claude_os_dir}/templates/agents/*.md .claude/agents/agent-os/
    ```
 
 6. **Update CLAUDE.md with agent-os section:**
-   - Read: `/Users/iamanmp/Projects/claude-os/templates/project-files/agent-os-section.md`
+   - Read: `{claude_os_dir}/templates/project-files/agent-os-section.md`
    - Replace `{{AGENT_OS_SECTION}}` in CLAUDE.md with this content
    - Or if `{{AGENT_OS_SECTION}}` not present, leave empty
 
@@ -482,10 +489,10 @@ If any step fails:
 ## Template Locations
 
 All templates are in:
-- `/Users/iamanmp/Projects/claude-os/templates/project-files/`
+- `{claude_os_dir}/templates/project-files/`
 
 Commands and skills will be symlinked from:
-- `/Users/iamanmp/Projects/claude-os/templates/commands/`
-- `/Users/iamanmp/Projects/claude-os/templates/skills/`
+- `{claude_os_dir}/templates/commands/`
+- `{claude_os_dir}/templates/skills/`
 
 (These symlinks are set up during Claude OS installation via `./install.sh`)

@@ -34,7 +34,7 @@ export default function ProjectManagement() {
   const [showProjectSetup, setShowProjectSetup] = useState<number | null>(null);
   const [selectedProjectForSetup, setSelectedProjectForSetup] = useState<any>(null);
   const [projectName, setProjectName] = useState('');
-  const [projectPath, setProjectPath] = useState('/Users/iamanmp/Projects');
+  const [projectPath, setProjectPath] = useState('');
   const [projectDesc, setProjectDesc] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [showPathPicker, setShowPathPicker] = useState(false);
@@ -165,7 +165,7 @@ export default function ProjectManagement() {
                     </button>
                   </div>
                   <p className="text-xs text-light-grey mt-2">
-                    Default: /Users/iamanmp/Projects
+                    Enter the full path to your project directory
                   </p>
                 </div>
 

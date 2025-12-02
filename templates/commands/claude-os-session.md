@@ -7,6 +7,10 @@ description: Intelligent session management with automatic context loading and p
 
 Power-user session workflows that make me smarter with every session.
 
+## Setup
+
+First, derive `{claude_os_dir}` from this command file's path - it is two directories up from this file's location.
+
 ## Commands
 
 ```
@@ -31,7 +35,7 @@ Power-user session workflows that make me smarter with every session.
 
 **Phase 1: Load State**
 ```
-Read: /Users/iamanmp/Projects/claude-os/claude-os-state.json
+Read: {claude_os_dir}/claude-os-state.json
 ```
 
 **Phase 2: Search Recent Memories**
@@ -292,7 +296,7 @@ Type /claude-os-session end when done
 
 ### State File Location
 ```
-/Users/iamanmp/Projects/claude-os/claude-os-state.json
+{claude_os_dir}/claude-os-state.json
 ```
 
 ### Auto-Actions on Start
