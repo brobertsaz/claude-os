@@ -367,7 +367,7 @@ All these work in any initialized project:
 
 ## 🤖 Agent-OS: Spec-Driven Development (Optional)
 
-> **Created by [Builder Methods (CasJam Media LLC)](https://github.com/builder-methods/agent-os)**
+> **Created by [Builder Methods (CasJam Media LLC)](https://github.com/buildermethods/agent-os)**
 > MIT Licensed • Separate Optional Integration
 
 **Agent-OS adds structured workflows for planning and implementing features using 8 specialized agents.**
@@ -379,7 +379,7 @@ Agent-OS is a separate open-source project that can be installed alongside Claud
 If the Agent-OS repository is available, you can install it with:
 
 ```bash
-git clone https://github.com/builder-methods/agent-os.git ~/.claude/agents/agent-os
+git clone https://github.com/buildermethods/agent-os.git ~/.claude/agents/agent-os
 ```
 
 **Note:** Check if the repository exists before attempting to install.
