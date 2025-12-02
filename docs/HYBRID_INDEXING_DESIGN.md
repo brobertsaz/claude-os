@@ -7,7 +7,7 @@
 ## Problem Statement
 
 Current Claude OS indexing is too slow for large codebases:
-- Pistn project (Rails, 10k+ files) = 3-5 hours to index
+- example-app project (Rails, 10k+ files) = 3-5 hours to index
 - Generates embeddings for EVERY file and chunk
 - Must complete before Claude can start working
 - Blocks productive coding sessions
@@ -383,7 +383,7 @@ def query_codebase(query: str, kb_name: str):
 ### Before (Current System)
 
 ```
-Pistn Project (10,000 Ruby files):
+example-app Project (10,000 Ruby files):
 - Index time: 3-5 hours
 - Embeddings: 100,000+ chunks
 - Must complete before coding
@@ -394,7 +394,7 @@ Pistn Project (10,000 Ruby files):
 ### After (Hybrid System)
 
 ```
-Pistn Project (10,000 Ruby files):
+example-app Project (10,000 Ruby files):
 
 Phase 1 (Structural):
 - Index time: 30 seconds

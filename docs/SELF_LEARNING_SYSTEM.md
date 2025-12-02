@@ -99,7 +99,7 @@ The initialize-project skill will:
 If you need to start workers manually:
 
 ```bash
-cd /Users/iamanmp/Projects/claude-os
+cd /path/to/claude-os
 ./start_redis_workers.sh
 ```
 
@@ -145,9 +145,9 @@ You don't need to do anything special! Just work normally:
 
 ```
 You: "Let's switch from Bootstrap to Tailwind for better customization"
-Claude: "I detected a technology change. Should I remember that PISTN is now using Tailwind CSS?"
+Claude: "I detected a technology change. Should I remember that example-app is now using Tailwind CSS?"
 You: "Yes"
-Claude: "Noted! I'll remember this for future work on PISTN"
+Claude: "Noted! I'll remember this for future work on example-app"
 ```
 
 ---

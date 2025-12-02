@@ -993,7 +993,6 @@ claude-os/
 - **[docs/guides/REALTIME_KANBAN_GUIDE.md](docs/guides/REALTIME_KANBAN_GUIDE.md)** - ⚡ **NEW! Real-time Kanban board** (auto-sync, file watching, API reference)
 - **[docs/SELF_LEARNING_SYSTEM.md](docs/SELF_LEARNING_SYSTEM.md)** - 🧠 How Claude learns automatically
 - **[docs/REAL_TIME_LEARNING_GUIDE.md](docs/REAL_TIME_LEARNING_GUIDE.md)** - Real-time learning usage
-- **[docs/MEMORY_MCP_GUIDE.md](docs/MEMORY_MCP_GUIDE.md)** - Persistent memory guide
 
 ### Technical Documentation
 

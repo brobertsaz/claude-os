@@ -85,9 +85,26 @@ Thumbs.db
 
 claude-os-state.json
 claude-os-config.json
+claude-os-triggers.json
 
-# Project-specific docs (not for distribution)
+# Test artifacts
+htmlcov/
+.coverage
+.pytest_cache/
+frontend/e2e/screenshots/
+frontend/playwright-report/
+frontend/test-results/
+
+# Docs - ignore all except README-linked files
 docs/
+!docs/API_REFERENCE.md
+!docs/HYBRID_INDEXING_DESIGN.md
+!docs/REAL_TIME_LEARNING_GUIDE.md
+!docs/SELF_LEARNING_SYSTEM.md
+!docs/guides/
+docs/guides/*
+!docs/guides/REALTIME_KANBAN_GUIDE.md
+!docs/guides/VISUAL_GUIDE.md
 
 # Export files (contain project-specific data)
 exports/

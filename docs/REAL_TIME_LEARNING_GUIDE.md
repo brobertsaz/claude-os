@@ -46,7 +46,7 @@ Only high-confidence detections (≥75%) trigger prompts.
 ### 1. Install Dependencies
 
 ```bash
-cd /Users/iamanmp/Projects/code-forge
+cd /path/to/code-forge
 pip install -r requirements.txt  # Includes redis and rq
 ```
 
@@ -69,7 +69,7 @@ brew services start redis
 In a new terminal:
 
 ```bash
-cd /Users/iamanmp/Projects/code-forge
+cd /path/to/code-forge
 python -m app.core.redis_config
 # This tests the Redis connection, then start workers:
 
@@ -92,7 +92,7 @@ You should see:
 ### Workflow
 
 ```
-1. You're working on PISTN
+1. You're working on example-app
 2. You say: "We're switching from Bootstrap to Tailwind"
 
 3. [< 1 second] Redis receives the message
@@ -210,7 +210,7 @@ redis-cli
 ### View Learned Insights
 
 ```bash
-cat /Users/iamanmp/Projects/pistn/.claude-os/project-profile/LEARNED_INSIGHTS.md
+cat /path/to/example-app/.claude-os/project-profile/LEARNED_INSIGHTS.md
 ```
 
 ---
@@ -260,7 +260,7 @@ redis-cli
 #    • switching: We're switching from Bootstrap to Tailwind... (confidence: 95%)
 ```
 
-### Integration Test (With PISTN)
+### Integration Test (With example-app)
 
 ```bash
 # 1. Ensure Redis is running
@@ -269,12 +269,12 @@ redis-cli ping
 # 2. Start workers
 python -m rq worker claude-os:learning claude-os:prompts claude-os:ingest
 
-# 3. Run analyze-project on PISTN
-cd /Users/iamanmp/.claude/skills/analyze-project
+# 3. Run analyze-project on example-app
+cd ~/.claude/skills/analyze-project
 python3 analyze_project.py 4 http://localhost:8051
 
 # 4. Make a change and commit
-cd /Users/iamanmp/Projects/pistn
+cd /path/to/example-app
 echo "# Test" >> test.txt
 git add test.txt
 git commit -m "test commit"
