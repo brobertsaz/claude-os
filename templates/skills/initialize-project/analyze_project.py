@@ -221,7 +221,10 @@ class ProjectAnalyzer:
             try:
                 db_path = Path.home() / ".claude" / "projects" / "claude-os" / "data" / "claude-os.db"
                 if not db_path.exists():
-                    db_path = Path("/Users/iamanmp/Projects/claude-os/data/claude-os.db")
+                    # Derive from this script's location (4 levels up from templates/skills/initialize-project/)
+                    script_claude_os = Path(__file__).resolve().parent.parent.parent.parent / "data" / "claude-os.db"
+                    if script_claude_os.exists():
+                        db_path = script_claude_os
 
                 if db_path.exists():
                     conn = sqlite3.connect(str(db_path))
@@ -1212,24 +1215,12 @@ REGISTERED MCPs (load on-demand):
                 print_success("RQ workers already running")
                 return True
 
-            # Find Claude OS project directory
-            # Try multiple locations
-            claude_os_paths = [
-                Path("/Users/iamanmp/Projects/claude-os"),
-                Path.home() / "Projects" / "claude-os",
-                Path("/opt/claude-os"),
-                Path("/srv/claude-os")
-            ]
+            # Find Claude OS project directory from this script's location
+            claude_os_path = Path(__file__).resolve().parent.parent.parent.parent
 
-            claude_os_path = None
-            for path in claude_os_paths:
-                if (path / "start_redis_workers.sh").exists():
-                    claude_os_path = path
-                    break
-
-            if not claude_os_path:
+            if not (claude_os_path / "start_redis_workers.sh").exists():
                 print_warning("Claude OS project not found - cannot start RQ workers")
-                print_info("Expected locations: /Users/iamanmp/Projects/claude-os or ~/Projects/claude-os")
+                print_info("Could not locate start_redis_workers.sh in the claude-os directory")
                 return False
 
             # Start RQ workers in background

@@ -19,7 +19,7 @@
 - **My knowledge base** of patterns and decisions
 - **My learning system** that improves over time
 
-**Location**: `/Users/iamanmp/Projects/claude-os`
+**Location**: `{{CLAUDE_OS_DIR}}`
 
 The MCP server is called "code-forge" internally for backwards compatibility, but it's Claude OS.
 
@@ -219,9 +219,9 @@ What would you like to do?
 
 ### Related Documentation
 
-- Full protocol: `/Users/iamanmp/Projects/claude-os/docs/guides/SESSION_START_PROTOCOL.md`
-- Ideal workflow: `/Users/iamanmp/Projects/claude-os/docs/guides/IDEAL_SESSION_WORKFLOW.md`
-- Session commands: `/Users/iamanmp/Projects/claude-os/templates/commands/claude-os-session.md`
+- Full protocol: `{{CLAUDE_OS_DIR}}/docs/guides/SESSION_START_PROTOCOL.md`
+- Ideal workflow: `{{CLAUDE_OS_DIR}}/docs/guides/IDEAL_SESSION_WORKFLOW.md`
+- Session commands: `{{CLAUDE_OS_DIR}}/templates/commands/claude-os-session.md`
 
 **Why this matters:** Zero context loss. Every session picks up exactly where we left off. No re-explaining, no starting cold, no wasted time.
 

@@ -7,6 +7,10 @@ description: Manage Claude OS trigger phrases and automatic skill invocation
 
 Manage trigger phrases that automatically invoke skills and workflows.
 
+## Setup
+
+First, derive `{claude_os_dir}` from this command file's path - it is two directories up from this file's location.
+
 ## Command Pattern
 
 ```
@@ -20,7 +24,7 @@ Manage trigger phrases that automatically invoke skills and workflows.
 **ALWAYS start by loading the triggers config:**
 
 ```bash
-Read: /Users/iamanmp/Projects/claude-os/claude-os-triggers.json
+Read: {claude_os_dir}/claude-os-triggers.json
 ```
 
 ## Step 2: Parse Command and Execute
@@ -229,14 +233,14 @@ When modifying triggers, use this pattern:
 import json
 
 # Load
-with open('/Users/iamanmp/Projects/claude-os/claude-os-triggers.json') as f:
+with open('{claude_os_dir}/claude-os-triggers.json') as f:
     config = json.load(f)
 
 # Modify
 config['triggers']['remember_this']['phrases'].append('new phrase')
 
 # Save
-with open('/Users/iamanmp/Projects/claude-os/claude-os-triggers.json', 'w') as f:
+with open('{claude_os_dir}/claude-os-triggers.json', 'w') as f:
     json.dump(config, f, indent=2)
 ```
 
@@ -266,7 +270,7 @@ Triggers session end workflow (if implemented)
 
 ## Configuration File
 
-Location: `/Users/iamanmp/Projects/claude-os/claude-os-triggers.json`
+Location: `{claude_os_dir}/claude-os-triggers.json`
 
 Structure:
 ```json
@@ -334,4 +338,4 @@ The remember-this skill will be updated to:
 
 **Remember**: These triggers make me more proactive and responsive to your needs!
 
-*Configuration file created at `/Users/iamanmp/Projects/claude-os/claude-os-triggers.json`*
+*Configuration file created at `{claude_os_dir}/claude-os-triggers.json`*
