@@ -114,6 +114,10 @@ else
     echo "✅ ${USER_CLAUDE_DIR} already exists"
 fi
 
+# Ensure commands and skills subdirectories exist (even if .claude already existed)
+mkdir -p "${USER_CLAUDE_DIR}/commands"
+mkdir -p "${USER_CLAUDE_DIR}/skills"
+
 # Create symlinks for commands
 echo ""
 echo "🔗 Setting up command symlinks..."
