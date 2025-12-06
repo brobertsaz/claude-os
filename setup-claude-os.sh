@@ -12,10 +12,15 @@ set -e
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════
 
-VERSION="2.1.0"
+VERSION="2.2.0"
 CLAUDE_OS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USER_CLAUDE_DIR="${HOME}/.claude"
 TEMPLATES_DIR="${CLAUDE_OS_DIR}/templates"
+
+# Mode flags
+DRY_RUN=false
+DEMO_MODE=false
+FORCE_MODE=false
 
 # Default model choices
 DEFAULT_LLM_MODEL="llama3.2:3b"           # Lite model - faster download, works on most machines
@@ -198,6 +203,196 @@ gum_style_box() {
         gum style --border rounded --padding "1 2" --border-foreground "#00FFFF" "$text"
     else
         print_box "$text"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ARGUMENT PARSING & MODES
+# ═══════════════════════════════════════════════════════════════════════════
+
+show_help() {
+    echo ""
+    echo -e "${CYAN}Claude OS Installer v${VERSION}${NC}"
+    echo ""
+    echo -e "${WHITE}Usage:${NC} ./setup-claude-os.sh [OPTIONS]"
+    echo ""
+    echo -e "${WHITE}Options:${NC}"
+    echo -e "  ${CYAN}--help, -h${NC}      Show this help message"
+    echo -e "  ${CYAN}--demo${NC}          Run interactive demo (no changes made)"
+    echo -e "  ${CYAN}--dry-run${NC}       Show what would be done without doing it"
+    echo -e "  ${CYAN}--force, -f${NC}     Skip confirmation prompts"
+    echo -e "  ${CYAN}--version, -v${NC}   Show version number"
+    echo ""
+    echo -e "${WHITE}Examples:${NC}"
+    echo -e "  ${DIM}./setup-claude-os.sh${NC}           # Normal installation"
+    echo -e "  ${DIM}./setup-claude-os.sh --demo${NC}    # See the beautiful UI"
+    echo -e "  ${DIM}./setup-claude-os.sh --dry-run${NC} # Preview changes"
+    echo ""
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            --demo)
+                DEMO_MODE=true
+                shift
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --force|-f)
+                FORCE_MODE=true
+                shift
+                ;;
+            --version|-v)
+                echo "Claude OS Installer v${VERSION}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Unknown option: $1${NC}"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# Run the interactive demo without making any changes
+run_demo() {
+    clear
+    echo ""
+    echo -e "${CYAN}"
+    cat << 'EOF'
+     ██████╗██╗      █████╗ ██╗   ██╗██████╗ ███████╗     ██████╗ ███████╗
+    ██╔════╝██║     ██╔══██╗██║   ██║██╔══██╗██╔════╝    ██╔═══██╗██╔════╝
+    ██║     ██║     ███████║██║   ██║██║  ██║█████╗      ██║   ██║███████╗
+    ██║     ██║     ██╔══██║██║   ██║██║  ██║██╔══╝      ██║   ██║╚════██║
+    ╚██████╗███████╗██║  ██║╚██████╔╝██████╔╝███████╗    ╚██████╔╝███████║
+     ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚══════╝
+EOF
+    echo -e "${NC}"
+    echo -e "${DIM}                    DEMO MODE - No changes will be made${NC}"
+    echo ""
+
+    if [[ "$HAS_GUM" != "true" ]]; then
+        echo -e "${YELLOW}  ⚠ Gum not installed - showing bash fallback version${NC}"
+        echo -e "${DIM}    Install gum for the full experience: brew install gum${NC}"
+        echo ""
+    fi
+
+    sleep 1
+
+    # Demo: Styled Box
+    echo -e "${CYAN}━━━ Demo 1: Styled Boxes ━━━${NC}"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum style --border rounded --padding "1 3" --border-foreground "#00FFFF" \
+            "$(gum style --foreground "#FFFFFF" --bold "Welcome to Claude OS!")" \
+            "" \
+            "$(gum style --foreground "#888888" "Your AI Memory System")"
+    else
+        print_box "Welcome to Claude OS!"
+    fi
+    echo ""
+    sleep 1
+
+    # Demo: Choose
+    echo -e "${CYAN}━━━ Demo 2: Interactive Selection ━━━${NC}"
+    echo ""
+    local choice
+    if [[ "$HAS_GUM" == "true" ]]; then
+        choice=$(gum choose --cursor.foreground="#00FFFF" --selected.foreground="#00FF00" \
+            "🏠 Local (Ollama) - Free, private, runs on your machine" \
+            "☁️  Cloud (OpenAI) - Fast, no local resources needed" \
+            "🔧 Custom - I'll configure it myself")
+    else
+        echo -e "  ${CYAN}[1]${NC} 🏠 Local (Ollama) - Free, private"
+        echo -e "  ${CYAN}[2]${NC} ☁️  Cloud (OpenAI) - Fast, no local resources"
+        echo -e "  ${CYAN}[3]${NC} 🔧 Custom - Configure manually"
+        echo ""
+        echo -ne "  ${WHITE}Enter choice [1-3]:${NC} "
+        read -r num
+        case $num in
+            1) choice="🏠 Local" ;;
+            2) choice="☁️  Cloud" ;;
+            *) choice="🔧 Custom" ;;
+        esac
+    fi
+    echo ""
+    echo -e "${GREEN}✓${NC} You selected: $choice"
+    echo ""
+    sleep 1
+
+    # Demo: Confirm
+    echo -e "${CYAN}━━━ Demo 3: Confirmation ━━━${NC}"
+    echo ""
+    if [[ "$HAS_GUM" == "true" ]]; then
+        if gum confirm --prompt.foreground="#FFFFFF" "Do you like this experience?"; then
+            echo -e "${GREEN}✓${NC} Awesome!"
+        else
+            echo -e "${WHITE}The bash version is nice too!${NC}"
+        fi
+    else
+        echo -ne "  ${WHITE}Do you like this? [y/N]:${NC} "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo -e "${GREEN}✓${NC} Awesome!"
+        else
+            echo -e "${WHITE}The bash version is nice too!${NC}"
+        fi
+    fi
+    echo ""
+    sleep 1
+
+    # Demo: Spinner
+    echo -e "${CYAN}━━━ Demo 4: Progress Spinner ━━━${NC}"
+    echo ""
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum spin --spinner dot --title "Installing imaginary things..." -- sleep 2
+    else
+        sleep 2 &
+        spinner $! "Installing imaginary things..."
+    fi
+    echo -e "${GREEN}✓${NC} Done!"
+    echo ""
+
+    # Completion
+    echo ""
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum style --border double --padding "1 4" --border-foreground "#00FF00" --foreground "#00FF00" \
+            "✨  Demo Complete!  ✨"
+    else
+        echo -e "${GREEN}╔═══════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║     ✨  Demo Complete!  ✨            ║${NC}"
+        echo -e "${GREEN}╚═══════════════════════════════════════╝${NC}"
+    fi
+    echo ""
+    echo -e "${DIM}Run without --demo to actually install Claude OS${NC}"
+    echo ""
+
+    exit 0
+}
+
+# Show what would be done without doing it
+dry_run_msg() {
+    echo -e "${YELLOW}  [DRY-RUN]${NC} $1"
+}
+
+# Backup a file before overwriting
+backup_file() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        local backup="${file}.backup.$(date +%Y%m%d_%H%M%S)"
+        if [[ "$DRY_RUN" == "true" ]]; then
+            dry_run_msg "Would backup $file → $backup"
+        else
+            cp "$file" "$backup"
+            success "Backed up $file → $backup"
+        fi
     fi
 }
 
@@ -758,6 +953,20 @@ create_config() {
     print_section "Creating Configuration"
 
     local config_file="${CLAUDE_OS_DIR}/.env"
+    local json_config="${CLAUDE_OS_DIR}/claude-os-config.json"
+
+    # Backup existing configs before overwriting
+    backup_file "$config_file"
+    backup_file "$json_config"
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        dry_run_msg "Would create $config_file with:"
+        dry_run_msg "  CLAUDE_OS_PROVIDER=${PROVIDER}"
+        dry_run_msg "  LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}"
+        dry_run_msg "  EMBEDDING_MODEL=${EMBED_MODEL:-text-embedding-3-small}"
+        dry_run_msg "Would create $json_config"
+        return
+    fi
 
     cat > "$config_file" << EOF
 # Claude OS Configuration
@@ -861,14 +1070,37 @@ EOF
 # ═══════════════════════════════════════════════════════════════════════════
 
 main() {
-    # Detect OS first
+    # Parse command line arguments first
+    parse_args "$@"
+
+    # Detect OS (needed for gum install and demo)
     detect_os
+
+    # Handle demo mode - runs demo and exits
+    if [[ "$DEMO_MODE" == "true" ]]; then
+        run_demo
+        exit 0
+    fi
 
     # Show banner
     show_banner
 
-    # Offer to install gum for enhanced experience
-    offer_gum_install
+    # Show dry-run notice if applicable
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo ""
+        echo -e "${YELLOW}┌────────────────────────────────────────────────────────────────┐${NC}"
+        echo -e "${YELLOW}│${NC}  ${WHITE}🔍 DRY-RUN MODE${NC}                                              ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC}                                                                ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC}  ${DIM}No changes will be made. This shows what would happen.${NC}       ${YELLOW}│${NC}"
+        echo -e "${YELLOW}└────────────────────────────────────────────────────────────────┘${NC}"
+        echo ""
+        sleep 1
+    fi
+
+    # Offer to install gum for enhanced experience (skip in dry-run)
+    if [[ "$DRY_RUN" != "true" ]]; then
+        offer_gum_install
+    fi
 
     # Provider selection
     select_provider
@@ -887,24 +1119,61 @@ main() {
     fi
 
     # Common setup
-    setup_python
+    if [[ "$DRY_RUN" == "true" ]]; then
+        print_section "Python Environment"
+        dry_run_msg "Would create/use virtual environment at ${CLAUDE_OS_DIR}/venv"
+        dry_run_msg "Would install dependencies from requirements.txt"
+    else
+        setup_python
+    fi
 
     # Provider-specific dependencies
     if [[ "$PROVIDER" == "local" ]]; then
-        setup_ollama
+        if [[ "$DRY_RUN" == "true" ]]; then
+            print_section "Ollama Setup"
+            dry_run_msg "Would install Ollama if not present"
+            dry_run_msg "Would download model: ${LLM_MODEL}"
+            dry_run_msg "Would download model: ${EMBED_MODEL}"
+        else
+            setup_ollama
+        fi
     fi
 
     # Optional: Redis (useful for caching)
-    setup_redis
+    if [[ "$DRY_RUN" == "true" ]]; then
+        print_section "Redis Setup"
+        dry_run_msg "Would install Redis if not present"
+        dry_run_msg "Would start Redis service"
+    else
+        setup_redis
+    fi
 
     # Claude Code integration
-    setup_claude_integration
+    if [[ "$DRY_RUN" == "true" ]]; then
+        print_section "Claude Code Integration"
+        dry_run_msg "Would create directories: ~/.claude/commands, ~/.claude/skills"
+        dry_run_msg "Would symlink commands from ${TEMPLATES_DIR}/commands/"
+        dry_run_msg "Would symlink skills from ${TEMPLATES_DIR}/skills/"
+        dry_run_msg "Would configure MCP server in ~/.claude/settings.json"
+    else
+        setup_claude_integration
+    fi
 
     # Create configuration
     create_config
 
     # Show completion
-    show_completion
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo ""
+        echo -e "${YELLOW}┌────────────────────────────────────────────────────────────────┐${NC}"
+        echo -e "${YELLOW}│${NC}  ${WHITE}✓ Dry-run complete!${NC}                                          ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC}                                                                ${YELLOW}│${NC}"
+        echo -e "${YELLOW}│${NC}  ${DIM}Run without --dry-run to perform the actual installation.${NC}    ${YELLOW}│${NC}"
+        echo -e "${YELLOW}└────────────────────────────────────────────────────────────────┘${NC}"
+        echo ""
+    else
+        show_completion
+    fi
 }
 
 # Run main
