@@ -1,11 +1,15 @@
 """
 Configuration management for Claude OS.
 Centralizes all application settings with environment variable support.
+
+Supports two providers:
+- local: Uses Ollama for embeddings and LLM (free, private)
+- openai: Uses OpenAI API for embeddings and LLM (requires API key)
 """
 
 import os
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from dotenv import load_dotenv
 
@@ -24,14 +28,33 @@ class ConfigMeta(type):
 class Config(metaclass=ConfigMeta):
     """Central configuration for Claude OS application."""
 
-    # Ollama Configuration
+    # ═══════════════════════════════════════════════════════════════════════
+    # PROVIDER CONFIGURATION
+    # ═══════════════════════════════════════════════════════════════════════
+    # Provider: "local" (Ollama) or "openai" (OpenAI API)
+    PROVIDER: str = os.getenv("CLAUDE_OS_PROVIDER", "local")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # OLLAMA CONFIGURATION (for local provider)
+    # ═══════════════════════════════════════════════════════════════════════
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:latest")  # Upgraded to faster 8B model
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")  # Lite model - faster, works on most machines
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
-    # Model Configuration
+    # ═══════════════════════════════════════════════════════════════════════
+    # OPENAI CONFIGURATION (for openai provider)
+    # ═══════════════════════════════════════════════════════════════════════
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_LLM_MODEL: str = os.getenv("OPENAI_LLM_MODEL", "gpt-4o-mini")
+    OPENAI_EMBED_MODEL: str = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    OPENAI_EMBED_DIMENSIONS: int = 1536  # OpenAI text-embedding-3-small dimensions
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # MODEL CONFIGURATION (auto-selected based on provider)
+    # ═══════════════════════════════════════════════════════════════════════
+    # These are the "active" models - set based on provider or overridden via env
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "llama3.1")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "llama3.2:3b")  # Default to lite model
 
     # Context and Retrieval Configuration
     MAX_CONTEXT_LENGTH: int = int(os.getenv("MAX_CONTEXT_LENGTH", "4096"))
@@ -187,6 +210,82 @@ class Config(metaclass=ConfigMeta):
     def get_mcp_url(cls) -> str:
         """Get the full MCP server URL."""
         return f"http://{cls.MCP_SERVER_HOST}:{cls.MCP_SERVER_PORT}"
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PROVIDER HELPER METHODS
+    # ═══════════════════════════════════════════════════════════════════════
+
+    @classmethod
+    def get_provider(cls) -> str:
+        """Get the active provider (local or openai)."""
+        provider = os.getenv("CLAUDE_OS_PROVIDER", "local").lower()
+        if provider not in ("local", "openai", "custom"):
+            return "local"
+        return provider
+
+    @classmethod
+    def is_local_provider(cls) -> bool:
+        """Check if using local (Ollama) provider."""
+        return cls.get_provider() == "local"
+
+    @classmethod
+    def is_openai_provider(cls) -> bool:
+        """Check if using OpenAI provider."""
+        return cls.get_provider() == "openai"
+
+    @classmethod
+    def get_active_llm_model(cls) -> str:
+        """Get the active LLM model based on provider."""
+        # Allow explicit override via LLM_MODEL env var
+        explicit_model = os.getenv("LLM_MODEL")
+        if explicit_model:
+            return explicit_model
+
+        if cls.is_openai_provider():
+            return cls.OPENAI_LLM_MODEL
+        return cls.OLLAMA_MODEL
+
+    @classmethod
+    def get_active_embed_model(cls) -> str:
+        """Get the active embedding model based on provider."""
+        # Allow explicit override via EMBEDDING_MODEL env var
+        explicit_model = os.getenv("EMBEDDING_MODEL")
+        if explicit_model:
+            return explicit_model
+
+        if cls.is_openai_provider():
+            return cls.OPENAI_EMBED_MODEL
+        return cls.OLLAMA_EMBED_MODEL
+
+    @classmethod
+    def get_embedding_dimensions(cls) -> int:
+        """Get the embedding dimensions based on provider/model."""
+        if cls.is_openai_provider():
+            return cls.OPENAI_EMBED_DIMENSIONS  # 1536 for text-embedding-3-small
+        # nomic-embed-text uses 768 dimensions
+        return 768
+
+    @classmethod
+    def get_openai_api_key(cls) -> Optional[str]:
+        """Get the OpenAI API key if configured."""
+        key = os.getenv("OPENAI_API_KEY", "")
+        return key if key else None
+
+    @classmethod
+    def validate_provider_config(cls) -> List[str]:
+        """Validate provider-specific configuration. Returns list of errors."""
+        errors = []
+        provider = cls.get_provider()
+
+        if provider == "openai":
+            if not cls.get_openai_api_key():
+                errors.append("OPENAI_API_KEY is required when using OpenAI provider")
+
+        elif provider == "local":
+            # Could add Ollama connectivity check here
+            pass
+
+        return errors
 
     @classmethod
     def is_supported_file(cls, filename: str) -> bool:
