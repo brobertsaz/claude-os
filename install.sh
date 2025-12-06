@@ -199,26 +199,69 @@ else
     echo "   ✅ Config already exists"
 fi
 
-# Update MCP server configuration
+# Update MCP server configuration in settings.json
 echo ""
-echo "📡 Configuring MCP server..."
+echo "📡 Configuring MCP server for Claude Code..."
+
+SETTINGS_FILE="${USER_CLAUDE_DIR}/settings.json"
+
+# Create settings.json if it doesn't exist
+if [ ! -f "$SETTINGS_FILE" ]; then
+    echo "{}" > "$SETTINGS_FILE"
+fi
+
+# Add MCP server configuration using Python for proper JSON handling
+python3 << EOF
+import json
+import os
+
+settings_file = "$SETTINGS_FILE"
+claude_os_dir = "$CLAUDE_OS_DIR"
+
+# Read existing settings
+try:
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+except (json.JSONDecodeError, FileNotFoundError):
+    settings = {}
+
+# Ensure mcpServers exists
+if 'mcpServers' not in settings:
+    settings['mcpServers'] = {}
+
+# Add code-forge MCP server configuration
+settings['mcpServers']['code-forge'] = {
+    "command": os.path.join(claude_os_dir, "venv", "bin", "python3"),
+    "args": [os.path.join(claude_os_dir, "mcp_server", "claude_code_mcp.py")],
+    "env": {
+        "CLAUDE_OS_API": "http://localhost:8051"
+    }
+}
+
+# Write updated settings
+with open(settings_file, 'w') as f:
+    json.dump(settings, f, indent=2)
+
+print("   ✅ MCP server configured in settings.json")
+print(f"      Server: code-forge")
+print(f"      Tools will appear as: mcp__code-forge__*")
+EOF
+
+# Also keep the legacy config file for reference
 MCP_CONFIG="${USER_CLAUDE_DIR}/mcp-servers/code-forge.json"
 MCP_DIR=$(dirname "$MCP_CONFIG")
-
 if [ ! -d "$MCP_DIR" ]; then
     mkdir -p "$MCP_DIR"
 fi
-
 cat > "$MCP_CONFIG" << EOF
 {
   "name": "code-forge",
-  "description": "Claude OS - AI Memory & Knowledge Base System",
+  "description": "Claude OS - AI Memory & Knowledge Base System (Legacy config - actual config in settings.json)",
   "url": "http://localhost:8051",
   "enabled": true,
   "claude_os_dir": "${CLAUDE_OS_DIR}"
 }
 EOF
-echo "   ✅ MCP configuration updated"
 
 # Create start script
 echo ""
