@@ -24,6 +24,54 @@
 
 ---
 
+## 🆕 What's New in v2.2
+
+> **Latest Release: December 2025**
+
+### ✨ Beautiful New Installer
+
+The installer got a major upgrade with **Charm CLI (gum)** support!
+
+```bash
+./setup-claude-os.sh --demo    # See the beautiful UI without changes
+./setup-claude-os.sh --dry-run # Preview what would happen
+./setup-claude-os.sh --help    # See all options
+```
+
+**New Features:**
+- 🎨 **Gum Integration** - Beautiful interactive menus with arrow-key navigation (with graceful bash fallback)
+- 🛡️ **Safety Features** - `--demo`, `--dry-run`, and automatic config backups
+- 💨 **Lite Model Default** - Now defaults to `llama3.2:3b` (2GB) instead of 8b (4.7GB)
+- ☁️ **Cloud Option** - Choose between Local (Ollama) or Cloud (OpenAI) during setup
+- 🐧 **Better Linux Support** - Improved package manager detection and installation
+
+**Safety First:**
+- `--demo` - Try the installer UI without making any changes
+- `--dry-run` - See exactly what would be done before doing it
+- Auto-backup - Existing `.env` files backed up before overwriting
+
+### 📋 Recent Improvements
+
+| Version | Highlights |
+|---------|------------|
+| **v2.2** | Gum CLI support, safety features, lite model default |
+| **v2.1** | Unified installer, OpenAI provider support |
+| **v2.0** | Hybrid tree-sitter indexing, real-time Kanban board |
+
+### 🙌 Community Contributions
+
+Thanks to our amazing contributors!
+
+| PR | Contributor | Description |
+|----|-------------|-------------|
+| [#17](https://github.com/brobertsaz/claude-os/pull/17) | [@williamclavier](https://github.com/williamclavier) | Fix: Ensure commands/skills directories exist |
+| [#16](https://github.com/brobertsaz/claude-os/pull/16) | [@jplimack](https://github.com/jplimack) | Fix hardcoded paths - make dynamic |
+| [#12](https://github.com/brobertsaz/claude-os/pull/12) | [@gkastanis](https://github.com/gkastanis) | Add missing frontend lib files |
+| [#11](https://github.com/brobertsaz/claude-os/pull/11) | [@gkastanis](https://github.com/gkastanis) | Add Linux support for installation |
+| [#10](https://github.com/brobertsaz/claude-os/pull/10) | [@nicseltzer](https://github.com/nicseltzer) | Fix broken README link |
+
+---
+
 ## 🚀 What is Claude OS?
 
 **Claude OS** is **Claude Code's personal memory system** - making AI the best coding assistant in the universe by remembering everything across sessions.
@@ -193,42 +241,45 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 git clone https://github.com/brobertsaz/claude-os.git
 cd claude-os
 
-# Run the installer
-./install.sh
+# Run the unified installer
+./setup-claude-os.sh
 ```
 
-The installer will:
-
-- ✅ Set up Python virtual environment
-- ✅ Install all dependencies
-- ✅ Configure MCP server
-- ✅ Symlink commands and skills to `~/.claude/`
-- ✅ Create start script
-
-### Full Setup (with Ollama)
-
-If you want to use local AI with Ollama:
+**First time? Try the demo first:**
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/brobertsaz/claude-os.git
-cd claude-os
-
-# 2. Run the full setup script (installs Ollama + Redis)
-./setup.sh
-
-# 3. Start all services
-./start_all_services.sh
+./setup-claude-os.sh --demo    # See the beautiful UI (no changes made)
+./setup-claude-os.sh --dry-run # Preview what would be installed
 ```
 
-**The setup script automatically installs:**
+The installer will guide you through:
 
-- ✅ Ollama (if not present) + LLM models
-- ✅ Redis (if not present) for caching/queues
+1. **Choose Provider:** Local (Ollama) or Cloud (OpenAI)
+2. **Choose Model Size:** Lite (2GB) or Full (4.7GB) - for local installs
+3. **Automatic Setup:** Python, dependencies, MCP server, commands/skills
+
+**What gets installed:**
+
 - ✅ Python virtual environment
-- ✅ All Python dependencies
-- ✅ SQLite database
-- ✅ Frontend dependencies (if Node.js present)
+- ✅ All dependencies
+- ✅ MCP server configuration
+- ✅ Commands and skills symlinked to `~/.claude/`
+- ✅ Ollama + models (if local provider selected)
+- ✅ Redis for caching
+
+### Installer Options
+
+```bash
+./setup-claude-os.sh           # Interactive installation
+./setup-claude-os.sh --demo    # Try the UI without changes
+./setup-claude-os.sh --dry-run # Preview what would happen
+./setup-claude-os.sh --help    # Show all options
+./setup-claude-os.sh --version # Show version
+```
+
+### Legacy Scripts
+
+The old `install.sh` and `setup.sh` scripts still work - they redirect to the new unified installer.
 
 **Visit** <http://localhost:5173> to use the web UI.
 
@@ -738,16 +789,25 @@ When you run `/claude-os-init`, you get 4 knowledge bases:
 ### Environment Variables
 
 ```bash
-# SQLite Database
-SQLITE_DB_PATH=data/claude-os.db  # Default: data/claude-os.db
+# Provider (local = Ollama, openai = OpenAI API)
+CLAUDE_OS_PROVIDER=local            # Default: local
 
-# Ollama
+# SQLite Database
+SQLITE_DB_PATH=data/claude-os.db    # Default: data/claude-os.db
+
+# Ollama (for local provider)
 OLLAMA_HOST=http://localhost:11434  # Default: localhost:11434
-OLLAMA_MODEL=llama3.1:latest        # Default: llama3.1:latest
+OLLAMA_MODEL=llama3.2:3b            # Default: llama3.2:3b (lite model)
+OLLAMA_EMBED_MODEL=nomic-embed-text # Default: nomic-embed-text
+
+# OpenAI (for openai provider)
+OPENAI_API_KEY=sk-...               # Required if using OpenAI
+OPENAI_LLM_MODEL=gpt-4o-mini        # Default: gpt-4o-mini
+OPENAI_EMBED_MODEL=text-embedding-3-small  # Default
 
 # MCP Server
-MCP_SERVER_HOST=0.0.0.0         # Default: 0.0.0.0
-MCP_SERVER_PORT=8051            # Default: 8051
+MCP_SERVER_HOST=0.0.0.0             # Default: 0.0.0.0
+MCP_SERVER_PORT=8051                # Default: 8051
 ```
 
 ### Project Configuration
@@ -797,36 +857,40 @@ Each project has `.claude-os/config.json`:
 
 ### Installation & Setup
 
-#### `./install.sh` - Quick Setup (macOS & Linux)
+#### `./setup-claude-os.sh` - Unified Installer (Recommended)
 
 ```bash
-./install.sh
+./setup-claude-os.sh           # Interactive installation
+./setup-claude-os.sh --demo    # Try the beautiful UI (no changes)
+./setup-claude-os.sh --dry-run # Preview what would happen
+./setup-claude-os.sh --help    # Show all options
+./setup-claude-os.sh --version # Show version (v2.2.0)
 ```
 
-**Automated setup script:**
+**Features:**
 
-- ✅ Creates `~/.claude/` directories
-- ✅ Symlinks all commands and skills
-- ✅ Sets up Python environment
-- ✅ Installs dependencies
-- ✅ Configures MCP server
+- 🎨 Beautiful interactive UI with [Charm CLI (gum)](https://github.com/charmbracelet/gum) support
+- 🛡️ Safety features: `--demo`, `--dry-run`, automatic config backups
+- ☁️ Provider choice: Local (Ollama) or Cloud (OpenAI)
+- 💨 Model choice: Lite (llama3.2:3b, 2GB) or Full (llama3.1:8b, 4.7GB)
+- 🐧 Cross-platform: macOS and Linux (Ubuntu, Debian, Fedora, RHEL, Arch)
 
-**Supported Linux distros:** Ubuntu, Debian, Fedora, RHEL, Arch
+**What it installs:**
 
-#### `./setup.sh` - Full Setup (with Ollama + Redis)
+- ✅ Python virtual environment + dependencies
+- ✅ Ollama + AI models (if local provider)
+- ✅ Redis for caching
+- ✅ MCP server configuration
+- ✅ Commands and skills symlinked to `~/.claude/`
+
+#### Legacy Scripts
+
+The old scripts redirect to the unified installer:
 
 ```bash
-./setup.sh
+./install.sh  # → redirects to setup-claude-os.sh
+./setup.sh    # → redirects to setup-claude-os.sh
 ```
-
-**Complete installation:**
-
-- ✅ Installs Ollama + Redis (if not already installed)
-- ✅ Downloads LLM models (~5-10 GB)
-- ✅ Sets up Python environment
-- ✅ Creates database
-
-**Linux package managers supported:** apt (Debian/Ubuntu), dnf (Fedora), yum (RHEL), pacman (Arch)
 
 ### Service Management
 
