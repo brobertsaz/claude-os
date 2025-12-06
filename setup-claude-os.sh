@@ -47,6 +47,161 @@ BOX_H="─"
 BOX_V="│"
 
 # ═══════════════════════════════════════════════════════════════════════════
+# GUM DETECTION & SETUP
+# ═══════════════════════════════════════════════════════════════════════════
+# Gum (https://github.com/charmbracelet/gum) provides beautiful interactive
+# prompts. If available, we use it. Otherwise, we fall back to bash.
+
+HAS_GUM=false
+if command -v gum &> /dev/null; then
+    HAS_GUM=true
+fi
+
+# Offer to install gum for enhanced experience
+offer_gum_install() {
+    if [[ "$HAS_GUM" == "true" ]]; then
+        return
+    fi
+
+    echo ""
+    echo -e "${CYAN}┌────────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}  ${WHITE}✨ Enhanced installer available!${NC}                             ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}                                                                ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}  ${DIM}Install 'gum' for a more beautiful experience with${NC}          ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}  ${DIM}interactive menus and smooth animations.${NC}                     ${CYAN}│${NC}"
+    echo -e "${CYAN}└────────────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -ne "  ${WHITE}Install gum? [y/N]:${NC} "
+    read -r install_gum
+
+    if [[ "$install_gum" =~ ^[Yy]$ ]]; then
+        echo ""
+        info "Installing gum..."
+
+        if [[ "$OS" == "macos" ]]; then
+            brew install gum &>/dev/null &
+            spinner $! "Installing gum via Homebrew..."
+        elif [[ "$OS" == "linux" ]]; then
+            # Try various package managers
+            if [[ "$PKG_MANAGER" == "apt" ]]; then
+                sudo mkdir -p /etc/apt/keyrings
+                curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg 2>/dev/null
+                echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list > /dev/null
+                sudo apt update -qq && sudo apt install -y -qq gum &>/dev/null &
+                spinner $! "Installing gum via apt..."
+            elif command -v go &> /dev/null; then
+                go install github.com/charmbracelet/gum@latest &>/dev/null &
+                spinner $! "Installing gum via go..."
+            else
+                warn "Could not auto-install gum. Install manually: https://github.com/charmbracelet/gum"
+                return
+            fi
+        fi
+
+        if command -v gum &> /dev/null; then
+            HAS_GUM=true
+            success "Gum installed! You'll get the premium experience ✨"
+        else
+            warn "Gum installation may have failed. Continuing with standard installer."
+        fi
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GUM WRAPPER FUNCTIONS (with bash fallback)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Choose from a list of options
+# Usage: choice=$(gum_choose "Option 1" "Option 2" "Option 3")
+gum_choose() {
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum choose --cursor.foreground="#00FFFF" --selected.foreground="#00FF00" "$@"
+    else
+        # Bash fallback
+        local options=("$@")
+        local i=1
+        for opt in "${options[@]}"; do
+            echo -e "  ${CYAN}[$i]${NC} $opt"
+            ((i++))
+        done
+        echo ""
+        while true; do
+            echo -ne "  ${WHITE}Enter choice [1-${#options[@]}]:${NC} "
+            read -r choice
+            if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#options[@]} )); then
+                echo "${options[$((choice-1))]}"
+                return
+            fi
+            echo -e "  ${RED}Please enter a number between 1 and ${#options[@]}${NC}"
+        done
+    fi
+}
+
+# Confirm yes/no
+# Usage: if gum_confirm "Are you sure?"; then ...
+gum_confirm() {
+    local prompt="$1"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum confirm --prompt.foreground="#FFFFFF" "$prompt"
+    else
+        echo -ne "  ${WHITE}$prompt [y/N]:${NC} "
+        read -r response
+        [[ "$response" =~ ^[Yy]$ ]]
+    fi
+}
+
+# Get text input
+# Usage: value=$(gum_input "Enter value" "placeholder")
+gum_input() {
+    local prompt="$1"
+    local placeholder="$2"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum input --placeholder "$placeholder" --prompt "$prompt: " --prompt.foreground="#00FFFF"
+    else
+        echo -ne "  ${WHITE}$prompt:${NC} "
+        read -r value
+        echo "$value"
+    fi
+}
+
+# Get password input (hidden)
+# Usage: value=$(gum_password "Enter password")
+gum_password() {
+    local prompt="$1"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum input --password --placeholder "••••••••••••••••" --prompt "$prompt: " --prompt.foreground="#00FFFF"
+    else
+        echo -ne "  ${WHITE}$prompt:${NC} "
+        read -rs value
+        echo ""
+        echo "$value"
+    fi
+}
+
+# Show a spinner while a command runs
+# Usage: gum_spin "Message" command arg1 arg2
+gum_spin() {
+    local message="$1"
+    shift
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum spin --spinner dot --title "$message" -- "$@"
+    else
+        "$@" &
+        spinner $! "$message"
+    fi
+}
+
+# Style text in a box
+gum_style_box() {
+    local text="$1"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        gum style --border rounded --padding "1 2" --border-foreground "#00FFFF" "$text"
+    else
+        print_box "$text"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -174,32 +329,60 @@ EOF
 # ═══════════════════════════════════════════════════════════════════════════
 
 select_provider() {
-    print_box "Choose Your Setup"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        # Beautiful gum version
+        echo ""
+        gum style --border rounded --padding "1 2" --border-foreground "#00FFFF" \
+            "$(gum style --foreground "#FFFFFF" --bold "How would you like to power Claude OS?")"
+        echo ""
 
-    echo -e "  ${WHITE}How would you like to power Claude OS?${NC}"
-    echo ""
-    echo -e "  ${CYAN}[1]${NC} ${GREEN}🏠 Local (Ollama)${NC}"
-    echo -e "      ${DIM}Free, private, runs on your machine${NC}"
-    echo -e "      ${DIM}Best for: Privacy-focused users, offline use${NC}"
-    echo ""
-    echo -e "  ${CYAN}[2]${NC} ${BLUE}☁️  Cloud (OpenAI)${NC}"
-    echo -e "      ${DIM}Fast, no local resources needed${NC}"
-    echo -e "      ${DIM}Best for: Quick setup, Linux servers${NC}"
-    echo ""
-    echo -e "  ${CYAN}[3]${NC} ${MAGENTA}🔧 Custom${NC}"
-    echo -e "      ${DIM}I'll configure it myself${NC}"
-    echo ""
+        local choice=$(gum choose --cursor.foreground="#00FFFF" --selected.foreground="#00FF00" \
+            "🏠 Local (Ollama) - Free, private, runs on your machine" \
+            "☁️  Cloud (OpenAI) - Fast, no local resources needed" \
+            "🔧 Custom - I'll configure it myself")
 
-    while true; do
-        echo -ne "  ${WHITE}Enter choice [1-3]:${NC} "
-        read -r choice
-        case $choice in
-            1) PROVIDER="local"; break ;;
-            2) PROVIDER="openai"; break ;;
-            3) PROVIDER="custom"; break ;;
-            *) echo -e "  ${RED}Please enter 1, 2, or 3${NC}" ;;
+        case "$choice" in
+            *"Local"*) PROVIDER="local" ;;
+            *"Cloud"*) PROVIDER="openai" ;;
+            *"Custom"*) PROVIDER="custom" ;;
         esac
-    done
+    else
+        # Bash fallback
+        print_box "Choose Your Setup"
+
+        echo -e "  ${WHITE}How would you like to power Claude OS?${NC}"
+        echo ""
+        echo -e "  ${CYAN}[1]${NC} ${GREEN}🏠 Local (Ollama)${NC}"
+        echo -e "      ${DIM}Free, private, runs on your machine${NC}"
+        echo -e "      ${DIM}Best for: Privacy-focused users, offline use${NC}"
+        echo ""
+        echo -e "  ${CYAN}[2]${NC} ${BLUE}☁️  Cloud (OpenAI)${NC}"
+        echo -e "      ${DIM}Fast, no local resources needed${NC}"
+        echo -e "      ${DIM}Best for: Quick setup, Linux servers${NC}"
+        echo ""
+        echo -e "  ${CYAN}[3]${NC} ${MAGENTA}🔧 Custom${NC}"
+        echo -e "      ${DIM}I'll configure it myself${NC}"
+        echo ""
+
+        while true; do
+            echo -ne "  ${WHITE}Enter choice [1-3]:${NC} "
+            read -r choice
+            case $choice in
+                1) PROVIDER="local"; break ;;
+                2) PROVIDER="openai"; break ;;
+                3) PROVIDER="custom"; break ;;
+                *) echo -e "  ${RED}Please enter 1, 2, or 3${NC}" ;;
+            esac
+        done
+    fi
+
+    # Show selection confirmation
+    echo ""
+    case "$PROVIDER" in
+        local) success "Selected: Local (Ollama)" ;;
+        openai) success "Selected: Cloud (OpenAI)" ;;
+        custom) success "Selected: Custom configuration" ;;
+    esac
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -207,30 +390,52 @@ select_provider() {
 # ═══════════════════════════════════════════════════════════════════════════
 
 select_model_size() {
-    print_box "Choose Model Size"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        # Beautiful gum version
+        echo ""
+        gum style --border rounded --padding "1 2" --border-foreground "#00FFFF" \
+            "$(gum style --foreground "#FFFFFF" --bold "Choose your model size")"
+        echo ""
 
-    echo -e "  ${WHITE}Select your local model:${NC}"
-    echo ""
-    echo -e "  ${CYAN}[1]${NC} ${GREEN}💨 Lite${NC} ${DIM}(Recommended)${NC}"
-    echo -e "      ${WHITE}llama3.2:3b${NC} - 2GB download, ~4GB RAM"
-    echo -e "      ${DIM}Fast download, works on most machines${NC}"
-    echo ""
-    echo -e "  ${CYAN}[2]${NC} ${BLUE}🚀 Full${NC}"
-    echo -e "      ${WHITE}llama3.1:8b${NC} - 4.7GB download, ~8GB RAM"
-    echo -e "      ${DIM}Better quality, needs more resources${NC}"
-    echo ""
+        local choice=$(gum choose --cursor.foreground="#00FFFF" --selected.foreground="#00FF00" \
+            "💨 Lite (Recommended) - llama3.2:3b - 2GB download, ~4GB RAM" \
+            "🚀 Full - llama3.1:8b - 4.7GB download, ~8GB RAM")
 
-    while true; do
-        echo -ne "  ${WHITE}Enter choice [1-2]:${NC} "
-        read -r choice
-        case $choice in
-            1) LLM_MODEL="$DEFAULT_LLM_MODEL"; break ;;
-            2) LLM_MODEL="$FULL_LLM_MODEL"; break ;;
-            *) echo -e "  ${RED}Please enter 1 or 2${NC}" ;;
+        case "$choice" in
+            *"Lite"*) LLM_MODEL="$DEFAULT_LLM_MODEL" ;;
+            *"Full"*) LLM_MODEL="$FULL_LLM_MODEL" ;;
         esac
-    done
+    else
+        # Bash fallback
+        print_box "Choose Model Size"
+
+        echo -e "  ${WHITE}Select your local model:${NC}"
+        echo ""
+        echo -e "  ${CYAN}[1]${NC} ${GREEN}💨 Lite${NC} ${DIM}(Recommended)${NC}"
+        echo -e "      ${WHITE}llama3.2:3b${NC} - 2GB download, ~4GB RAM"
+        echo -e "      ${DIM}Fast download, works on most machines${NC}"
+        echo ""
+        echo -e "  ${CYAN}[2]${NC} ${BLUE}🚀 Full${NC}"
+        echo -e "      ${WHITE}llama3.1:8b${NC} - 4.7GB download, ~8GB RAM"
+        echo -e "      ${DIM}Better quality, needs more resources${NC}"
+        echo ""
+
+        while true; do
+            echo -ne "  ${WHITE}Enter choice [1-2]:${NC} "
+            read -r choice
+            case $choice in
+                1) LLM_MODEL="$DEFAULT_LLM_MODEL"; break ;;
+                2) LLM_MODEL="$FULL_LLM_MODEL"; break ;;
+                *) echo -e "  ${RED}Please enter 1 or 2${NC}" ;;
+            esac
+        done
+    fi
 
     EMBED_MODEL="$DEFAULT_EMBED_MODEL"
+
+    # Show selection confirmation
+    echo ""
+    success "Selected: $LLM_MODEL"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -238,14 +443,27 @@ select_model_size() {
 # ═══════════════════════════════════════════════════════════════════════════
 
 configure_openai() {
-    print_box "OpenAI Configuration"
+    if [[ "$HAS_GUM" == "true" ]]; then
+        # Beautiful gum version
+        echo ""
+        gum style --border rounded --padding "1 2" --border-foreground "#00FFFF" \
+            "$(gum style --foreground "#FFFFFF" --bold "OpenAI Configuration")"
+        echo ""
+        echo -e "  ${DIM}Get your API key at https://platform.openai.com/api-keys${NC}"
+        echo ""
 
-    echo -e "  ${WHITE}Enter your OpenAI API key:${NC}"
-    echo -e "  ${DIM}(Get one at https://platform.openai.com/api-keys)${NC}"
-    echo ""
-    echo -ne "  ${WHITE}API Key:${NC} "
-    read -rs OPENAI_API_KEY
-    echo ""
+        OPENAI_API_KEY=$(gum input --password --placeholder "sk-..." --prompt "API Key: " --prompt.foreground="#00FFFF")
+    else
+        # Bash fallback
+        print_box "OpenAI Configuration"
+
+        echo -e "  ${WHITE}Enter your OpenAI API key:${NC}"
+        echo -e "  ${DIM}(Get one at https://platform.openai.com/api-keys)${NC}"
+        echo ""
+        echo -ne "  ${WHITE}API Key:${NC} "
+        read -rs OPENAI_API_KEY
+        echo ""
+    fi
 
     if [[ -z "$OPENAI_API_KEY" ]]; then
         error "API key cannot be empty"
@@ -586,16 +804,24 @@ EOF
 
 show_completion() {
     echo ""
-    echo -e "${GREEN}"
-    cat << 'EOF'
+
+    if [[ "$HAS_GUM" == "true" ]]; then
+        # Beautiful gum completion
+        gum style --border double --padding "1 4" --border-foreground "#00FF00" --foreground "#00FF00" \
+            "✨  Claude OS is ready!  ✨"
+    else
+        echo -e "${GREEN}"
+        cat << 'EOF'
     ╔═══════════════════════════════════════════════════════════════════╗
     ║                                                                   ║
     ║   ✨  Claude OS is ready!  ✨                                     ║
     ║                                                                   ║
     ╚═══════════════════════════════════════════════════════════════════╝
 EOF
-    echo -e "${NC}"
+        echo -e "${NC}"
+    fi
 
+    echo ""
     echo -e "  ${WHITE}What was set up:${NC}"
     echo ""
     [[ -d "${CLAUDE_OS_DIR}/venv" ]] && echo -e "    ${GREEN}✓${NC} Python environment"
@@ -640,6 +866,9 @@ main() {
 
     # Show banner
     show_banner
+
+    # Offer to install gum for enhanced experience
+    offer_gum_install
 
     # Provider selection
     select_provider
