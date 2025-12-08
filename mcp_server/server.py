@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -48,6 +48,45 @@ logger = logging.getLogger(__name__)
 RAG_ENGINE_CACHE = {}
 RAG_ENGINE_CACHE_LOCK = Lock()
 RAG_ENGINE_CACHE_TTL = 3600  # 1 hour TTL with plenty of RAM
+
+# Background job status tracking for long-running operations
+INDEXING_JOBS = {}  # job_id -> {status, progress, message, started_at, completed_at, error}
+INDEXING_JOBS_LOCK = Lock()
+MAX_STORED_JOBS = 100  # Limit stored jobs to prevent memory leak
+JOB_RETENTION_SECONDS = 3600 * 24  # Keep completed jobs for 24 hours
+
+
+def _cleanup_old_jobs():
+    """Remove old completed jobs to prevent memory leak."""
+    with INDEXING_JOBS_LOCK:
+        if len(INDEXING_JOBS) <= MAX_STORED_JOBS:
+            return
+
+        current_time = time.time()
+        # Find jobs to remove (completed/failed and older than retention period)
+        jobs_to_remove = []
+        for job_id, job in INDEXING_JOBS.items():
+            if job["status"] in ["completed", "failed"]:
+                completed_at = job.get("completed_at", job.get("started_at", 0))
+                if current_time - completed_at > JOB_RETENTION_SECONDS:
+                    jobs_to_remove.append(job_id)
+
+        # If still over limit, remove oldest completed jobs
+        if len(INDEXING_JOBS) - len(jobs_to_remove) > MAX_STORED_JOBS:
+            completed_jobs = [
+                (jid, j) for jid, j in INDEXING_JOBS.items()
+                if j["status"] in ["completed", "failed"] and jid not in jobs_to_remove
+            ]
+            completed_jobs.sort(key=lambda x: x[1].get("completed_at", 0))
+            excess = len(INDEXING_JOBS) - len(jobs_to_remove) - MAX_STORED_JOBS
+            for jid, _ in completed_jobs[:excess]:
+                jobs_to_remove.append(jid)
+
+        for job_id in jobs_to_remove:
+            del INDEXING_JOBS[job_id]
+
+        if jobs_to_remove:
+            logger.debug(f"Cleaned up {len(jobs_to_remove)} old indexing jobs")
 
 # Initialize FastAPI
 app = FastAPI(title="Claude OS MCP Server")
@@ -738,6 +777,7 @@ class SemanticIndexRequest(BaseModel):
     project_path: str
     selective: bool = True  # Only index top 20% + docs
     personalization: Optional[Dict[str, float]] = None
+    background: bool = True  # Run in background (True) or sync/blocking (False)
 
 
 @app.post("/api/kb/{kb_name}/index-structural")
@@ -843,15 +883,174 @@ async def api_index_structural(kb_name: str, request: StructuralIndexRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/kb/{kb_name}/index-semantic")
-async def api_index_semantic(kb_name: str, request: SemanticIndexRequest):
+def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: str, selective: bool, personalization: dict = None):
     """
-    REST API: Semantic indexing with selective embedding.
-    Phase 2 of hybrid indexing - optional, runs in background.
+    Background worker for semantic indexing. Runs in a separate thread to avoid blocking.
+    Updates INDEXING_JOBS with progress.
     """
     from app.core.tree_sitter_indexer import TreeSitterIndexer
-    from app.core.ingestion import ingest_directory
-    import json
+    from app.core.ingestion import ingest_directory, ingest_file
+
+    def update_job(status: str, progress: int = 0, message: str = "", error: str = None):
+        with INDEXING_JOBS_LOCK:
+            INDEXING_JOBS[job_id].update({
+                "status": status,
+                "progress": progress,
+                "message": message,
+                "error": error,
+                "updated_at": time.time()
+            })
+            if status in ["completed", "failed"]:
+                INDEXING_JOBS[job_id]["completed_at"] = time.time()
+
+    try:
+        logger.info(f"[Job {job_id}] Starting semantic indexing for {kb_name} at {project_path}")
+        start_time = time.time()
+        update_job("running", 0, "Starting indexing...")
+
+        if selective:
+            # Load repo map if exists
+            cache_path = str(Path(project_path) / ".claude-os" / "tree_sitter_cache.db")
+            update_job("running", 5, "Loading structural index...")
+
+            indexer = TreeSitterIndexer(cache_path)
+            repo_map = indexer.index_directory(project_path, personalization)
+            indexer.close()
+
+            # Select top 20% files by importance
+            top_20_percent = max(1, int(len(repo_map.tags) * 0.2))
+            important_tags = repo_map.tags[:top_20_percent]
+            important_files = list(set(tag.file for tag in important_tags))
+
+            # Add all documentation files
+            docs_patterns = ["*.md", "*.txt", "*.rst"]
+            doc_files = []
+            for pattern in docs_patterns:
+                doc_files.extend(Path(project_path).rglob(pattern))
+
+            all_files = list(set(important_files + [str(f.relative_to(project_path)) for f in doc_files]))
+            total_files = len(all_files)
+
+            update_job("running", 10, f"Found {total_files} files to index (top 20% + docs)")
+            logger.info(f"[Job {job_id}] Selective indexing: {total_files} files")
+
+            # Ingest selected files only
+            results = []
+            for i, file_rel_path in enumerate(all_files):
+                file_path = Path(project_path) / file_rel_path
+                if file_path.exists() and file_path.is_file():
+                    try:
+                        result = ingest_file(str(file_path), kb_name, str(file_rel_path))
+                        results.append({"status": "success", "file": str(file_rel_path)})
+                        logger.debug(f"[Job {job_id}] Ingested: {file_rel_path}")
+                    except Exception as e:
+                        logger.warning(f"[Job {job_id}] Failed to ingest {file_rel_path}: {e}")
+                        results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+
+                # Update progress every 5 files or at end
+                if (i + 1) % 5 == 0 or (i + 1) == total_files:
+                    progress = 10 + int(((i + 1) / total_files) * 90)
+                    update_job("running", progress, f"Indexed {i + 1}/{total_files} files...")
+
+            successes = [r for r in results if r.get("status") == "success"]
+            elapsed = time.time() - start_time
+
+            logger.info(f"[Job {job_id}] Selective semantic indexing complete in {elapsed:.1f}s")
+            update_job("completed", 100, f"Complete: {len(successes)}/{total_files} files indexed in {elapsed:.1f}s")
+
+        else:
+            # Full indexing (all files)
+            update_job("running", 10, "Starting full directory indexing...")
+            results = ingest_directory(project_path, kb_name)
+            successes = [r for r in results if r.get("status") == "success"]
+
+            elapsed = time.time() - start_time
+            logger.info(f"[Job {job_id}] Full semantic indexing complete in {elapsed:.1f}s")
+            update_job("completed", 100, f"Complete: {len(successes)} files indexed in {elapsed:.1f}s")
+
+    except Exception as e:
+        logger.error(f"[Job {job_id}] Semantic indexing failed: {e}")
+        update_job("failed", 0, "", str(e))
+
+
+def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool, personalization: dict = None) -> dict:
+    """
+    Synchronous semantic indexing for backward compatibility.
+    WARNING: This blocks the server! Use background=true for production.
+    Returns the final result dict.
+    """
+    from app.core.tree_sitter_indexer import TreeSitterIndexer
+    from app.core.ingestion import ingest_directory, ingest_file
+
+    start_time = time.time()
+
+    if selective:
+        cache_path = str(Path(project_path) / ".claude-os" / "tree_sitter_cache.db")
+        indexer = TreeSitterIndexer(cache_path)
+        repo_map = indexer.index_directory(project_path, personalization)
+        indexer.close()
+
+        top_20_percent = max(1, int(len(repo_map.tags) * 0.2))
+        important_tags = repo_map.tags[:top_20_percent]
+        important_files = list(set(tag.file for tag in important_tags))
+
+        docs_patterns = ["*.md", "*.txt", "*.rst"]
+        doc_files = []
+        for pattern in docs_patterns:
+            doc_files.extend(Path(project_path).rglob(pattern))
+
+        all_files = list(set(important_files + [str(f.relative_to(project_path)) for f in doc_files]))
+
+        results = []
+        for file_rel_path in all_files:
+            file_path = Path(project_path) / file_rel_path
+            if file_path.exists() and file_path.is_file():
+                try:
+                    result = ingest_file(str(file_path), kb_name, str(file_rel_path))
+                    results.append({"status": "success", "file": str(file_rel_path)})
+                except Exception as e:
+                    results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+
+        successes = [r for r in results if r.get("status") == "success"]
+        elapsed = time.time() - start_time
+
+        return {
+            "success": True,
+            "kb_name": kb_name,
+            "mode": "selective",
+            "files_selected": len(all_files),
+            "files_indexed": len(successes),
+            "time_taken_seconds": elapsed,
+            "message": f"Selective semantic indexing complete: {len(successes)}/{len(all_files)} files indexed"
+        }
+    else:
+        results = ingest_directory(project_path, kb_name)
+        successes = [r for r in results if r.get("status") == "success"]
+        elapsed = time.time() - start_time
+
+        return {
+            "success": True,
+            "kb_name": kb_name,
+            "mode": "full",
+            "total_files": len(results),
+            "successful": len(successes),
+            "time_taken_seconds": elapsed,
+            "message": f"Full semantic indexing complete: {len(successes)} files indexed"
+        }
+
+
+@app.post("/api/kb/{kb_name}/index-semantic")
+async def api_index_semantic(kb_name: str, request: SemanticIndexRequest, background_tasks: BackgroundTasks):
+    """
+    REST API: Semantic indexing with selective embedding.
+    Phase 2 of hybrid indexing.
+
+    By default (background=true), runs in background and returns immediately with job_id.
+    Check progress at GET /api/jobs/{job_id}
+
+    Set background=false for synchronous execution (WARNING: blocks server, use for small projects only).
+    """
+    import uuid
 
     # Validate KB exists
     db_manager = get_sqlite_manager()
@@ -862,87 +1061,80 @@ async def api_index_semantic(kb_name: str, request: SemanticIndexRequest):
     if not Path(request.project_path).exists():
         raise HTTPException(status_code=404, detail=f"Project path not found: {request.project_path}")
 
-    try:
-        logger.info(f"Starting semantic indexing for {kb_name} at {request.project_path}")
-        start_time = time.time()
+    # Cleanup old jobs periodically
+    _cleanup_old_jobs()
 
-        if request.selective:
-            # Get structural index first
-            structure_kb = f"{kb_name.split('-')[0]}-code_structure"
+    # Synchronous mode (backward compatible, but blocks server)
+    if not request.background:
+        logger.warning(f"Running semantic indexing synchronously for {kb_name} - this will block the server!")
+        try:
+            result = _run_semantic_indexing_sync(
+                kb_name,
+                request.project_path,
+                request.selective,
+                request.personalization
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Semantic indexing failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
-            # Load repo map if exists
-            cache_path = str(Path(request.project_path) / ".claude-os" / "tree_sitter_cache.db")
-            indexer = TreeSitterIndexer(cache_path)
-            repo_map = indexer.index_directory(request.project_path, request.personalization)
-            indexer.close()
+    # Background mode (default, non-blocking)
+    job_id = f"semantic-{kb_name}-{uuid.uuid4().hex[:8]}"
+    with INDEXING_JOBS_LOCK:
+        INDEXING_JOBS[job_id] = {
+            "job_id": job_id,
+            "type": "semantic_indexing",
+            "kb_name": kb_name,
+            "project_path": request.project_path,
+            "selective": request.selective,
+            "status": "queued",
+            "progress": 0,
+            "message": "Job queued",
+            "started_at": time.time(),
+            "completed_at": None,
+            "error": None
+        }
 
-            # Select top 20% files by importance
-            top_20_percent = int(len(repo_map.tags) * 0.2)
-            important_tags = repo_map.tags[:top_20_percent]
+    # Queue the background task
+    background_tasks.add_task(
+        _run_semantic_indexing_background,
+        job_id,
+        kb_name,
+        request.project_path,
+        request.selective,
+        request.personalization
+    )
 
-            # Get unique files
-            important_files = list(set(tag.file for tag in important_tags))
+    logger.info(f"Queued semantic indexing job {job_id} for {kb_name}")
 
-            # Add all documentation files
-            docs_patterns = ["*.md", "*.txt", "*.rst"]
-            doc_files = []
-            for pattern in docs_patterns:
-                doc_files.extend(Path(request.project_path).rglob(pattern))
+    return {
+        "success": True,
+        "job_id": job_id,
+        "kb_name": kb_name,
+        "mode": "selective" if request.selective else "full",
+        "status": "queued",
+        "message": f"Semantic indexing started in background. Check progress at GET /api/jobs/{job_id}"
+    }
 
-            all_files = important_files + [str(f.relative_to(request.project_path)) for f in doc_files]
 
-            logger.info(f"Selective indexing: {len(all_files)} files (top 20% + docs)")
+@app.get("/api/jobs/{job_id}")
+async def api_get_job_status(job_id: str):
+    """Get the status of a background indexing job."""
+    with INDEXING_JOBS_LOCK:
+        if job_id not in INDEXING_JOBS:
+            raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+        return INDEXING_JOBS[job_id].copy()
 
-            # Ingest selected files only
-            from app.core.ingestion import ingest_file
-            results = []
 
-            for file_rel_path in all_files:
-                file_path = Path(request.project_path) / file_rel_path
-                if file_path.exists() and file_path.is_file():
-                    try:
-                        result = ingest_file(str(file_path), kb_name, str(file_rel_path))
-                        results.append({"status": "success", "file": str(file_rel_path)})
-                        logger.debug(f"Ingested: {file_rel_path}")
-                    except Exception as e:
-                        logger.warning(f"Failed to ingest {file_rel_path}: {e}")
-                        results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
-
-            successes = [r for r in results if r.get("status") == "success"]
-            elapsed = time.time() - start_time
-
-            logger.info(f"Selective semantic indexing complete for {kb_name} in {elapsed:.1f}s")
-
-            return {
-                "success": True,
-                "kb_name": kb_name,
-                "mode": "selective",
-                "files_selected": len(all_files),
-                "files_indexed": len(successes),
-                "time_taken_seconds": elapsed,
-                "message": f"Selective semantic indexing complete: {len(successes)}/{len(all_files)} files indexed"
-            }
-        else:
-            # Full indexing (all files)
-            results = ingest_directory(request.project_path, kb_name)
-            successes = [r for r in results if r.get("status") == "success"]
-
-            elapsed = time.time() - start_time
-            logger.info(f"Full semantic indexing complete for {kb_name} in {elapsed:.1f}s")
-
-            return {
-                "success": True,
-                "kb_name": kb_name,
-                "mode": "full",
-                "total_files": len(results),
-                "successful": len(successes),
-                "time_taken_seconds": elapsed,
-                "message": f"Full semantic indexing complete: {len(successes)} files indexed"
-            }
-
-    except Exception as e:
-        logger.error(f"Semantic indexing failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/api/jobs")
+async def api_list_jobs():
+    """List all indexing jobs (recent first)."""
+    with INDEXING_JOBS_LOCK:
+        jobs = list(INDEXING_JOBS.values())
+    # Sort by started_at descending
+    jobs.sort(key=lambda x: x.get("started_at", 0), reverse=True)
+    return {"jobs": jobs[:50]}  # Return last 50 jobs
 
 
 @app.get("/api/kb/{kb_name}/repo-map")
