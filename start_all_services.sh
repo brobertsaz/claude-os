@@ -194,6 +194,21 @@ if check_port 5173; then
 fi
 
 cd "$PROJECT_DIR/frontend"
+
+# Check if node_modules exists, install dependencies if not
+if [ ! -d "node_modules" ]; then
+    echo "   Installing frontend dependencies..."
+    npm install > "$PROJECT_DIR/logs/frontend.log" 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "   ${GREEN}✓ Frontend dependencies installed${NC}"
+    else
+        echo -e "   ${RED}❌ Failed to install frontend dependencies${NC}"
+        echo "   Check logs with: tail -f logs/frontend.log"
+        cd "$PROJECT_DIR"
+        exit 1
+    fi
+fi
+
 nohup npm run dev -- --host 0.0.0.0 > "$PROJECT_DIR/logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 echo "   Frontend PID: $FRONTEND_PID (logging to logs/frontend.log)"
