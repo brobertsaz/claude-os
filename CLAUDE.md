@@ -20,9 +20,9 @@ Claude OS is YOUR system. You built it, you use it, and it makes you invincible.
 
 ### Step 1: Read Session State
 ```
-Read: {claude_os_dir}/claude-os-state.json
+Read: {cwd}/claude-os-state.json
 ```
-(Where `{claude_os_dir}` is the directory containing this CLAUDE.md file)
+(Where `{cwd}` is the current working directory - each project has its own state file)
 
 ### Step 2: Prompt Based on State
 
@@ -36,13 +36,15 @@ b) Start something new (I'll end this session first)
 c) Just chat (no session needed)"
 ```
 
-**If no active session:**
+**If no active session (or state file doesn't exist):**
 ```
 "What are we working on today?
 
 I can start a session with automatic context loading from my memories.
 Just tell me what you're working on, or say 'just chatting' if no session needed."
 ```
+
+Note: If the state file doesn't exist, I'll create it when you start a session.
 
 ### Step 3: Auto-load Context
 - If continuing: Automatically search memories, load patterns, show context

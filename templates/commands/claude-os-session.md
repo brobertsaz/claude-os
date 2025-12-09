@@ -9,7 +9,9 @@ Power-user session workflows that make me smarter with every session.
 
 ## Setup
 
-First, derive `{claude_os_dir}` from this command file's path - it is two directories up from this file's location.
+The state file is **project-local**: `{cwd}/claude-os-state.json` (where `{cwd}` is the current working directory).
+
+Each project has its own session state, so you can have different active sessions in different projects.
 
 ## Commands
 
@@ -35,8 +37,9 @@ First, derive `{claude_os_dir}` from this command file's path - it is two direct
 
 **Phase 1: Load State**
 ```
-Read: {claude_os_dir}/claude-os-state.json
+Read: {cwd}/claude-os-state.json
 ```
+If the file doesn't exist, create it with the default template (see below).
 
 **Phase 2: Search Recent Memories**
 ```
@@ -296,8 +299,57 @@ Type /claude-os-session end when done
 
 ### State File Location
 ```
-{claude_os_dir}/claude-os-state.json
+{cwd}/claude-os-state.json
 ```
+Each project has its own state file in its root directory.
+
+### Default State Template
+
+When starting a session in a project without a state file, create one with this structure:
+
+```json
+{
+  "version": "1.0.0",
+  "current_session": {
+    "active": false,
+    "started_at": null,
+    "task": null,
+    "project": null,
+    "branch": null,
+    "context": [],
+    "decisions_made": [],
+    "blockers": [],
+    "patterns_discovered": []
+  },
+  "last_session": null,
+  "active_memories": {
+    "loaded_at_start": [],
+    "referenced_during_session": [],
+    "should_review": []
+  },
+  "statistics": {
+    "total_sessions": 0,
+    "total_memories_saved": 0,
+    "total_patterns_discovered": 0,
+    "most_referenced_memories": [],
+    "average_session_duration": 0
+  },
+  "flags": {
+    "needs_memory_consolidation": false,
+    "has_unresolved_blockers": false,
+    "patterns_ready_to_document": false
+  },
+  "metadata": {
+    "last_updated": null,
+    "claude_os_version": "1.0.0",
+    "project_name": null
+  }
+}
+```
+
+When creating a new state file:
+1. Set `metadata.project_name` to the current directory name
+2. Set `metadata.last_updated` to current timestamp
 
 ### Auto-Actions on Start
 

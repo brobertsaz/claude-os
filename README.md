@@ -24,6 +24,18 @@
 
 ---
 
+<p align="center">
+  <a href="https://discord.gg/BrvVYdXkCU">
+    <img src="https://img.shields.io/badge/Join_our_Discord!-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord">
+  </a>
+</p>
+
+<p align="center">
+  <strong>We have a Discord!</strong> Join our community to get help, share your projects, and connect with other Claude OS users.
+</p>
+
+---
+
 ## 🆕 What's New in v2.2
 
 > **Latest Release: December 2025**
@@ -64,6 +76,11 @@ Thanks to our amazing contributors!
 
 | PR | Contributor | Description |
 |----|-------------|-------------|
+| [#22](https://github.com/brobertsaz/claude-os/pull/22) | [@illAssad](https://github.com/illAssad) | Fix delete document endpoint SQLite cursor handling |
+| [#21](https://github.com/brobertsaz/claude-os/pull/21) | [@illAssad](https://github.com/illAssad) | Skip node_modules and build directories during ingestion |
+| [#20](https://github.com/brobertsaz/claude-os/pull/20) | [@illAssad](https://github.com/illAssad) | Fix tree-sitter version compatibility |
+| [#19](https://github.com/brobertsaz/claude-os/pull/19) | [@illAssad](https://github.com/illAssad) | Add non-blocking semantic indexing with Jobs Dashboard UI |
+| [#18](https://github.com/brobertsaz/claude-os/pull/18) | [@illAssad](https://github.com/illAssad) | Fix frontend startup by auto-installing npm dependencies |
 | [#17](https://github.com/brobertsaz/claude-os/pull/17) | [@williamclavier](https://github.com/williamclavier) | Fix: Ensure commands/skills directories exist |
 | [#16](https://github.com/brobertsaz/claude-os/pull/16) | [@jplimack](https://github.com/jplimack) | Fix hardcoded paths - make dynamic |
 | [#12](https://github.com/brobertsaz/claude-os/pull/12) | [@gkastanis](https://github.com/gkastanis) | Add missing frontend lib files |
