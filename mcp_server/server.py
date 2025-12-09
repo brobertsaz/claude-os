@@ -717,42 +717,42 @@ async def api_delete_document(kb_name: str, filename: str):
         # Get the collection ID
         conn = db_manager.get_connection()
         try:
-            with conn.cursor() as cur:
-                # Get collection ID
-                cur.execute(
-                    "SELECT id FROM knowledge_bases WHERE name = ?",
-                    (kb_name,)
-                )
-                result = cur.fetchone()
-                if not result:
-                    raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
+            cursor = conn.cursor()
+            # Get collection ID
+            cursor.execute(
+                "SELECT id FROM knowledge_bases WHERE name = ?",
+                (kb_name,)
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise HTTPException(status_code=404, detail=f"Knowledge base '{kb_name}' not found")
 
-                collection_id = result[0]
+            collection_id = result[0]
 
-                # Delete documents with this filename
-                cur.execute(
-                    """
-                    DELETE FROM documents
-                    WHERE kb_id = ? AND json_extract(metadata, '$.filename') = ?
-                    RETURNING id
-                    """,
-                    (collection_id, filename)
-                )
-                deleted_count = len(cur.fetchall())
-                conn.commit()
+            # Delete documents with this filename
+            cursor.execute(
+                """
+                DELETE FROM documents
+                WHERE kb_id = ? AND json_extract(metadata, '$.filename') = ?
+                RETURNING id
+                """,
+                (collection_id, filename)
+            )
+            deleted_count = len(cursor.fetchall())
+            conn.commit()
 
-                if deleted_count == 0:
-                    raise HTTPException(status_code=404, detail=f"No documents found with filename '{filename}'")
+            if deleted_count == 0:
+                raise HTTPException(status_code=404, detail=f"No documents found with filename '{filename}'")
 
-                logger.info(f"Deleted {deleted_count} document(s) with filename '{filename}' from KB '{kb_name}'")
-                return {
-                    "success": True,
-                    "message": f"Deleted {deleted_count} document(s)",
-                    "filename": filename,
-                    "kb_name": kb_name
-                }
+            logger.info(f"Deleted {deleted_count} document(s) with filename '{filename}' from KB '{kb_name}'")
+            return {
+                "success": True,
+                "message": f"Deleted {deleted_count} document(s)",
+                "filename": filename,
+                "kb_name": kb_name
+            }
         finally:
-            db_manager.return_connection(conn)
+            conn.close()
 
     except HTTPException:
         raise
