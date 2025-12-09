@@ -8,7 +8,9 @@ sqlite-vec>=0.1.0
 numpy>=1.24.0
 
 # Tree-sitter for fast structural indexing
-tree-sitter>=0.21.0
+# NOTE: tree-sitter-languages 1.10.x is incompatible with tree-sitter 0.21+
+# The 0.21+ API changed Parser() and Language() constructors breaking the library
+tree-sitter>=0.20.0,<0.21.0
 tree-sitter-languages>=1.10.0  # Pre-built binaries for 40+ languages
 networkx>=3.2.1  # For dependency graphs and PageRank
 
