@@ -323,12 +323,56 @@ def ingest_documents(
         }
 
 
+# Directories to always skip during ingestion
+SKIP_DIRECTORIES = {
+    'node_modules',
+    '.git',
+    '.svn',
+    '.hg',
+    '__pycache__',
+    '.pytest_cache',
+    '.mypy_cache',
+    '.tox',
+    '.nox',
+    '.eggs',
+    '*.egg-info',
+    'dist',
+    'build',
+    '.next',
+    '.nuxt',
+    '.output',
+    'coverage',
+    '.nyc_output',
+    '.cache',
+    'vendor',
+    'target',  # Rust/Java
+    'Pods',  # iOS
+    '.gradle',
+    '.idea',
+    '.vscode',
+    '.claude-os',  # Our own cache
+}
+
+
+def should_skip_path(file_path: Path) -> bool:
+    """Check if a file path should be skipped based on directory exclusions."""
+    for part in file_path.parts:
+        if part in SKIP_DIRECTORIES:
+            return True
+        # Handle wildcard patterns like *.egg-info
+        for pattern in SKIP_DIRECTORIES:
+            if '*' in pattern and part.endswith(pattern.replace('*', '')):
+                return True
+    return False
+
+
 def ingest_directory(
     dir_path: str,
     collection_name: str
 ) -> List[Dict[str, any]]:
     """
     Recursively ingest all supported files from a directory.
+    Automatically skips common non-source directories like node_modules, .git, etc.
 
     Args:
         dir_path: Path to directory
@@ -347,8 +391,11 @@ def ingest_directory(
             "error": f"Directory not found: {dir_path}"
         }]
 
-    # Recursively find all supported files
+    # Recursively find all supported files, skipping excluded directories
     for file_path in dir_path.rglob("*"):
+        # Skip excluded directories
+        if should_skip_path(file_path):
+            continue
         if file_path.is_file() and Config.is_supported_file(file_path.name):
             result = ingest_file(
                 str(file_path),
