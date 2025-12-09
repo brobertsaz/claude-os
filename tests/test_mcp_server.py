@@ -351,7 +351,7 @@ class TestMCPServerIndexingOperations:
     async def test_index_semantic_calls_correct_endpoint(self, mock_httpx):
         """Test that index_semantic calls the correct endpoint."""
         mock_response = MagicMock()
-        mock_response.json.return_value = {"embedded": 100}
+        mock_response.json.return_value = {"job_id": "semantic-docs_kb-abc123", "status": "queued"}
         mock_response.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()
@@ -362,9 +362,14 @@ class TestMCPServerIndexingOperations:
 
         from mcp_server.claude_code_mcp import _execute_tool
         result = await _execute_tool("index_semantic", {
-            "kb_name": "docs_kb"
+            "kb_name": "docs_kb",
+            "project_path": "/path/to/project"
         })
 
         mock_client.post.assert_called_once()
         call_args = mock_client.post.call_args
         assert "/api/kb/docs_kb/index-semantic" in str(call_args)
+        # Verify the payload includes required fields
+        payload = call_args[1].get("json", {})
+        assert payload.get("project_path") == "/path/to/project"
+        assert payload.get("background") == True

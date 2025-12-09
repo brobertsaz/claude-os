@@ -202,13 +202,16 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="index_semantic",
-            description="Run semantic embedding indexing on a knowledge base. Creates vector embeddings for similarity search.",
+            description="Run semantic embedding indexing on a knowledge base. Creates vector embeddings for similarity search. Runs in background by default - returns job_id to check progress at /api/jobs/{job_id}.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "kb_name": {"type": "string", "description": "Name of the knowledge base"}
+                    "kb_name": {"type": "string", "description": "Name of the knowledge base"},
+                    "project_path": {"type": "string", "description": "Path to project to index"},
+                    "selective": {"type": "boolean", "description": "If true, only index top 20% most important files + docs (default: true)"},
+                    "background": {"type": "boolean", "description": "If true, run in background (default: true). Set false to block until complete."}
                 },
-                "required": ["kb_name"]
+                "required": ["kb_name", "project_path"]
             }
         ),
 
@@ -331,7 +334,11 @@ async def _execute_tool(name: str, args: dict[str, Any]) -> dict:
         })
 
     elif name == "index_semantic":
-        return await api_post(f"/api/kb/{args['kb_name']}/index-semantic")
+        return await api_post(f"/api/kb/{args['kb_name']}/index-semantic", {
+            "project_path": args["project_path"],
+            "selective": args.get("selective", True),
+            "background": args.get("background", True)
+        })
 
     # Document Management
     elif name == "upload_document":
