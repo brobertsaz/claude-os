@@ -51,6 +51,7 @@ frontend-dev.log
 
 # Environment Variables
 .env
+*.backup.*
 
 # Data Directories
 data/chroma/

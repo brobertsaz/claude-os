@@ -70,10 +70,10 @@ offer_gum_install() {
 
     echo ""
     echo -e "${CYAN}┌────────────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}  ${WHITE}✨ Enhanced installer available!${NC}                             ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}  ${WHITE}✨ Enhanced installer available!${NC}                              ${CYAN}│${NC}"
     echo -e "${CYAN}│${NC}                                                                ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  ${DIM}Install 'gum' for a more beautiful experience with${NC}          ${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC}  ${DIM}interactive menus and smooth animations.${NC}                     ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}  ${DIM}Install 'gum' for a more beautiful experience with${NC}            ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}  ${DIM}interactive menus and smooth animations.${NC}                      ${CYAN}│${NC}"
     echo -e "${CYAN}└────────────────────────────────────────────────────────────────┘${NC}"
     echo ""
     echo -ne "  ${WHITE}Install gum? [y/N]:${NC} "
@@ -696,13 +696,77 @@ setup_python() {
     fi
 
     if [[ -z "$PYTHON_CMD" ]]; then
-        error "Python 3.11 or 3.12 required"
+        warn "Python 3.11 or 3.12 not found"
         echo ""
-        echo -e "  ${WHITE}Install Python:${NC}"
-        echo -e "    macOS:  ${CYAN}brew install python@3.12${NC}"
-        echo -e "    Ubuntu: ${CYAN}sudo apt install python3.12${NC}"
-        echo -e "    Fedora: ${CYAN}sudo dnf install python3.12${NC}"
-        exit 1
+
+        # Offer to install Python automatically
+        local install_python=""
+        if [[ "$HAS_GUM" == "true" ]]; then
+            install_python=$(gum choose "Yes, install Python 3.12 for me" "No, I'll install it myself" --header "Install Python 3.12 automatically?")
+            [[ "$install_python" == "Yes"* ]] && install_python="y"
+        else
+            echo -ne "  ${WHITE}Install Python 3.12 automatically? [Y/n]:${NC} "
+            read -r install_python
+            install_python=${install_python:-y}
+        fi
+
+        if [[ "$install_python" =~ ^[Yy]$ ]]; then
+            info "Installing Python 3.12..."
+
+            if [[ "$OS" == "macos" ]]; then
+                if command -v brew &> /dev/null; then
+                    brew install python@3.12 &>/dev/null &
+                    spinner $! "Installing Python 3.12 via Homebrew..."
+                else
+                    error "Homebrew not found. Install from https://brew.sh first."
+                    exit 1
+                fi
+            elif [[ "$OS" == "linux" ]]; then
+                case "$PKG_MANAGER" in
+                    apt)
+                        info "Adding deadsnakes PPA for Python 3.12 (this may take a minute)..."
+                        sudo apt-get install -y software-properties-common
+                        sudo add-apt-repository -y ppa:deadsnakes/ppa
+                        info "Updating package lists..."
+                        sudo apt-get update
+                        info "Installing Python 3.12..."
+                        sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
+                        ;;
+                    dnf)
+                        sudo dnf install -y -q python3.12 python3.12-devel &>/dev/null &
+                        spinner $! "Installing Python 3.12 via dnf..."
+                        ;;
+                    yum)
+                        sudo yum install -y -q python3.12 python3.12-devel &>/dev/null &
+                        spinner $! "Installing Python 3.12 via yum..."
+                        ;;
+                    pacman)
+                        sudo pacman -S --noconfirm python &>/dev/null &
+                        spinner $! "Installing Python via pacman..."
+                        ;;
+                    *)
+                        error "Unknown package manager. Please install Python 3.12 manually."
+                        exit 1
+                        ;;
+                esac
+            fi
+
+            # Re-check for Python after install
+            if command -v python3.12 &> /dev/null; then
+                PYTHON_CMD="python3.12"
+                success "Python 3.12 installed successfully"
+            else
+                error "Python installation failed. Please install manually."
+                exit 1
+            fi
+        else
+            echo ""
+            echo -e "  ${WHITE}Install Python manually:${NC}"
+            echo -e "    macOS:  ${CYAN}brew install python@3.12${NC}"
+            echo -e "    Ubuntu: ${CYAN}sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt install python3.12 python3.12-venv${NC}"
+            echo -e "    Fedora: ${CYAN}sudo dnf install python3.12${NC}"
+            exit 1
+        fi
     fi
 
     local py_version=$($PYTHON_CMD --version | cut -d' ' -f2)
@@ -889,7 +953,7 @@ setup_claude_integration() {
             local dest="${USER_CLAUDE_DIR}/commands/${cmd_name}"
             rm -f "$dest" 2>/dev/null
             ln -s "$cmd_file" "$dest"
-            ((cmd_count++))
+            cmd_count=$((cmd_count + 1))
         fi
     done
     success "Linked ${cmd_count} commands"
@@ -902,7 +966,7 @@ setup_claude_integration() {
             local dest="${USER_CLAUDE_DIR}/skills/${skill_name}"
             rm -rf "$dest" 2>/dev/null
             ln -s "$skill_dir" "$dest"
-            ((skill_count++))
+            skill_count=$((skill_count + 1))
         fi
     done
     success "Linked ${skill_count} skills"
