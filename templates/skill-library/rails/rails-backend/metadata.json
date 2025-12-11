@@ -1,0 +1,7 @@
+{
+  "name": "rails-backend",
+  "description": "Rails backend patterns including service objects, ActiveRecord best practices, migrations, API endpoints, and background jobs.",
+  "category": "rails",
+  "tags": ["ruby", "rails", "backend", "api", "activerecord", "service-objects"],
+  "version": "1.0.0"
+}

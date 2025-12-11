@@ -11,13 +11,15 @@ Complete reference for all Claude OS MCP Server API endpoints.
 1. [Knowledge Base Operations](#knowledge-base-operations)
 2. [Hybrid Indexing](#hybrid-indexing-new)
 3. [Project Management](#project-management)
-4. [Agent-OS Spec Tracking](#agent-os-spec-tracking-new)
-5. [Real-Time Spec Watcher](#real-time-spec-watcher-new)
-6. [Hooks System](#hooks-system)
-7. [File Watcher](#file-watcher)
-8. [Authentication](#authentication)
-9. [Utilities](#utilities)
-10. [Health Check](#health-check)
+4. [Skills Management](#skills-management-new)
+5. [Session Parsing](#session-parsing-new)
+6. [Agent-OS Spec Tracking](#agent-os-spec-tracking-new)
+7. [Real-Time Spec Watcher](#real-time-spec-watcher-new)
+8. [Hooks System](#hooks-system)
+9. [File Watcher](#file-watcher)
+10. [Authentication](#authentication)
+11. [Utilities](#utilities)
+12. [Health Check](#health-check)
 
 ---
 
@@ -490,6 +492,353 @@ DELETE /api/projects/{id}
 {
   "success": true,
   "message": "Project and all associated knowledge bases deleted"
+}
+```
+
+---
+
+## Skills Management (NEW)
+
+Manage Claude Code skills - list, install, create, and configure.
+
+### List All Skills
+```http
+GET /api/skills?project_path=/path/to/project&include_content=false
+```
+
+Returns global and project-level skills.
+
+**Response:**
+```json
+{
+  "global": [
+    {
+      "name": "memory",
+      "path": "/Users/username/.claude/skills/memory",
+      "description": "Save and recall information",
+      "scope": "global",
+      "source": "custom",
+      "enabled": true,
+      "category": null,
+      "tags": []
+    }
+  ],
+  "project": [
+    {
+      "name": "rails-backend",
+      "path": "/path/to/project/.claude/skills/rails-backend",
+      "description": "Rails patterns and service objects",
+      "scope": "project",
+      "source": "template",
+      "enabled": true,
+      "category": "rails",
+      "tags": ["ruby", "rails", "backend"]
+    }
+  ]
+}
+```
+
+---
+
+### List Skill Templates
+```http
+GET /api/skills/templates
+```
+
+Returns available local templates organized by category.
+
+**Response:**
+```json
+{
+  "templates": [
+    {
+      "name": "rails-backend",
+      "category": "rails",
+      "description": "Rails patterns and service objects",
+      "path": "/path/to/claude-os/templates/skill-library/rails/rails-backend",
+      "tags": ["ruby", "rails", "backend"],
+      "version": "1.0.0"
+    }
+  ],
+  "categories": ["general", "rails", "react", "testing"]
+}
+```
+
+---
+
+### Install Skill Template
+```http
+POST /api/skills/install?project_path=/path/to/project
+Content-Type: application/json
+
+{
+  "template_name": "rails-backend"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "skill": {
+    "name": "rails-backend",
+    "path": "/path/to/project/.claude/skills/rails-backend",
+    "scope": "project",
+    "source": "template"
+  },
+  "message": "Installed skill 'rails-backend' to project"
+}
+```
+
+---
+
+### Create Custom Skill
+```http
+POST /api/skills?project_path=/path/to/project
+Content-Type: application/json
+
+{
+  "name": "my-skill",
+  "description": "My custom skill",
+  "content": "# My Skill\n\nSkill instructions here...",
+  "category": "custom",
+  "tags": ["custom"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "skill": {
+    "name": "my-skill",
+    "path": "/path/to/project/.claude/skills/my-skill",
+    "scope": "project",
+    "source": "custom"
+  }
+}
+```
+
+---
+
+### Get Skill Details
+```http
+GET /api/skills/{scope}/{name}?project_path=/path/to/project
+```
+
+**Parameters:**
+- `scope`: `global` or `project`
+- `name`: Skill name
+
+**Response:**
+```json
+{
+  "name": "rails-backend",
+  "path": "/path/to/project/.claude/skills/rails-backend",
+  "description": "Rails patterns and service objects",
+  "scope": "project",
+  "source": "template",
+  "content": "# Rails Backend\n\n...",
+  "enabled": true,
+  "category": "rails",
+  "tags": ["ruby", "rails", "backend"],
+  "created": "2025-12-11T10:00:00Z",
+  "modified": "2025-12-11T10:00:00Z"
+}
+```
+
+---
+
+### Delete Skill
+```http
+DELETE /api/skills/{name}?project_path=/path/to/project
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Deleted skill 'my-skill' from project"
+}
+```
+
+---
+
+### List Community Sources
+```http
+GET /api/skills/community/sources
+```
+
+**Response:**
+```json
+{
+  "sources": {
+    "anthropic": {
+      "repo": "anthropics/skills",
+      "skills_path": "skills",
+      "name": "Anthropic Official",
+      "description": "Official skills from Anthropic"
+    },
+    "superpowers": {
+      "repo": "obra/superpowers",
+      "skills_path": "skills",
+      "name": "Superpowers",
+      "description": "Battle-tested skills for TDD, debugging, and collaboration"
+    }
+  }
+}
+```
+
+---
+
+### List Community Skills
+```http
+GET /api/skills/community?source=anthropic
+```
+
+**Parameters:**
+- `source` (optional): Filter by source (`anthropic`, `superpowers`)
+
+**Response:**
+```json
+{
+  "skills": [
+    {
+      "name": "pdf",
+      "source": "anthropic",
+      "repo": "anthropics/skills",
+      "path": "skills/pdf",
+      "description": "Comprehensive PDF manipulation toolkit...",
+      "readme_url": "https://github.com/anthropics/skills/tree/main/skills/pdf",
+      "raw_url": "https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf"
+    }
+  ],
+  "sources": {...},
+  "total": 36
+}
+```
+
+---
+
+### Install Community Skill
+```http
+POST /api/skills/community/install?project_path=/path/to/project
+Content-Type: application/json
+
+{
+  "name": "pdf",
+  "source": "anthropic",
+  "repo": "anthropics/skills",
+  "path": "skills/pdf",
+  "description": "PDF manipulation toolkit",
+  "readme_url": "https://github.com/anthropics/skills/tree/main/skills/pdf",
+  "raw_url": "https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "skill": {
+    "name": "pdf",
+    "path": "/path/to/project/.claude/skills/pdf",
+    "scope": "project",
+    "source": "community:anthropic"
+  },
+  "message": "Installed community skill 'pdf' from anthropic"
+}
+```
+
+---
+
+## Session Parsing (NEW)
+
+Parse Claude Code session files and extract insights.
+
+### List Project Sessions
+```http
+GET /api/sessions?project_path=/path/to/project&limit=10
+```
+
+**Response:**
+```json
+{
+  "sessions": [
+    {
+      "session_id": "abc123",
+      "session_path": "/Users/username/.claude/projects/-path-to-project/abc123.jsonl",
+      "start_time": "2025-12-11T10:00:00Z",
+      "end_time": "2025-12-11T11:30:00Z",
+      "message_count": 24,
+      "tool_calls": 15,
+      "file_changes": 8
+    }
+  ],
+  "total": 42
+}
+```
+
+---
+
+### Get Session Details
+```http
+GET /api/sessions/{session_id}?project_path=/path/to/project
+```
+
+**Response:**
+```json
+{
+  "session_id": "abc123",
+  "session_path": "/Users/username/.claude/projects/-path-to-project/abc123.jsonl",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Help me fix the authentication bug",
+      "timestamp": "2025-12-11T10:00:00Z",
+      "uuid": "msg-001"
+    },
+    {
+      "role": "assistant",
+      "content": "I'll help you fix that...",
+      "timestamp": "2025-12-11T10:00:05Z",
+      "uuid": "msg-002"
+    }
+  ],
+  "tool_calls": [
+    {
+      "tool_name": "Read",
+      "timestamp": "2025-12-11T10:00:10Z",
+      "input_data": {"file_path": "/path/to/auth.py"}
+    }
+  ],
+  "file_changes": [
+    {
+      "file_path": "/path/to/auth.py",
+      "timestamp": "2025-12-11T10:05:00Z"
+    }
+  ],
+  "start_time": "2025-12-11T10:00:00Z",
+  "end_time": "2025-12-11T11:30:00Z",
+  "git_branch": "fix-auth-bug",
+  "cwd": "/path/to/project"
+}
+```
+
+---
+
+### Get Session Summary
+```http
+GET /api/sessions/{session_id}/summary?project_path=/path/to/project&max_tokens=500
+```
+
+Returns a formatted summary suitable for LLM processing.
+
+**Response:**
+```json
+{
+  "session_id": "abc123",
+  "summary": "# Session: abc123\nProject: /path/to/project\nBranch: fix-auth-bug\n\n## Conversation (24 messages)\n..."
 }
 ```
 
@@ -1102,5 +1451,5 @@ For issues, questions, or contributions:
 
 ---
 
-**Last Updated:** 2025-10-31
-**API Version:** 1.0
+**Last Updated:** 2025-12-11
+**API Version:** 2.3

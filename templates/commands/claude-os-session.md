@@ -203,6 +203,107 @@ I found 3 things worth saving:
 [y] Save all  [n] Save none  [s] Select individually
 ```
 
+**Phase 2.5: Built-in Session History Extraction (Optional)**
+
+After smart save prompts, offer to extract insights from the full conversation history:
+
+```
+═══════════════════════════════════════
+📚 EXTRACT FROM SESSION HISTORY?
+═══════════════════════════════════════
+
+Claude Code recorded our full conversation in its built-in session file.
+I can analyze it to extract additional insights we might have missed.
+
+This captures things we discussed but didn't explicitly save:
+  • Decisions made during debugging
+  • Patterns discovered while exploring code
+  • Solutions to errors we encountered
+  • Blockers we hit and resolved
+
+[y] Extract insights  [n] Skip  [v] Preview what I'd extract
+```
+
+**If user selects [y] Extract insights:**
+
+```python
+# Step 1: Find the current session file
+# Sessions are stored at: ~/.claude/projects/{encoded-project-path}/
+# Project path /Users/x/Projects/myapp becomes -Users-x-Projects-myapp
+
+# Step 2: Call the extraction tool
+mcp__code-forge__extract_session_insights
+  session_path: "~/.claude/projects/-Users-iamanmp-Projects-{project}/{session_id}.jsonl"
+  kb_name: "{project}-project_memories"
+  auto_save: false
+```
+
+**Step 3: Show extracted insights for approval:**
+
+```
+═══════════════════════════════════════
+🔍 EXTRACTED INSIGHTS
+═══════════════════════════════════════
+
+Found 4 insights from session history:
+
+1. 💎 HIGH (0.92) - Decision
+   "Hybrid Session Architecture"
+   Decided to combine Claude Code built-in sessions (for replay)
+   with Claude OS knowledge bases (for semantic search).
+   [Save] [Skip]
+
+2. 💎 HIGH (0.88) - Pattern
+   "Session File Structure"
+   Built-in sessions use JSONL format with entry types: user,
+   assistant, file-history-snapshot. UUID parent chain for threading.
+   [Save] [Skip]
+
+3. 📊 MEDIUM (0.75) - Solution
+   "Update Lock Error Resolution"
+   Claude update error "Another process updating" resolved by
+   checking version - was already on latest, no lock file existed.
+   [Save] [Skip]
+
+4. 📊 MEDIUM (0.71) - Decision
+   "User-Controlled Extraction"
+   Session extraction should be opt-in with user approval for
+   each insight to avoid noise and respect privacy.
+   [Save] [Skip]
+
+───────────────────────────────────────
+[a] Save all  [h] Save high confidence only (>0.8)  [s] Skip all
+```
+
+**If user selects [v] Preview:**
+
+Show a dry-run of what would be extracted without saving, then re-prompt.
+
+**If user selects [n] Skip:**
+
+Continue to Phase 3 without extraction.
+
+**Configuration:**
+
+Users can configure extraction behavior in their state file:
+
+```json
+{
+  "preferences": {
+    "session_extraction": {
+      "enabled": true,
+      "auto_prompt_on_end": true,
+      "min_confidence_threshold": 0.7,
+      "auto_save_high_confidence": false,
+      "insight_types": ["decisions", "patterns", "solutions", "blockers"]
+    }
+  }
+}
+```
+
+If `auto_prompt_on_end` is false, skip this phase entirely.
+If `auto_save_high_confidence` is true, automatically save insights above threshold.
+
 **Phase 3: Update State & Stats**
 
 ```json
@@ -309,7 +410,7 @@ When starting a session in a project without a state file, create one with this 
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "current_session": {
     "active": false,
     "started_at": null,
@@ -319,7 +420,8 @@ When starting a session in a project without a state file, create one with this 
     "context": [],
     "decisions_made": [],
     "blockers": [],
-    "patterns_discovered": []
+    "patterns_discovered": [],
+    "builtin_session_id": null
   },
   "last_session": null,
   "active_memories": {
@@ -331,6 +433,7 @@ When starting a session in a project without a state file, create one with this 
     "total_sessions": 0,
     "total_memories_saved": 0,
     "total_patterns_discovered": 0,
+    "total_insights_extracted": 0,
     "most_referenced_memories": [],
     "average_session_duration": 0
   },
@@ -339,9 +442,23 @@ When starting a session in a project without a state file, create one with this 
     "has_unresolved_blockers": false,
     "patterns_ready_to_document": false
   },
+  "preferences": {
+    "auto_search_on_start": true,
+    "max_memories_to_load": 5,
+    "search_days_back": 14,
+    "include_pattern_search": true,
+    "proactive_suggestions": true,
+    "session_extraction": {
+      "enabled": true,
+      "auto_prompt_on_end": true,
+      "min_confidence_threshold": 0.7,
+      "auto_save_high_confidence": false,
+      "insight_types": ["decisions", "patterns", "solutions", "blockers"]
+    }
+  },
   "metadata": {
     "last_updated": null,
-    "claude_os_version": "1.0.0",
+    "claude_os_version": "1.1.0",
     "project_name": null
   }
 }
@@ -445,21 +562,14 @@ I'll:
 
 ## CONFIGURATION
 
-### Automatic Memory Search
+All preferences are stored in the state file (`claude-os-state.json`). See the Default State Template above for all available options.
 
-Edit state file to configure:
-
-```json
-{
-  "preferences": {
-    "auto_search_on_start": true,
-    "max_memories_to_load": 5,
-    "search_days_back": 14,
-    "include_pattern_search": true,
-    "proactive_suggestions": true
-  }
-}
-```
+Key settings:
+- `preferences.auto_search_on_start` - Search memories when starting session
+- `preferences.max_memories_to_load` - How many memories to load (default: 5)
+- `preferences.session_extraction.enabled` - Enable history extraction feature
+- `preferences.session_extraction.auto_prompt_on_end` - Ask about extraction on session end
+- `preferences.session_extraction.min_confidence_threshold` - Only show insights above this score
 
 ---
 

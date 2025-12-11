@@ -1,0 +1,7 @@
+{
+  "name": "react-patterns",
+  "description": "Modern React patterns including hooks, TypeScript, state management, forms, error boundaries, and performance optimization.",
+  "category": "react",
+  "tags": ["react", "typescript", "hooks", "frontend", "components", "state-management"],
+  "version": "1.0.0"
+}

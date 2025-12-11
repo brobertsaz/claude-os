@@ -1,0 +1,7 @@
+{
+  "name": "rspec",
+  "description": "RSpec testing patterns for Ruby/Rails including unit tests, request specs, factories, shared examples, and best practices.",
+  "category": "testing",
+  "tags": ["ruby", "rails", "rspec", "testing", "tdd", "factory-bot"],
+  "version": "1.0.0"
+}

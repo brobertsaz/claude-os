@@ -1,0 +1,7 @@
+{
+  "name": "initialize-project",
+  "description": "Analyze a project's codebase and documentation to generate coding standards, architecture docs, and development practices. Perfect for new project onboarding.",
+  "category": "general",
+  "tags": ["onboarding", "analysis", "documentation", "setup"],
+  "version": "1.0.0"
+}

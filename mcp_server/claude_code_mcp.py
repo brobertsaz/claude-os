@@ -70,6 +70,14 @@ async def api_delete(path: str) -> dict:
         return response.json()
 
 
+async def api_put(path: str, data: dict = None) -> dict:
+    """Make PUT request to API."""
+    async with httpx.AsyncClient() as client:
+        response = await client.put(api_url(path), json=data or {}, timeout=30.0)
+        response.raise_for_status()
+        return response.json()
+
+
 @server.list_tools()
 async def list_tools() -> list[Tool]:
     """List available Claude OS tools.
@@ -262,6 +270,134 @@ async def list_tools() -> list[Tool]:
                 "properties": {},
                 "required": []
             }
+        ),
+
+        # Session Tools
+        Tool(
+            name="list_sessions",
+            description="List Claude Code session files for a project. Sessions are stored in ~/.claude/projects/{encoded-path}/ and contain conversation history.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_path": {"type": "string", "description": "Absolute path to project directory (e.g., /Users/x/Projects/myapp)"},
+                    "limit": {"type": "integer", "default": 50, "description": "Maximum sessions to return (default: 50)"}
+                },
+                "required": ["project_path"]
+            }
+        ),
+        Tool(
+            name="extract_session_insights",
+            description="Extract insights from a Claude Code session file using LLM. Analyzes conversation to find decisions, patterns, solutions, and blockers. Optionally saves insights to a knowledge base.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "session_path": {"type": "string", "description": "Absolute path to .jsonl session file"},
+                    "kb_name": {"type": "string", "description": "Knowledge base name to save insights (optional)"},
+                    "auto_save": {"type": "boolean", "default": False, "description": "Auto-save all insights without prompting"},
+                    "insight_types": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": ["decision", "pattern", "solution", "blocker"]},
+                        "default": ["decision", "pattern", "solution", "blocker"],
+                        "description": "Types of insights to extract"
+                    },
+                    "min_confidence": {"type": "number", "default": 0.7, "description": "Minimum confidence threshold (0.0-1.0)"}
+                },
+                "required": ["session_path"]
+            }
+        ),
+
+        # Skill Management Tools
+        Tool(
+            name="list_skills",
+            description="List all skills (global and project-level). Global skills are in ~/.claude/skills/, project skills are in {project}/.claude/skills/.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "project_path": {"type": "string", "description": "Project path to include project-level skills (optional)"},
+                    "include_content": {"type": "boolean", "default": False, "description": "Include full skill content"}
+                },
+                "required": []
+            }
+        ),
+        Tool(
+            name="list_skill_templates",
+            description="List available skill templates that can be installed to projects. Templates are organized by category.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "category": {"type": "string", "description": "Filter by category (optional)"}
+                },
+                "required": []
+            }
+        ),
+        Tool(
+            name="get_skill",
+            description="Get skill details including full content.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Skill name"},
+                    "scope": {"type": "string", "enum": ["global", "project"], "description": "Where the skill is located"},
+                    "project_path": {"type": "string", "description": "Project path (required if scope is 'project')"}
+                },
+                "required": ["name", "scope"]
+            }
+        ),
+        Tool(
+            name="install_skill_template",
+            description="Install a skill template to a project. Copies the template to {project}/.claude/skills/.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "template_name": {"type": "string", "description": "Name of template to install"},
+                    "project_path": {"type": "string", "description": "Project path to install to"},
+                    "custom_name": {"type": "string", "description": "Custom name for installed skill (optional)"}
+                },
+                "required": ["template_name", "project_path"]
+            }
+        ),
+        Tool(
+            name="create_skill",
+            description="Create a custom skill for a project.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Skill name"},
+                    "description": {"type": "string", "description": "Skill description"},
+                    "content": {"type": "string", "description": "Skill content (markdown)"},
+                    "project_path": {"type": "string", "description": "Project path"},
+                    "category": {"type": "string", "description": "Category (optional)"},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Tags (optional)"}
+                },
+                "required": ["name", "description", "content", "project_path"]
+            }
+        ),
+        Tool(
+            name="update_skill",
+            description="Update an existing project skill.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Skill name"},
+                    "project_path": {"type": "string", "description": "Project path"},
+                    "content": {"type": "string", "description": "New content (optional)"},
+                    "description": {"type": "string", "description": "New description (optional)"},
+                    "tags": {"type": "array", "items": {"type": "string"}, "description": "New tags (optional)"}
+                },
+                "required": ["name", "project_path"]
+            }
+        ),
+        Tool(
+            name="delete_skill",
+            description="Delete a project skill. Cannot delete global skills.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Skill name to delete"},
+                    "project_path": {"type": "string", "description": "Project path"}
+                },
+                "required": ["name", "project_path"]
+            }
         )
     ]
 
@@ -365,6 +501,69 @@ async def _execute_tool(name: str, args: dict[str, Any]) -> dict:
             return {"status": "healthy", "message": "Claude OS is running", "kb_count": len(result.get("knowledge_bases", []))}
         except Exception as e:
             return {"status": "unhealthy", "error": str(e)}
+
+    # Session Tools
+    elif name == "list_sessions":
+        return await api_get(f"/api/sessions/list?project_path={args['project_path']}&limit={args.get('limit', 50)}")
+
+    elif name == "extract_session_insights":
+        return await api_post("/api/sessions/extract", {
+            "session_path": args["session_path"],
+            "kb_name": args.get("kb_name"),
+            "auto_save": args.get("auto_save", False),
+            "insight_types": args.get("insight_types"),
+            "min_confidence": args.get("min_confidence", 0.7)
+        })
+
+    # Skill Management Tools
+    elif name == "list_skills":
+        project_path = args.get("project_path", "")
+        include_content = args.get("include_content", False)
+        url = f"/api/skills?include_content={include_content}"
+        if project_path:
+            url += f"&project_path={project_path}"
+        return await api_get(url)
+
+    elif name == "list_skill_templates":
+        category = args.get("category")
+        url = "/api/skills/templates"
+        if category:
+            url += f"?category={category}"
+        return await api_get(url)
+
+    elif name == "get_skill":
+        scope = args["scope"]
+        name_param = args["name"]
+        project_path = args.get("project_path", "")
+        url = f"/api/skills/{scope}/{name_param}"
+        if project_path:
+            url += f"?project_path={project_path}"
+        return await api_get(url)
+
+    elif name == "install_skill_template":
+        return await api_post(f"/api/skills/install?project_path={args['project_path']}", {
+            "template_name": args["template_name"],
+            "custom_name": args.get("custom_name")
+        })
+
+    elif name == "create_skill":
+        return await api_post(f"/api/skills?project_path={args['project_path']}", {
+            "name": args["name"],
+            "description": args["description"],
+            "content": args["content"],
+            "category": args.get("category"),
+            "tags": args.get("tags")
+        })
+
+    elif name == "update_skill":
+        return await api_put(f"/api/skills/{args['name']}?project_path={args['project_path']}", {
+            "content": args.get("content"),
+            "description": args.get("description"),
+            "tags": args.get("tags")
+        })
+
+    elif name == "delete_skill":
+        return await api_delete(f"/api/skills/{args['name']}?project_path={args['project_path']}")
 
     else:
         return {"error": f"Unknown tool: {name}"}

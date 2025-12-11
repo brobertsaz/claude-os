@@ -2019,6 +2019,543 @@ async def api_unarchive_spec(spec_id: int):
 
 
 # ============================================================================
+# SESSION EXTRACTION ENDPOINTS
+# ============================================================================
+
+from app.core.session_parser import SessionParser, list_session_files
+from app.core.insight_extractor import InsightExtractor
+
+
+class SessionListRequest(BaseModel):
+    """Request model for listing sessions."""
+    project_path: str
+    limit: Optional[int] = 50
+
+
+class SessionExtractRequest(BaseModel):
+    """Request model for extracting insights from a session."""
+    session_path: str
+    kb_name: Optional[str] = None
+    auto_save: bool = False
+    insight_types: Optional[List[str]] = None
+    min_confidence: float = 0.7
+
+
+@app.get("/api/sessions/list")
+async def api_list_sessions(project_path: str, limit: int = 50):
+    """
+    REST API: List Claude Code session files for a project.
+
+    Args:
+        project_path: Absolute path to project directory
+        limit: Maximum number of sessions to return (default: 50)
+
+    Returns:
+        List of session file metadata
+    """
+    try:
+        sessions = list_session_files(project_path, limit)
+
+        # Calculate total size
+        total_size_bytes = sum(s["size_bytes"] for s in sessions)
+        total_size_mb = total_size_bytes / (1024 * 1024)
+
+        return {
+            "project_path": project_path,
+            "sessions": sessions,
+            "total_sessions": len(sessions),
+            "total_size_mb": round(total_size_mb, 2)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list sessions for {project_path}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/sessions/extract")
+async def api_extract_session_insights(request: SessionExtractRequest):
+    """
+    REST API: Extract insights from a Claude Code session file.
+
+    Steps:
+    1. Parse session .jsonl file
+    2. Build conversation summary
+    3. Send to LLM for insight extraction
+    4. Optionally save insights to knowledge base
+
+    Args:
+        request: SessionExtractRequest with session_path, kb_name, etc.
+
+    Returns:
+        Extracted insights with metadata
+    """
+    try:
+        # Parse session file
+        parser = SessionParser(request.session_path)
+        session_data = parser.parse()
+
+        # Build summary for extraction
+        summary = parser.get_summary_for_extraction()
+
+        # Extract insights using LLM
+        extractor = InsightExtractor()
+        insights = await extractor.extract(
+            session_summary=summary,
+            insight_types=request.insight_types
+        )
+
+        # Filter by confidence
+        filtered_insights = extractor.filter_by_confidence(
+            insights,
+            min_confidence=request.min_confidence
+        )
+
+        # Optionally save to knowledge base
+        saved_count = 0
+        if request.auto_save and request.kb_name:
+            db_manager = get_sqlite_manager()
+            if not db_manager.collection_exists(request.kb_name):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Knowledge base '{request.kb_name}' not found"
+                )
+
+            for insight in filtered_insights:
+                # Format as markdown
+                markdown = extractor.format_for_save(insight, session_data.session_id)
+
+                # Generate filename
+                filename = f"session-{session_data.session_id}-{insight.type}-{saved_count}.md"
+
+                # Save to KB
+                db_manager.upsert_document(
+                    collection_name=request.kb_name,
+                    doc_id=filename,
+                    content=markdown,
+                    metadata={
+                        "title": insight.title,
+                        "type": "session_insight",
+                        "insight_type": insight.type,
+                        "session_id": session_data.session_id,
+                        "confidence": insight.confidence
+                    }
+                )
+                saved_count += 1
+
+        # Calculate session duration
+        duration_minutes = None
+        if session_data.start_time and session_data.end_time:
+            try:
+                from datetime import datetime
+                start = datetime.fromisoformat(session_data.start_time.replace('Z', '+00:00'))
+                end = datetime.fromisoformat(session_data.end_time.replace('Z', '+00:00'))
+                duration_minutes = (end - start).total_seconds() / 60
+            except Exception:
+                pass
+
+        # Format response
+        insights_response = []
+        for insight in filtered_insights:
+            insights_response.append({
+                "type": insight.type,
+                "title": insight.title,
+                "content": insight.content,
+                "confidence": insight.confidence,
+                "saved": request.auto_save and request.kb_name is not None
+            })
+
+        return {
+            "session_id": session_data.session_id,
+            "session_path": request.session_path,
+            "session_date": session_data.start_time,
+            "duration_minutes": duration_minutes,
+            "message_count": len(session_data.messages),
+            "insights": insights_response,
+            "insights_saved": saved_count,
+            "kb_name": request.kb_name if request.auto_save else None
+        }
+
+    except FileNotFoundError as e:
+        logger.error(f"Session file not found: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to extract insights from session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# SKILLS MANAGEMENT ENDPOINTS
+# ============================================================================
+
+from app.core.skill_manager import (
+    SkillManager,
+    list_skills,
+    list_skill_templates,
+    list_community_skills,
+    install_community_skill,
+    get_community_manager,
+    COMMUNITY_SOURCES
+)
+
+
+class SkillCreateRequest(BaseModel):
+    """Request model for creating a custom skill."""
+    name: str
+    description: str
+    content: str
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class SkillUpdateRequest(BaseModel):
+    """Request model for updating a skill."""
+    content: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class SkillInstallRequest(BaseModel):
+    """Request model for installing a template."""
+    template_name: str
+    custom_name: Optional[str] = None
+
+
+@app.get("/api/skills")
+async def api_list_skills(project_path: Optional[str] = None, include_content: bool = False):
+    """
+    REST API: List all skills (global and project).
+
+    Args:
+        project_path: Optional project path for project-level skills
+        include_content: Whether to include skill content (default: False)
+
+    Returns:
+        Dict with global and project skill lists
+    """
+    try:
+        manager = SkillManager(project_path)
+        skills = manager.list_all_skills(include_content=include_content)
+
+        return {
+            "global": [s.to_dict() for s in skills["global"]],
+            "project": [s.to_dict() for s in skills["project"]],
+            "total_global": len(skills["global"]),
+            "total_project": len(skills["project"])
+        }
+    except Exception as e:
+        logger.error(f"Failed to list skills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/skills/templates")
+async def api_list_skill_templates(category: Optional[str] = None):
+    """
+    REST API: List available skill templates.
+
+    Args:
+        category: Optional category filter
+
+    Returns:
+        List of skill templates with categories
+    """
+    try:
+        manager = SkillManager()
+        templates = manager.list_templates(category)
+        categories = manager.get_template_categories()
+
+        return {
+            "templates": [t.to_dict() for t in templates],
+            "categories": categories,
+            "total": len(templates)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list skill templates: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/skills/{scope}/{name}")
+async def api_get_skill(scope: str, name: str, project_path: Optional[str] = None):
+    """
+    REST API: Get skill details including content.
+
+    Args:
+        scope: "global" or "project"
+        name: Skill name
+        project_path: Required if scope is "project"
+
+    Returns:
+        Skill details with content
+    """
+    if scope not in ["global", "project"]:
+        raise HTTPException(status_code=400, detail="Scope must be 'global' or 'project'")
+
+    if scope == "project" and not project_path:
+        raise HTTPException(status_code=400, detail="project_path required for project skills")
+
+    try:
+        manager = SkillManager(project_path)
+        skill = manager.get_skill(name, scope)
+
+        if not skill:
+            raise HTTPException(status_code=404, detail=f"Skill not found: {name}")
+
+        return skill.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get skill {name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skills/install")
+async def api_install_skill_template(request: SkillInstallRequest, project_path: str):
+    """
+    REST API: Install a skill template to a project.
+
+    Args:
+        request: SkillInstallRequest with template_name and optional custom_name
+        project_path: Project path to install to
+
+    Returns:
+        Installed skill details
+    """
+    try:
+        manager = SkillManager(project_path)
+        skill = manager.install_template(
+            template_name=request.template_name,
+            custom_name=request.custom_name
+        )
+
+        logger.info(f"Installed skill template {request.template_name} to {project_path}")
+
+        return {
+            "message": f"Installed template '{request.template_name}' as '{skill.name}'",
+            "skill": skill.to_dict()
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to install skill template: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skills")
+async def api_create_skill(request: SkillCreateRequest, project_path: str):
+    """
+    REST API: Create a custom skill for a project.
+
+    Args:
+        request: SkillCreateRequest with name, description, content, etc.
+        project_path: Project path to create skill in
+
+    Returns:
+        Created skill details
+    """
+    try:
+        manager = SkillManager(project_path)
+        skill = manager.create_skill(
+            name=request.name,
+            description=request.description,
+            content=request.content,
+            category=request.category,
+            tags=request.tags
+        )
+
+        logger.info(f"Created custom skill '{request.name}' in {project_path}")
+
+        return {
+            "message": f"Created skill '{request.name}'",
+            "skill": skill.to_dict()
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to create skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/skills/{name}")
+async def api_update_skill(name: str, request: SkillUpdateRequest, project_path: str):
+    """
+    REST API: Update an existing project skill.
+
+    Args:
+        name: Skill name
+        request: SkillUpdateRequest with content, description, tags
+        project_path: Project path
+
+    Returns:
+        Updated skill details
+    """
+    try:
+        manager = SkillManager(project_path)
+        skill = manager.update_skill(
+            name=name,
+            content=request.content,
+            description=request.description,
+            tags=request.tags
+        )
+
+        logger.info(f"Updated skill '{name}' in {project_path}")
+
+        return {
+            "message": f"Updated skill '{name}'",
+            "skill": skill.to_dict()
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to update skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/skills/{name}")
+async def api_delete_skill(name: str, project_path: str):
+    """
+    REST API: Delete a project skill.
+
+    Args:
+        name: Skill name
+        project_path: Project path
+
+    Returns:
+        Success message
+    """
+    try:
+        manager = SkillManager(project_path)
+        manager.delete_skill(name)
+
+        logger.info(f"Deleted skill '{name}' from {project_path}")
+
+        return {
+            "message": f"Deleted skill '{name}'",
+            "name": name
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to delete skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# COMMUNITY SKILLS ENDPOINTS
+# ============================================================================
+
+class CommunitySkillInstallRequest(BaseModel):
+    """Request model for installing a community skill."""
+    source: str  # "anthropic", "superpowers"
+    skill_name: str
+    custom_name: Optional[str] = None
+
+
+@app.get("/api/skills/community/sources")
+async def api_list_community_sources():
+    """
+    REST API: List available community skill sources.
+
+    Returns:
+        Dict of available sources with metadata
+    """
+    return {
+        "sources": {
+            key: {
+                "name": config["name"],
+                "description": config["description"],
+                "repo": config["repo"]
+            }
+            for key, config in COMMUNITY_SOURCES.items()
+        }
+    }
+
+
+@app.get("/api/skills/community")
+async def api_list_community_skills(source: Optional[str] = None):
+    """
+    REST API: List skills from community repositories.
+
+    Args:
+        source: Optional source filter ("anthropic", "superpowers")
+
+    Returns:
+        List of community skills grouped by source
+    """
+    try:
+        skills = await list_community_skills(source)
+
+        # Group by source
+        by_source = {}
+        for skill in skills:
+            src = skill["source"]
+            if src not in by_source:
+                by_source[src] = {
+                    "name": COMMUNITY_SOURCES.get(src, {}).get("name", src),
+                    "skills": []
+                }
+            by_source[src]["skills"].append(skill)
+
+        return {
+            "skills": skills,  # Flat list for easy consumption
+            "sources": by_source,  # Grouped by source
+            "total": len(skills)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list community skills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/skills/community/install")
+async def api_install_community_skill(
+    request: CommunitySkillInstallRequest,
+    project_path: str
+):
+    """
+    REST API: Install a community skill to a project.
+
+    Fetches the skill from GitHub and installs it to the project's
+    .claude/skills/ directory.
+
+    Args:
+        request: CommunitySkillInstallRequest with source, skill_name
+        project_path: Project path to install to
+
+    Returns:
+        Installed skill details
+    """
+    try:
+        skill = await install_community_skill(
+            source=request.source,
+            skill_name=request.skill_name,
+            project_path=project_path,
+            custom_name=request.custom_name
+        )
+
+        logger.info(
+            f"Installed community skill {request.skill_name} "
+            f"from {request.source} to {project_path}"
+        )
+
+        return {
+            "message": f"Installed '{request.skill_name}' from {request.source}",
+            "skill": skill
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to install community skill: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # OLLAMA ENDPOINTS
 # ============================================================================
 

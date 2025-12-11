@@ -36,11 +36,35 @@
 
 ---
 
-## 🆕 What's New in v2.2
+## 🆕 What's New in v2.3
 
 > **Latest Release: December 2025**
 
-### ✨ Beautiful New Installer
+### 🎯 Skills Library & Community Skills
+
+Browse and install **36+ skills** from the community with one click!
+
+```bash
+/claude-os-skills                    # List all skills
+/claude-os-skills install pdf        # Install from community
+```
+
+**New Features:**
+- 📚 **Local Templates** - Pre-built skills for Rails, React, testing workflows
+- 🌐 **Community Skills** - Install from Anthropic Official (16) & Superpowers (20)
+- 🔧 **Custom Skills** - Create and share project-specific skills
+- 🎨 **Beautiful UI** - Browse, search, and install via web interface
+
+### 📊 Session Insights
+
+Parse Claude Code sessions and extract insights automatically!
+
+**New Features:**
+- 🔍 **Session Parser** - Reads Claude Code's native `.jsonl` session files
+- 💡 **Insight Extraction** - Extracts patterns, decisions, blockers
+- 📈 **Analytics Ready** - Track tool usage and file changes across sessions
+
+### ✨ Beautiful New Installer (v2.2)
 
 The installer got a major upgrade with **Charm CLI (gum)** support!
 
@@ -66,6 +90,7 @@ The installer got a major upgrade with **Charm CLI (gum)** support!
 
 | Version | Highlights |
 |---------|------------|
+| **v2.3** | Skills library, community skills, session insights |
 | **v2.2** | Gum CLI support, safety features, lite model default |
 | **v2.1** | Unified installer, OpenAI provider support |
 | **v2.0** | Hybrid tree-sitter indexing, real-time Kanban board |
@@ -109,8 +134,10 @@ You work with Claude Code on a feature, close the terminal, come back tomorrow..
 
 ### Key Features
 
-✅ **Lightning-Fast Indexing** - NEW! Tree-sitter hybrid indexing: 10,000 files in 30 seconds (vs 3-5 hours)
-✅ **Real-Time Kanban Board** - NEW! Auto-syncing task visualization for agent-os specs (updates within 3 seconds)
+✅ **Skills Library** - NEW! Browse & install skills from Anthropic and community repos
+✅ **Session Insights** - NEW! Parse Claude Code sessions and extract patterns automatically
+✅ **Lightning-Fast Indexing** - Tree-sitter hybrid indexing: 10,000 files in 30 seconds
+✅ **Real-Time Kanban Board** - Auto-syncing task visualization for agent-os specs
 ✅ **One-Command Project Init** - `/claude-os-init` and you're done
 ✅ **Automatic Context Loading** - Starts every session with relevant memories
 ✅ **Session Management** - Track work, save progress, resume later
@@ -424,12 +451,18 @@ All these work in any initialized project:
 - **`/claude-os-list`** - List all knowledge bases
 - **`/claude-os-session [action]`** - Manage development sessions
 - **`/claude-os-triggers`** - Manage trigger phrases
+- **`/claude-os-skills [action]`** - Manage skills (list, install, create)
 
 ### Available Skills
 
+**Global Skills (always available):**
 - **`initialize-project`** - Analyze codebase and generate standards
 - **`remember-this`** - Auto-save when you say "remember this:"
 - **`memory`** - Simple memory management
+
+**Community Skills (install via `/claude-os-skills`):**
+- **36+ skills** from Anthropic Official and Superpowers repos
+- PDF/XLSX manipulation, frontend design, TDD, debugging, code review, and more
 
 ---
 
@@ -541,6 +574,82 @@ Agent-OS agents deeply integrate with Claude OS:
 - **Build knowledge** that improves over time
 
 **This is the complete AI development system!**
+
+---
+
+## 🎯 Skills Library
+
+**Browse, install, and manage Claude Code skills with ease!**
+
+### What Are Skills?
+
+Skills are reusable instruction sets that teach Claude specific capabilities. They can include:
+- Coding patterns and best practices
+- Tool usage workflows
+- Domain-specific knowledge
+- Development methodologies
+
+### Skill Types
+
+**Global Skills** (`~/.claude/skills/`)
+- Available in ALL projects
+- Core skills: `memory`, `remember-this`, `initialize-project`
+
+**Project Skills** (`{project}/.claude/skills/`)
+- Available only in that project
+- Installed from templates or custom created
+
+**Community Skills** (fetched from GitHub)
+- **Anthropic Official** - 16 skills from `anthropics/skills`
+- **Superpowers** - 20 skills from `obra/superpowers`
+
+### Using the Skills Command
+
+```bash
+# List all installed skills
+/claude-os-skills
+
+# Browse local templates
+/claude-os-skills templates
+
+# Install a template to your project
+/claude-os-skills install rails-backend
+
+# Create a custom skill
+/claude-os-skills create
+
+# View skill details
+/claude-os-skills view <name>
+
+# Delete a project skill
+/claude-os-skills delete <name>
+```
+
+### Community Skills (via Web UI)
+
+1. Open the web UI at http://localhost:5173
+2. Select your project
+3. Click the **Skills** tab
+4. Click **Install Template**
+5. Switch to **Community Skills** tab
+6. Browse skills from Anthropic Official and Superpowers
+7. Click **Install** on any skill
+
+### Featured Community Skills
+
+**From Anthropic Official:**
+- `pdf` - Create, edit, and analyze PDF documents
+- `xlsx` - Spreadsheet manipulation with formulas
+- `frontend-design` - Production-grade UI components
+- `mcp-builder` - Create MCP servers
+- `doc-coauthoring` - Collaborative documentation
+
+**From Superpowers:**
+- `test-driven-development` - TDD workflow
+- `systematic-debugging` - Four-phase debugging framework
+- `code-review` - Rigorous code review process
+- `git-worktrees` - Isolated development branches
+- `brainstorming` - Structured ideation process
 
 ---
 
@@ -722,11 +831,17 @@ claude-os/
 │   ├── commands/          # Slash commands (symlinked to ~/.claude/)
 │   │   ├── claude-os-init.md
 │   │   ├── claude-os-search.md
+│   │   ├── claude-os-skills.md    # NEW: Skills management
 │   │   └── ...
-│   ├── skills/            # Skills (symlinked to ~/.claude/)
+│   ├── skills/            # Global skills (symlinked to ~/.claude/)
 │   │   ├── initialize-project/
 │   │   ├── remember-this/
 │   │   └── memory/
+│   ├── skill-library/     # NEW: Local skill templates
+│   │   ├── general/       # General purpose skills
+│   │   ├── rails/         # Ruby on Rails skills
+│   │   ├── react/         # React/TypeScript skills
+│   │   └── testing/       # Testing frameworks
 │   └── project-files/     # Files created during /claude-os-init
 │       ├── CLAUDE.md.template
 │       └── .claude-os/
@@ -1036,7 +1151,8 @@ ollama list | grep llama3.1
 claude-os/
 ├── templates/              # Shared templates system
 │   ├── commands/          # Slash commands
-│   ├── skills/            # Skills
+│   ├── skills/            # Global skills
+│   ├── skill-library/     # Local skill templates (NEW)
 │   └── project-files/     # Files created during init
 ├── cli/                   # CLI tools
 │   └── claude-os-consolidate.sh
@@ -1044,13 +1160,19 @@ claude-os/
 │   ├── core/              # Core modules
 │   │   ├── sqlite_manager.py
 │   │   ├── rag_engine.py
+│   │   ├── skill_manager.py    # NEW: Skills management
+│   │   ├── session_parser.py   # NEW: Session parsing
+│   │   ├── insight_extractor.py # NEW: Insight extraction
 │   │   └── ...
 │   └── db/                # Database schemas
 ├── frontend/              # React UI (Vite)
 │   ├── src/
+│   │   ├── components/
+│   │   │   ├── SkillsManagement.tsx  # NEW: Skills UI
+│   │   │   └── ...
+│   │   └── pages/
 │   └── public/
 │       └── assets/
-│           └── claude-os-hero.png
 ├── mcp_server/           # MCP Server (HTTP)
 │   └── server.py         # FastAPI + MCP endpoints
 ├── data/                 # SQLite database
