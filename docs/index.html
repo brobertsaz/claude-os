@@ -613,18 +613,18 @@ You: *starts typing 30-minute context document*</code></pre>
                 <div class="col-lg-10 offset-lg-1">
                     <h2 class="section-title gradient-text text-center" data-aos="fade-down">Getting Started in 3 Steps</h2>
                     <div class="code-block" data-aos="fade-up">
-                        <pre><code># 1. Install Claude OS (one-time, 3 minutes)
+                        <pre><code># 1. Clone & Install (3 minutes)
 git clone https://github.com/brobertsaz/claude-os.git
 cd claude-os
-./install.sh
+./setup-claude-os.sh          # Beautiful interactive installer
+# Or preview first: ./setup-claude-os.sh --demo
 
-# 2. Start Claude OS
+# 2. Start Services
 ./start.sh
 
-# 3. Initialize your project (2 minutes)
+# 3. Initialize Your Project
 cd /path/to/your/project
-/claude-os-init
-# Answer a few questions, done!</code></pre>
+/claude-os-init               # Answer a few questions, done!</code></pre>
                     </div>
                     <p class="text-center fs-4 mt-4" data-aos="zoom-in" data-aos-delay="200">
                         <span class="highlight">Now every conversation includes your complete project knowledge.</span>
