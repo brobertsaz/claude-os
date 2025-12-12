@@ -73,8 +73,8 @@ Let's get your project configured for AI-powered development.
    - Default: `http://localhost:8051`
    - Ask: `Claude OS server URL? [default: http://localhost:8051]`
 
-9. **Agent-OS Setup** (Optional):
-   - Ask: `Enable Agent-OS for spec-driven development? [Y/n]`
+9. **Agent-OS Setup** (Optional - for advanced users):
+   - Ask: `Enable Agent-OS for spec-driven development? [y/N]`
    - Explain:
      ```
      Agent-OS provides 8 specialized agents for structured feature development:
@@ -83,13 +83,14 @@ Let's get your project configured for AI-powered development.
      - Generate task breakdowns
      - Implement and verify features
 
+     This is recommended for complex projects with formal spec workflows.
      Note: Requires Ollama (local) or OpenAI API key for advanced features.
      ```
    - If YES:
      - Set `ENABLE_AGENT_OS=true`
      - Will create `agent-os/` directory structure
      - Will symlink agents to `.claude/agents/agent-os/`
-   - If NO:
+   - If NO (default):
      - Set `ENABLE_AGENT_OS=false`
      - Can enable later by manually copying templates
 
@@ -183,6 +184,18 @@ mkdir -p .claude-os
 **Copy .gitignore:**
 - Copy from: `{claude_os_dir}/templates/project-files/.claude-os/.gitignore`
 - Write to: `./.claude-os/.gitignore`
+
+**Install TDD Skill (always - best practice for all projects):**
+- Create directory: `mkdir -p ./.claude/skills/test-driven-development`
+- Copy from: `{claude_os_dir}/templates/skills/test-driven-development/SKILL.md`
+- Write to: `./.claude/skills/test-driven-development/SKILL.md`
+- Show:
+  ```
+  ✅ Installed TDD skill (test-driven-development)
+     - Guides RED-GREEN-REFACTOR workflow
+     - Ensures tests fail first, then pass
+     - Use: "I'm using the TDD skill to implement this feature"
+  ```
 
 **If Agent-OS is enabled (`ENABLE_AGENT_OS=true`):**
 
@@ -449,6 +462,11 @@ Your project is now connected to Claude OS.
    /claude-os-save - Save insights
    /claude-os-session - Manage development sessions
    /claude-os-remember - Quick save to memories
+
+🧪 TDD Skill Installed:
+   - RED-GREEN-REFACTOR workflow built-in
+   - Say "I'm using the TDD skill" to activate
+   - Write tests first, watch them fail, then implement
 
 📂 Project Structure:
    ./CLAUDE.md - Project context (auto-loaded every session)

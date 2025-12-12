@@ -3324,6 +3324,35 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Failed to start spec watchers: {e}")
 
+    # Auto-start file watchers for all projects with hooks enabled
+    try:
+        from app.core.hooks import ProjectHook
+
+        db_manager = get_sqlite_manager()
+        projects = db_manager.list_projects()
+        file_watcher = get_global_watcher()
+        started_count = 0
+
+        for project in projects:
+            try:
+                # Check if project has any enabled hooks
+                hook = ProjectHook(project['id'])
+                hook_status = hook.get_hook_status()
+
+                if hook_status.get('enabled_hooks', 0) > 0:
+                    file_watcher.start_project(project['id'])
+                    started_count += 1
+                    logger.info(f"📂 File watcher started for project {project['name']}")
+            except Exception as e:
+                logger.warning(f"Could not start file watcher for project {project['id']}: {e}")
+
+        if started_count > 0:
+            logger.info(f"✅ File watchers started for {started_count} project(s)")
+        else:
+            logger.info("ℹ️  No projects with hooks enabled - file watchers will start when hooks are configured")
+    except Exception as e:
+        logger.error(f"❌ Failed to start file watchers: {e}")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -3339,6 +3368,14 @@ async def shutdown_event():
         logger.info("✅ Spec watchers stopped")
     except Exception as e:
         logger.error(f"❌ Failed to stop spec watchers: {e}")
+
+    # Stop all file watchers
+    try:
+        file_watcher = get_global_watcher()
+        file_watcher.stop_all()
+        logger.info("✅ File watchers stopped")
+    except Exception as e:
+        logger.error(f"❌ Failed to stop file watchers: {e}")
 
 
 def main():

@@ -178,6 +178,9 @@ class GlobalFileWatcher:
             watcher = ProjectWatcher(project_id)
             watcher.start()
             self.watchers[project_id] = watcher
+            # Enable if we have active watchers
+            if self.watchers:
+                self.enabled = True
 
     def stop_project(self, project_id: int):
         """Stop watching a project."""
@@ -187,6 +190,9 @@ class GlobalFileWatcher:
 
             watcher = self.watchers.pop(project_id)
             watcher.stop()
+            # Disable if no more watchers
+            if not self.watchers:
+                self.enabled = False
 
     def restart_project(self, project_id: int):
         """Restart watcher for a project."""
