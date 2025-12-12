@@ -338,5 +338,6 @@ Skills management is also available via MCP tools:
 ---
 
 **See Also:**
+- [Recommended Skills](./RECOMMENDED_SKILLS.md) - Our curated list of skills we actually use and trust
 - [API Reference](../API_REFERENCE.md) - Skills API endpoints
 - [README](../../README.md) - Full Claude OS documentation

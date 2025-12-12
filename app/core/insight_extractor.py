@@ -27,21 +27,27 @@ class Insight:
 # Extraction prompt template
 EXTRACTION_PROMPT = """Analyze this Claude Code session transcript and extract valuable insights.
 
-Look for:
-1. **Decisions**: Technical choices made with reasoning (e.g., "Decided to use SQLite instead of PostgreSQL because...")
-2. **Patterns**: Reusable approaches or code patterns discovered (e.g., "Session files use JSONL format with entry types...")
-3. **Solutions**: Bug fixes, error resolutions, implementation approaches (e.g., "Fixed authentication error by updating token refresh logic...")
-4. **Blockers**: Problems encountered, whether resolved or not (e.g., "Package installation failed due to Python version mismatch...")
+CRITICAL RULES:
+1. ONLY extract insights that are EXPLICITLY mentioned in the transcript below
+2. Do NOT invent, assume, or hallucinate any insights
+3. If the transcript doesn't contain valuable insights, return an empty list
+4. Every insight MUST be directly traceable to specific text in the transcript
 
-For each insight:
-- Provide a clear title (5-10 words)
-- Write detailed content (2-4 sentences with specific technical details)
-- Rate confidence (0.0-1.0) based on how explicit/important it is
-- Categorize by type
+Look for these types of insights (ONLY if actually present):
+1. **Decisions**: Technical choices made with clear reasoning stated in the transcript
+2. **Patterns**: Reusable approaches or code patterns that were explicitly discovered/discussed
+3. **Solutions**: Bug fixes or error resolutions that were actually implemented
+4. **Blockers**: Problems encountered that were explicitly mentioned
 
-**Only extract HIGH VALUE insights worth remembering for future sessions.**
+For each insight you extract:
+- The title MUST use terminology from the actual transcript
+- The content MUST describe what actually happened (not what might have happened)
+- Confidence should be 0.9+ only if explicitly stated, 0.7-0.8 if implied from context
+- If you cannot point to specific transcript text supporting the insight, DO NOT include it
+
+**Extract ONLY insights that someone reading the transcript would clearly see.**
 Skip routine operations (ls, git status, simple file reads, etc.).
-Focus on decisions, learnings, and technical discoveries.
+If unsure whether something qualifies, leave it out.
 
 Session transcript:
 {transcript}
@@ -49,9 +55,11 @@ Session transcript:
 Return valid JSON only (no markdown, no extra text):
 {{
     "insights": [
-        {{"type": "decision|pattern|solution|blocker", "title": "Clear descriptive title", "content": "Detailed explanation with technical specifics...", "confidence": 0.85}}
+        {{"type": "decision|pattern|solution|blocker", "title": "Title using actual terms from transcript", "content": "What specifically happened based on transcript text...", "confidence": 0.85}}
     ]
 }}
+
+If no valuable insights found, return: {{"insights": []}}
 """
 
 
