@@ -20,6 +20,9 @@
   <a href="https://thebob.dev/claude-os/">
     <img src="https://img.shields.io/badge/🌐_Explore-Claude_OS-00D9FF?style=for-the-badge&logo=github" alt="Explore Claude OS">
   </a>
+  <a href="https://github.com/brobertsaz/claude-os/wiki">
+    <img src="https://img.shields.io/badge/📚_Wiki-Guides_&_Skills-8B5CF6?style=for-the-badge&logo=github" alt="Wiki">
+  </a>
 </p>
 
 ---
@@ -54,6 +57,7 @@ Browse and install **36+ skills** from the community with one click!
 - 🌐 **Community Skills** - Install from Anthropic Official (16) & Superpowers (20)
 - 🔧 **Custom Skills** - Create and share project-specific skills
 - 🎨 **Beautiful UI** - Browse, search, and install via web interface
+- 📖 **[Recommended Skills](https://github.com/brobertsaz/claude-os/wiki/Recommended-Skills)** - Our curated list of skills we actually use and trust
 
 ### 📊 Session Insights
 
