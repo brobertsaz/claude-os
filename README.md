@@ -1,5 +1,8 @@
 # Claude OS
 
+[![Run in Smithery](https://smithery.ai/badge/skills/brobertsaz)](https://smithery.ai/skills?ns=brobertsaz&utm_source=github&utm_medium=badge)
+
+
 <p align="center">
   <img src="frontend/public/assets/claude-os-hero.png" alt="Claude OS Hero" width="800"/>
 </p>
