@@ -133,6 +133,42 @@ Show success message:
    - {project_name}-knowledge_docs
 ```
 
+### Step 2.5: Configure MCP Server for This Project
+
+**IMPORTANT**: Claude Code stores MCP configs per-project in `~/.claude.json`. We need to add the `code-forge` MCP server for this project so Claude can access the knowledge bases.
+
+Run the following command:
+
+```bash
+claude mcp add --transport stdio code-forge \
+  --env CLAUDE_OS_API={claude_os_url} \
+  -- {claude_os_dir}/venv/bin/python3 {claude_os_dir}/mcp_server/claude_code_mcp.py
+```
+
+**Expected output:**
+```
+Added stdio MCP server code-forge with command: .../python3 .../claude_code_mcp.py to local config
+File modified: /Users/.../.claude.json [project: {project_path}]
+```
+
+Show success:
+```
+🔌 Configuring MCP server...
+✅ MCP server 'code-forge' added for this project
+   - Tools available: mcp__code-forge__search_knowledge_base, etc.
+   - Note: Restart Claude Code to connect
+```
+
+**If the command fails** (e.g., `claude` CLI not found):
+- Show warning but continue:
+  ```
+  ⚠️  Could not auto-configure MCP server
+     Run this manually after setup:
+     claude mcp add --transport stdio code-forge \
+       --env CLAUDE_OS_API={claude_os_url} \
+       -- {claude_os_dir}/venv/bin/python3 {claude_os_dir}/mcp_server/claude_code_mcp.py
+  ```
+
 ### Step 3: Set Up Project Directory Structure
 
 Create the following structure in the project directory:
@@ -474,10 +510,11 @@ Your project is now connected to Claude OS.
    ./.claude-os/ - Config and state files
 
 📖 Next Steps:
-   1. Review and customize CLAUDE.md for your team
-   2. Add more docs anytime via UI: {claude_os_url}
-   3. Start a session: /claude-os-session start "feature name"
-   4. Let's build something amazing!
+   1. **Restart Claude Code** to connect the MCP server (exit and run `claude` again)
+   2. Review and customize CLAUDE.md for your team
+   3. Add more docs anytime via UI: {claude_os_url}
+   4. Start a session: /claude-os-session start "feature name"
+   5. Let's build something amazing!
 
 💡 Tip: With hybrid indexing, I instantly know your entire codebase structure!
    - Structural search is INSTANT (tree-sitter)

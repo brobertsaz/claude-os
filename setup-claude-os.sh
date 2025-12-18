@@ -971,42 +971,11 @@ setup_claude_integration() {
     done
     success "Linked ${skill_count} skills"
 
-    # Configure MCP server in settings.json
-    local settings_file="${USER_CLAUDE_DIR}/settings.json"
+    # NOTE: MCP server is configured per-project when running /claude-os-init
+    # Claude Code stores MCP configs in ~/.claude.json per-project, not in settings.json
+    # The /claude-os-init command runs: claude mcp add --transport stdio code-forge ...
 
-    if [[ ! -f "$settings_file" ]]; then
-        echo "{}" > "$settings_file"
-    fi
-
-    python3 << EOF
-import json
-import os
-
-settings_file = "$settings_file"
-claude_os_dir = "$CLAUDE_OS_DIR"
-
-try:
-    with open(settings_file, 'r') as f:
-        settings = json.load(f)
-except:
-    settings = {}
-
-if 'mcpServers' not in settings:
-    settings['mcpServers'] = {}
-
-settings['mcpServers']['code-forge'] = {
-    "command": os.path.join(claude_os_dir, "venv", "bin", "python3"),
-    "args": [os.path.join(claude_os_dir, "mcp_server", "claude_code_mcp.py")],
-    "env": {
-        "CLAUDE_OS_API": "http://localhost:8051"
-    }
-}
-
-with open(settings_file, 'w') as f:
-    json.dump(settings, f, indent=2)
-EOF
-
-    success "Configured MCP server"
+    info "MCP server will be configured per-project via /claude-os-init"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
