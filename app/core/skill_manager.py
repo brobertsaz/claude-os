@@ -75,7 +75,7 @@ class SkillManager:
     TEMPLATES_DIR = Path(__file__).parent.parent.parent / "templates" / "skill-library"
 
     # Core skills that should remain global
-    CORE_SKILLS = {"memory", "remember-this"}
+    CORE_SKILLS = {"memory"}
 
     def __init__(self, project_path: Optional[str] = None):
         """

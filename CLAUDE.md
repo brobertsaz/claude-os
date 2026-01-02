@@ -118,9 +118,8 @@ These commands are installed to `~/.claude/commands/` via the install script:
 
 | Skill | Purpose |
 |-------|---------|
-| `memory` | Save and recall information |
+| `memory` | Save and recall information (supports trigger phrases like "remember this:") |
 | `initialize-project` | Analyze codebase and generate docs |
-| `remember-this` | Auto-save on trigger phrases |
 
 ---
 

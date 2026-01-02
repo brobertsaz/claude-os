@@ -57,7 +57,7 @@ done
 # Remove skill symlinks
 echo ""
 echo "📁 Removing skill symlinks..."
-for skill in "initialize-project" "remember-this" "memory"; do
+for skill in "initialize-project" "memory"; do
     skill_path="${USER_CLAUDE_DIR}/skills/${skill}"
     if [ -L "$skill_path" ]; then
         rm -f "$skill_path"

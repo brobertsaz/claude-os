@@ -46,7 +46,7 @@ $([ -d "${CLAUDE_OS_DIR}/venv" ] && ${CLAUDE_OS_DIR}/venv/bin/pip list 2>&1 | gr
 FILES CREATED
 ───────────────────────────────────────────────────────────────
 Commands: $(ls -1 ${USER_CLAUDE_DIR}/commands/claude-os-*.md 2>/dev/null | wc -l | xargs) symlinks
-Skills: $(ls -1d ${USER_CLAUDE_DIR}/skills/{memory,initialize-project,remember-this} 2>/dev/null | wc -l | xargs) symlinks
+Skills: $(ls -1d ${USER_CLAUDE_DIR}/skills/{memory,initialize-project,memory} 2>/dev/null | wc -l | xargs) symlinks
 start.sh: $([ -f "${CLAUDE_OS_DIR}/start.sh" ] && echo "Created" || echo "Not created")
 config.json: $([ -f "${CLAUDE_OS_DIR}/claude-os-config.json" ] && echo "Created" || echo "Not created")
 MCP config: $([ -f "${USER_CLAUDE_DIR}/mcp-servers/code-forge.json" ] && echo "Created" || echo "Not created")
@@ -55,7 +55,7 @@ SYMLINK DETAILS
 ───────────────────────────────────────────────────────────────
 $(ls -la ${USER_CLAUDE_DIR}/commands/claude-os-*.md 2>&1 | head -10)
 
-$(ls -la ${USER_CLAUDE_DIR}/skills/{memory,initialize-project,remember-this} 2>&1 | head -5)
+$(ls -la ${USER_CLAUDE_DIR}/skills/{memory,initialize-project,memory} 2>&1 | head -5)
 
 GIT INFORMATION
 ───────────────────────────────────────────────────────────────

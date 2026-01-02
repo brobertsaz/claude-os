@@ -25,7 +25,7 @@ Available in ALL projects. These are core skills that come with Claude OS:
 | Skill | Description |
 |-------|-------------|
 | `memory` | Save and recall information across sessions |
-| `remember-this` | Auto-save on trigger phrases like "remember this:" |
+| `memory` | Auto-save on trigger phrases like "remember this:" |
 | `initialize-project` | Analyze codebase and generate documentation |
 
 ### Project Skills (`{project}/.claude/skills/`)
@@ -71,7 +71,7 @@ The `/claude-os-skills` command provides full skills management:
 🌐 GLOBAL SKILLS (always available)
 ────────────────────────────────────
   ✓ memory - Save and recall information
-  ✓ remember-this - Auto-save on trigger phrases
+  ✓ memory - Auto-save on trigger phrases
   ✓ initialize-project - Analyze codebase
 
 📁 PROJECT SKILLS (/path/to/project)

@@ -283,8 +283,7 @@ Parameters: kb_name (e.g., "{{PROJECT_NAME}}-project_memories"), query (your sea
 ### Available Skills
 
 1. **`initialize-project`** - Analyze project and generate coding standards
-2. **`remember-this`** - Save insights to Claude OS knowledge bases
-3. **`memory`** - Simple memory management
+2. **`memory`** - Save and recall information (supports "remember this:", "save to memory", etc.)
 
 {{AGENT_OS_SECTION}}
 

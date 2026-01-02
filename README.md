@@ -8,8 +8,8 @@
 </p>
 
 <p align="center">
-  <strong>AI Memory & Knowledge Base System for Claude Code</strong><br>
-  Initialize projects in seconds • Never lose context again
+  <strong>Give Your AI a Memory</strong><br>
+  <em>Claude Code that actually remembers you.</em>
 </p>
 
 <p align="center">
@@ -39,6 +39,24 @@
 <p align="center">
   <strong>We have a Discord!</strong> Join our community to get help, share your projects, and connect with other Claude OS users.
 </p>
+
+---
+
+## ✨ The Magic
+
+**You:** "Remember this: our API uses JWT tokens with 15-minute expiry and 7-day refresh tokens"
+
+**Claude:** *Saved: "API Authentication Strategy" (Architecture)*
+
+That's it. Next week, next month, next project - Claude remembers. No commands to memorize. No complex setup. Just talk naturally.
+
+```
+"remember this..."     → saved to your knowledge base
+"what did we decide?"  → searches your memories
+"how did we fix that?" → finds past solutions
+```
+
+**Every conversation makes Claude smarter. Every insight builds your shared knowledge.**
 
 ---
 
@@ -123,35 +141,55 @@ Thanks to our amazing contributors!
 
 ## 🚀 What is Claude OS?
 
-**Claude OS** is **Claude Code's personal memory system** - making AI the best coding assistant in the universe by remembering everything across sessions.
+Claude OS isn't just a tool - **it's Claude's memory**.
 
-### The Problem
+Think about it: you and Claude work together on a feature. You explain your architecture, your patterns, your preferences. Then you close the terminal... and it's all gone. Tomorrow, you start over.
 
-You work with Claude Code on a feature, close the terminal, come back tomorrow... and Claude forgot everything. You explain the same architecture. You reference the same files. You repeat yourself constantly.
+**What if Claude actually remembered?**
 
-### The Solution
+### Before Claude OS
 
-**Claude OS gives Claude persistent memory:**
+```
+Day 1: "We use JWT tokens with refresh..."
+Day 2: "As I mentioned, we use JWT tokens..."
+Day 3: "Again, the auth system uses JWT..."
+```
 
-- 📝 **Remembers decisions** across all sessions
-- 🔍 **Searches past work** automatically at session start
-- 📚 **Indexes your docs** and makes them searchable
-- 🧠 **Learns patterns** that improve over time
-- 🔄 **100% Local** - Never leaves your machine, fully private
+### After Claude OS
 
-### Key Features
+```
+Day 1: "Remember this: we use JWT tokens with refresh..."
+Day 2: Claude already knows. Applies the pattern automatically.
+Day 3: Claude suggests improvements based on what worked.
+```
 
-✅ **Skills Library** - NEW! Browse & install skills from Anthropic and community repos
-✅ **Session Insights** - NEW! Parse Claude Code sessions and extract patterns automatically
-✅ **Lightning-Fast Indexing** - Tree-sitter hybrid indexing: 10,000 files in 30 seconds
-✅ **Real-Time Kanban Board** - Auto-syncing task visualization for agent-os specs
-✅ **One-Command Project Init** - `/claude-os-init` and you're done
-✅ **Automatic Context Loading** - Starts every session with relevant memories
-✅ **Session Management** - Track work, save progress, resume later
-✅ **Documentation Ingestion** - Auto-indexes your docs during setup
-✅ **Agent-OS Integration** - Optional spec-driven development with 8 specialized agents
-✅ **Flexible AI** - Choose local Ollama (free) or OpenAI API (paid)
-✅ **Template System** - Commands and skills shared via symlinks
+### The Difference
+
+| Without Claude OS | With Claude OS |
+|-------------------|----------------|
+| Explain the same things repeatedly | Claude remembers your decisions |
+| Start cold every session | Context loaded automatically |
+| Patterns forgotten | Patterns compound over time |
+| Claude is a tool | Claude is a partner |
+
+### Why It Works
+
+- 🧠 **Persistent Knowledge** - Decisions, patterns, solutions saved across sessions
+- 🔍 **Automatic Recall** - Relevant memories surface when you need them
+- 📚 **Documentation Search** - Your docs indexed and searchable via RAG
+- 🎯 **Session Learning** - Claude extracts insights from past conversations
+- 🔒 **100% Local** - Your knowledge never leaves your machine
+
+### Features at a Glance
+
+| Feature | What It Does |
+|---------|--------------|
+| **Natural Language Memory** | Just say "remember this" - no commands needed |
+| **Session Insights** | Auto-extracts patterns from past conversations |
+| **Lightning Indexing** | 10,000 files indexed in 30 seconds |
+| **Skills Library** | 36+ community skills, one-click install |
+| **Cross-Project Learning** | Patterns from Project A help in Project B |
+| **One-Command Setup** | `/claude-os-init` and you're ready |
 
 ---
 
@@ -464,8 +502,7 @@ All these work in any initialized project:
 
 **Global Skills (always available):**
 - **`initialize-project`** - Analyze codebase and generate standards
-- **`remember-this`** - Auto-save when you say "remember this:"
-- **`memory`** - Simple memory management
+- **`memory`** - Save and recall information (supports "remember this:", "save to memory", etc.)
 
 **Community Skills (install via `/claude-os-skills`):**
 - **36+ skills** from Anthropic Official and Superpowers repos
@@ -600,7 +637,7 @@ Skills are reusable instruction sets that teach Claude specific capabilities. Th
 
 **Global Skills** (`~/.claude/skills/`)
 - Available in ALL projects
-- Core skills: `memory`, `remember-this`, `initialize-project`
+- Core skills: `memory`, `initialize-project`
 
 **Project Skills** (`{project}/.claude/skills/`)
 - Available only in that project
@@ -842,7 +879,6 @@ claude-os/
 │   │   └── ...
 │   ├── skills/            # Global skills (symlinked to ~/.claude/)
 │   │   ├── initialize-project/
-│   │   ├── remember-this/
 │   │   └── memory/
 │   ├── skill-library/     # NEW: Local skill templates
 │   │   ├── general/       # General purpose skills
@@ -1093,7 +1129,6 @@ If you prefer to uninstall manually:
 # Remove symlinks
 rm ~/.claude/commands/claude-os-*.md
 rm -rf ~/.claude/skills/initialize-project
-rm -rf ~/.claude/skills/remember-this
 rm -rf ~/.claude/skills/memory
 rm ~/.claude/mcp-servers/code-forge.json
 

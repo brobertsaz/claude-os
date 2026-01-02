@@ -41,7 +41,7 @@ Claude OS Trigger Categories
 ============================
 
 remember_this (ENABLED)
-  Invokes: remember-this skill
+  Invokes: memory skill
   Phrases: 7 configured
   Description: Auto-saves to Claude OS memories
 
@@ -75,7 +75,7 @@ remember_this Triggers
 ======================
 
 Status: ENABLED ✓
-Invokes: remember-this skill
+Invokes: memory skill
 Case Sensitive: No
 
 Trigger Phrases (7):
@@ -88,12 +88,12 @@ Trigger Phrases (7):
   7. "note:"
 
 How it works:
-When you say any of these phrases, the remember-this skill is automatically
+When you say any of these phrases, the memory skill is automatically
 invoked to save your content to Claude OS memories.
 
 Examples:
   User: "Remember this: We use service objects for business logic"
-  → Auto-invokes remember-this skill
+  → Auto-invokes memory skill
   → Saves to {project}-project_memories
 
 To add/remove triggers:
@@ -173,7 +173,7 @@ Input: "remember this: test phrase"
 
 Matched Category: remember_this
 Matched Phrase: "remember this:"
-Would Invoke: remember-this skill
+Would Invoke: memory skill
 Status: ENABLED
 
 Content to process: "test phrase"
@@ -249,7 +249,7 @@ Use **Write** tool with complete JSON to update the file.
 ## Default Trigger Categories
 
 ### remember_this
-Auto-invokes remember-this skill to save to memories
+Auto-invokes memory skill to save to memories
 - Default: ENABLED
 - 7 default phrases
 
@@ -302,7 +302,7 @@ Structure:
 
 ## Integration with Skills
 
-The remember-this skill will be updated to:
+The memory skill will be updated to:
 1. Load triggers from this config file
 2. Detect any matching phrase
 3. Extract content after the trigger phrase

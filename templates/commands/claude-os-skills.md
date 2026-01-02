@@ -34,7 +34,7 @@ mcp__code-forge__list_skills
 🌐 GLOBAL SKILLS (always available)
 ────────────────────────────────────
   ✓ memory - Save and recall information
-  ✓ remember-this - Auto-save on trigger phrases
+  ✓ memory - Auto-save on trigger phrases
 
 📁 PROJECT SKILLS ({cwd})
 ────────────────────────────────────
@@ -211,7 +211,7 @@ mcp__code-forge__delete_skill
 ✓ Deleted skill '<name>' from project
 ```
 
-**Note:** Cannot delete global skills (memory, remember-this). These are core to Claude OS.
+**Note:** Cannot delete global skills (memory, memory). These are core to Claude OS.
 
 ---
 
@@ -219,7 +219,7 @@ mcp__code-forge__delete_skill
 
 - **Global Skills**: `~/.claude/skills/`
   - Available in ALL projects
-  - Core skills: memory, remember-this
+  - Core skills: memory, memory
 
 - **Project Skills**: `{project}/.claude/skills/`
   - Available only in that project

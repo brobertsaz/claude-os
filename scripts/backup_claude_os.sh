@@ -79,7 +79,7 @@ fi
 echo "" >> "$BACKUP_DIR/symlink_info.txt"
 echo "# Symlinked Skills" >> "$BACKUP_DIR/symlink_info.txt"
 if [ -d "$HOME/.claude/skills" ]; then
-    ls -la "$HOME/.claude/skills" | grep -E "(memory|initialize-project|remember-this)" >> "$BACKUP_DIR/symlink_info.txt" 2>/dev/null || echo "No claude-os skills found" >> "$BACKUP_DIR/symlink_info.txt"
+    ls -la "$HOME/.claude/skills" | grep -E "(memory|initialize-project|memory)" >> "$BACKUP_DIR/symlink_info.txt" 2>/dev/null || echo "No claude-os skills found" >> "$BACKUP_DIR/symlink_info.txt"
 fi
 echo -e "${GREEN}✓${NC} Recorded symlink information"
 

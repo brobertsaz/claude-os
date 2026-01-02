@@ -154,7 +154,7 @@ Replace `20251101_135211` with your actual backup timestamp.
    rm ~/.claude/commands/claude-os-*.md
    rm ~/.claude/skills/memory
    rm ~/.claude/skills/initialize-project
-   rm ~/.claude/skills/remember-this
+   rm ~/.claude/skills/memory
 
    # Remove virtual environment
    rm -rf venv venv_py312 venv_py313
@@ -200,7 +200,7 @@ Replace `20251101_135211` with your actual backup timestamp.
 # 2. Clean installation (keep data, test scripts)
 rm -rf venv
 rm ~/.claude/commands/claude-os-*.md
-rm ~/.claude/skills/{memory,initialize-project,remember-this}
+rm ~/.claude/skills/{memory,initialize-project,memory}
 
 # 3. Test install as if you're a new user
 ./install.sh
@@ -222,7 +222,7 @@ rm -rf venv venv_*
 rm -rf node_modules
 rm -rf data/claude-os.db
 rm ~/.claude/commands/claude-os-*.md
-rm ~/.claude/skills/{memory,initialize-project,remember-this}
+rm ~/.claude/skills/{memory,initialize-project,memory}
 
 # 3. Test full setup
 ./setup.sh

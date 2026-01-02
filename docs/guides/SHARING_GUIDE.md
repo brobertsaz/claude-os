@@ -169,7 +169,7 @@ All these work in any initialized project:
 ## Skills Available
 
 - `initialize-project` - Analyze codebase and generate standards
-- `remember-this` - Auto-save when you say "remember this:"
+- `memory` - Auto-save when you say "remember this:"
 - `memory` - Simple memory management
 
 ## Agent-OS Commands (If Installed)

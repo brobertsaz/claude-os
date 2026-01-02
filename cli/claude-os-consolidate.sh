@@ -48,7 +48,7 @@ CLAUDE_OS_COMMANDS=(
 # List of Claude OS skills to move
 CLAUDE_OS_SKILLS=(
     "initialize-project"
-    "remember-this"
+    "memory"
     "memory"
 )
 
@@ -131,8 +131,8 @@ if [ -f "$INIT_SKILL_MD" ]; then
     echo "   ✅ Updated initialize-project/SKILL.md"
 fi
 
-# Update paths in remember-this skill
-REMEMBER_SKILL_MD="${TEMPLATES_DIR}/skills/remember-this/SKILL.md"
+# Update paths in memory skill
+REMEMBER_SKILL_MD="${TEMPLATES_DIR}/skills/memory/SKILL.md"
 if [ -f "$REMEMBER_SKILL_MD" ]; then
     # Backup original
     cp "$REMEMBER_SKILL_MD" "${REMEMBER_SKILL_MD}.backup"
@@ -140,7 +140,7 @@ if [ -f "$REMEMBER_SKILL_MD" ]; then
     # Replace hardcoded user paths
     sed -i.bak 's|'"${USER_CLAUDE_DIR}"'/|~/.claude/|g' "$REMEMBER_SKILL_MD"
     rm -f "${REMEMBER_SKILL_MD}.bak"
-    echo "   ✅ Updated remember-this/SKILL.md"
+    echo "   ✅ Updated memory/SKILL.md"
 fi
 
 echo ""
