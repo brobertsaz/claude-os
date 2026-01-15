@@ -1,0 +1,231 @@
+# ============================================================================
+# Claude OS - Docker Compose Configuration
+# ============================================================================
+#
+# Usage:
+#   Development:  docker compose --profile dev up
+#   Production:   docker compose up -d
+#   With Ollama:  docker compose --profile ollama up -d
+#   Full stack:   docker compose --profile full up -d
+#
+# Environment variables can be set in .env file or passed directly
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # API Server (MCP Server + FastAPI)
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: claude-os-api
+    restart: unless-stopped
+    ports:
+      - "${CLAUDE_OS_PORT:-8051}:8051"
+    environment:
+      # Provider: local (ollama) or openai
+      - CLAUDE_OS_PROVIDER=${CLAUDE_OS_PROVIDER:-local}
+      # Ollama settings
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2:3b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      # OpenAI settings (only used if CLAUDE_OS_PROVIDER=openai)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Redis settings
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      # Database
+      - CLAUDE_OS_DB_PATH=/data/claude-os.db
+      - SQLITE_DB_PATH=/data/claude-os.db
+    volumes:
+      - claude-os-data:/data
+      - claude-os-logs:/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # Redis (Caching and Job Queue)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: claude-os-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    volumes:
+      - claude-os-redis:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # RQ Worker (Background Job Processing)
+  # ==========================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: claude-os-worker
+    restart: unless-stopped
+    environment:
+      - CLAUDE_OS_PROVIDER=${CLAUDE_OS_PROVIDER:-local}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2:3b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - CLAUDE_OS_DB_PATH=/data/claude-os.db
+      - SQLITE_DB_PATH=/data/claude-os.db
+    volumes:
+      - claude-os-data:/data
+      - claude-os-logs:/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: rq worker claude-os:learning claude-os:prompts claude-os:ingest --with-scheduler --url redis://redis:6379
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # Frontend (Production - nginx)
+  # ==========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8051}
+    container_name: claude-os-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # Frontend Development (Hot Reload)
+  # ==========================================================================
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: development
+    container_name: claude-os-frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8051}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    profiles:
+      - dev
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # Ollama (Local LLM - Optional)
+  # ==========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: claude-os-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - claude-os-ollama:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles:
+      - ollama
+      - full
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - claude-os-network
+
+  # ==========================================================================
+  # Ollama Model Initializer (pulls required models)
+  # ==========================================================================
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: claude-os-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - LLM_MODEL=${LLM_MODEL:-llama3.2:3b}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-nomic-embed-text}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Pulling LLM model: $${LLM_MODEL}"
+        ollama pull $${LLM_MODEL}
+        echo "Pulling embedding model: $${EMBEDDING_MODEL}"
+        ollama pull $${EMBEDDING_MODEL}
+        echo "Models ready!"
+    profiles:
+      - ollama
+      - full
+    networks:
+      - claude-os-network
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  claude-os-network:
+    driver: bridge
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  claude-os-data:
+    name: claude-os-data
+  claude-os-logs:
+    name: claude-os-logs
+  claude-os-redis:
+    name: claude-os-redis
+  claude-os-ollama:
+    name: claude-os-ollama
