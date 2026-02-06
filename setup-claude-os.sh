@@ -21,6 +21,14 @@ TEMPLATES_DIR="${CLAUDE_OS_DIR}/templates"
 DRY_RUN=false
 DEMO_MODE=false
 FORCE_MODE=false
+NONINTERACTIVE=false
+
+# Environment variable overrides (for Docker/CI)
+# CLAUDE_OS_PROVIDER: local, openai, custom
+# CLAUDE_OS_MODEL_SIZE: lite, full
+# CLAUDE_OS_SKIP_DEPS: true/false - skip dependency installation
+# CLAUDE_OS_SKIP_GUM: true/false - skip gum installation prompt
+# OPENAI_API_KEY: OpenAI API key (required if provider=openai)
 
 # Default model choices
 DEFAULT_LLM_MODEL="llama3.2:3b"           # Lite model - faster download, works on most machines
@@ -65,6 +73,12 @@ fi
 # Offer to install gum for enhanced experience
 offer_gum_install() {
     if [[ "$HAS_GUM" == "true" ]]; then
+        return
+    fi
+
+    # Skip in non-interactive mode or if explicitly disabled
+    if [[ "$NONINTERACTIVE" == "true" ]] || [[ "${CLAUDE_OS_SKIP_GUM:-false}" == "true" ]]; then
+        info "Skipping gum installation (non-interactive mode)"
         return
     fi
 
@@ -217,16 +231,25 @@ show_help() {
     echo -e "${WHITE}Usage:${NC} ./setup-claude-os.sh [OPTIONS]"
     echo ""
     echo -e "${WHITE}Options:${NC}"
-    echo -e "  ${CYAN}--help, -h${NC}      Show this help message"
-    echo -e "  ${CYAN}--demo${NC}          Run interactive demo (no changes made)"
-    echo -e "  ${CYAN}--dry-run${NC}       Show what would be done without doing it"
-    echo -e "  ${CYAN}--force, -f${NC}     Skip confirmation prompts"
-    echo -e "  ${CYAN}--version, -v${NC}   Show version number"
+    echo -e "  ${CYAN}--help, -h${NC}           Show this help message"
+    echo -e "  ${CYAN}--demo${NC}               Run interactive demo (no changes made)"
+    echo -e "  ${CYAN}--dry-run${NC}            Show what would be done without doing it"
+    echo -e "  ${CYAN}--force, -f${NC}          Skip confirmation prompts"
+    echo -e "  ${CYAN}--noninteractive${NC}     Run without prompts (use env vars for config)"
+    echo -e "  ${CYAN}--version, -v${NC}        Show version number"
+    echo ""
+    echo -e "${WHITE}Environment Variables (for --noninteractive mode):${NC}"
+    echo -e "  ${CYAN}CLAUDE_OS_PROVIDER${NC}     Provider: local, openai, custom (default: local)"
+    echo -e "  ${CYAN}CLAUDE_OS_MODEL_SIZE${NC}   Model size: lite, full (default: lite)"
+    echo -e "  ${CYAN}OPENAI_API_KEY${NC}         OpenAI API key (required if provider=openai)"
+    echo -e "  ${CYAN}CLAUDE_OS_SKIP_DEPS${NC}    Skip dependency installation: true/false"
+    echo -e "  ${CYAN}CLAUDE_OS_SKIP_GUM${NC}     Skip gum installation prompt: true/false"
     echo ""
     echo -e "${WHITE}Examples:${NC}"
-    echo -e "  ${DIM}./setup-claude-os.sh${NC}           # Normal installation"
-    echo -e "  ${DIM}./setup-claude-os.sh --demo${NC}    # See the beautiful UI"
-    echo -e "  ${DIM}./setup-claude-os.sh --dry-run${NC} # Preview changes"
+    echo -e "  ${DIM}./setup-claude-os.sh${NC}                              # Interactive installation"
+    echo -e "  ${DIM}./setup-claude-os.sh --demo${NC}                       # See the beautiful UI"
+    echo -e "  ${DIM}./setup-claude-os.sh --dry-run${NC}                    # Preview changes"
+    echo -e "  ${DIM}CLAUDE_OS_PROVIDER=local ./setup-claude-os.sh --noninteractive${NC}  # Docker/CI"
     echo ""
 }
 
@@ -249,6 +272,10 @@ parse_args() {
                 FORCE_MODE=true
                 shift
                 ;;
+            --noninteractive|--non-interactive|-n)
+                NONINTERACTIVE=true
+                shift
+                ;;
             --version|-v)
                 echo "Claude OS Installer v${VERSION}"
                 exit 0
@@ -260,6 +287,12 @@ parse_args() {
                 ;;
         esac
     done
+
+    # Auto-detect non-interactive mode if no TTY
+    if [[ ! -t 0 ]] && [[ "$NONINTERACTIVE" != "true" ]]; then
+        NONINTERACTIVE=true
+        info "No TTY detected, enabling non-interactive mode"
+    fi
 }
 
 # Run the interactive demo without making any changes
@@ -524,6 +557,21 @@ EOF
 # ═══════════════════════════════════════════════════════════════════════════
 
 select_provider() {
+    # Non-interactive mode: use environment variable
+    if [[ "$NONINTERACTIVE" == "true" ]]; then
+        PROVIDER="${CLAUDE_OS_PROVIDER:-local}"
+        case "$PROVIDER" in
+            local|openai|custom)
+                success "Provider (from env): $PROVIDER"
+                ;;
+            *)
+                error "Invalid CLAUDE_OS_PROVIDER: $PROVIDER (must be: local, openai, custom)"
+                exit 1
+                ;;
+        esac
+        return
+    fi
+
     if [[ "$HAS_GUM" == "true" ]]; then
         # Beautiful gum version
         echo ""
@@ -585,6 +633,26 @@ select_provider() {
 # ═══════════════════════════════════════════════════════════════════════════
 
 select_model_size() {
+    # Non-interactive mode: use environment variable
+    if [[ "$NONINTERACTIVE" == "true" ]]; then
+        local model_size="${CLAUDE_OS_MODEL_SIZE:-lite}"
+        case "$model_size" in
+            lite)
+                LLM_MODEL="$DEFAULT_LLM_MODEL"
+                ;;
+            full)
+                LLM_MODEL="$FULL_LLM_MODEL"
+                ;;
+            *)
+                error "Invalid CLAUDE_OS_MODEL_SIZE: $model_size (must be: lite, full)"
+                exit 1
+                ;;
+        esac
+        EMBED_MODEL="$DEFAULT_EMBED_MODEL"
+        success "Model size (from env): $model_size ($LLM_MODEL)"
+        return
+    fi
+
     if [[ "$HAS_GUM" == "true" ]]; then
         # Beautiful gum version
         echo ""
@@ -638,6 +706,20 @@ select_model_size() {
 # ═══════════════════════════════════════════════════════════════════════════
 
 configure_openai() {
+    # Non-interactive mode: use environment variable
+    if [[ "$NONINTERACTIVE" == "true" ]]; then
+        if [[ -z "$OPENAI_API_KEY" ]]; then
+            error "OPENAI_API_KEY environment variable is required when CLAUDE_OS_PROVIDER=openai"
+            exit 1
+        fi
+        # Validate key format
+        if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
+            warn "OPENAI_API_KEY doesn't start with 'sk-' - are you sure it's correct?"
+        fi
+        success "OpenAI API key configured (from environment)"
+        return
+    fi
+
     if [[ "$HAS_GUM" == "true" ]]; then
         # Beautiful gum version
         echo ""
@@ -701,7 +783,17 @@ setup_python() {
 
         # Offer to install Python automatically
         local install_python=""
-        if [[ "$HAS_GUM" == "true" ]]; then
+
+        # Non-interactive mode: auto-install unless skipped
+        if [[ "$NONINTERACTIVE" == "true" ]]; then
+            if [[ "${CLAUDE_OS_SKIP_DEPS:-false}" == "true" ]]; then
+                error "Python 3.11 or 3.12 required but CLAUDE_OS_SKIP_DEPS=true"
+                error "Install Python manually or set CLAUDE_OS_SKIP_DEPS=false"
+                exit 1
+            fi
+            install_python="y"
+            info "Non-interactive mode: auto-installing Python 3.12"
+        elif [[ "$HAS_GUM" == "true" ]]; then
             install_python=$(gum choose "Yes, install Python 3.12 for me" "No, I'll install it myself" --header "Install Python 3.12 automatically?")
             [[ "$install_python" == "Yes"* ]] && install_python="y"
         else
@@ -1130,8 +1222,21 @@ main() {
         sleep 1
     fi
 
-    # Offer to install gum for enhanced experience (skip in dry-run)
-    if [[ "$DRY_RUN" != "true" ]]; then
+    # Show non-interactive notice if applicable
+    if [[ "$NONINTERACTIVE" == "true" ]]; then
+        echo ""
+        echo -e "${BLUE}┌────────────────────────────────────────────────────────────────┐${NC}"
+        echo -e "${BLUE}│${NC}  ${WHITE}🤖 NON-INTERACTIVE MODE${NC}                                      ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}                                                                ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}  ${DIM}Configuration via environment variables:${NC}                     ${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}  ${DIM}  CLAUDE_OS_PROVIDER=${CLAUDE_OS_PROVIDER:-local}${NC}$(printf '%*s' $((36 - ${#CLAUDE_OS_PROVIDER:-local})))${BLUE}│${NC}"
+        echo -e "${BLUE}│${NC}  ${DIM}  CLAUDE_OS_MODEL_SIZE=${CLAUDE_OS_MODEL_SIZE:-lite}${NC}$(printf '%*s' $((33 - ${#CLAUDE_OS_MODEL_SIZE:-lite})))${BLUE}│${NC}"
+        echo -e "${BLUE}└────────────────────────────────────────────────────────────────┘${NC}"
+        echo ""
+    fi
+
+    # Offer to install gum for enhanced experience (skip in dry-run and non-interactive)
+    if [[ "$DRY_RUN" != "true" ]] && [[ "$NONINTERACTIVE" != "true" ]]; then
         offer_gum_install
     fi
 

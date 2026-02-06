@@ -1,0 +1,76 @@
+# ============================================================================
+# Claude OS - Frontend Dockerfile
+# ============================================================================
+# Multi-stage build: Node for building, nginx for serving
+# ============================================================================
+
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package.json frontend/package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source files
+COPY frontend/ ./
+
+# Build arguments for API URL configuration
+ARG VITE_API_URL=http://localhost:8051
+
+# Set environment variable for build
+ENV VITE_API_URL=${VITE_API_URL}
+
+# Build the application (skip tsc, use vite directly for Docker builds)
+# The full type check can be run separately in CI
+RUN npx vite build
+
+# ============================================================================
+# Production stage with nginx
+# ============================================================================
+FROM nginx:alpine AS production
+
+# Labels
+LABEL org.opencontainers.image.title="Claude OS Frontend"
+LABEL org.opencontainers.image.description="React Frontend for Claude OS"
+
+# Copy built assets from builder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
+
+# ============================================================================
+# Development stage (for docker-compose dev mode)
+# ============================================================================
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+# Copy package files
+COPY frontend/package.json frontend/package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source files
+COPY frontend/ ./
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
