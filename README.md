@@ -305,7 +305,7 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 
 **Required:**
 
-- macOS or Linux (Ubuntu, Debian, Fedora, RHEL, Arch)
+- macOS, Linux (Ubuntu, Debian, Fedora, RHEL, Arch), or **Windows 10/11**
 - Python 3.11 or 3.12 (`python3 --version`)
   - **Note:** Python 3.13+ not yet supported due to dependency constraints
 - Git (`git --version`)
@@ -314,8 +314,6 @@ All knowledge flows through the **Semantic Knowledge Base** (SQLite + sqlite-vec
 
 - Node.js 16+ (for React UI)
 - Ollama (for local AI) or OpenAI API key
-
-> **Note:** Windows support coming soon.
 
 ### Quick Installation
 
@@ -375,6 +373,68 @@ After installation, start the services:
 ```
 
 This starts the MCP server at `http://localhost:8051`
+
+---
+
+### 🪟 Windows Installation (UV)
+
+Windows uses **UV** (the fast Rust-based Python package manager) for all dependency management.
+
+```powershell
+# Clone the repository
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+
+# Allow PowerShell scripts (one-time, run as your user)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Run the Windows installer
+# Installs UV, creates Python venv, sets up Ollama, Redis guidance, commands/skills
+.\setup-claude-os.ps1
+
+# Preview without making changes
+.\setup-claude-os.ps1 -DryRun
+```
+
+**What gets installed:**
+
+- ✅ UV (fast Python package manager, 10-100× faster than pip)
+- ✅ Python 3.12 virtual environment (via `uv venv`)
+- ✅ All dependencies (`uv pip install -r requirements.txt`)
+- ✅ Ollama for Windows (via `winget install Ollama.Ollama`)
+- ✅ Commands and skills to `%USERPROFILE%\.claude\`
+- ✅ `.env` configuration file
+
+**Service management:**
+
+```powershell
+.\start.ps1                 # Start MCP server only
+.\start_all_services.ps1    # Start all services (Ollama, Redis, workers, MCP, frontend)
+.\stop_all_services.ps1     # Stop all services
+.\restart_services.ps1      # Restart all services
+```
+
+**Configure Claude Code** — add to `%USERPROFILE%\.claude\settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "code-forge": {
+      "command": "C:\\path\\to\\claude-os\\venv\\Scripts\\python.exe",
+      "args": ["C:\\path\\to\\claude-os\\mcp_server\\claude_code_mcp.py"],
+      "env": { "CLAUDE_OS_API": "http://localhost:8051" }
+    }
+  }
+}
+```
+
+**Redis on Windows** — Redis has no native Windows package. Options:
+
+| Option | How |
+|--------|-----|
+| **Memurai** (recommended) | https://www.memurai.com — free Redis-compatible for dev |
+| **WSL2** | `wsl sudo apt install redis-server` |
+| **Skip** | MCP server works without Redis; real-time learning disabled |
 
 ---
 

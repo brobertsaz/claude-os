@@ -60,11 +60,17 @@ data/ollama/
 data/postgres/
 *.db
 *.sqlite
+*.db-journal
+*.db-wal
+*.db-shm
 # Exception: Schema file should be tracked
 !app/db/schema.sqlite
 
 # Docker
 .dockerignore
+
+# Redis
+*.rdb
 
 # Logs
 *.log

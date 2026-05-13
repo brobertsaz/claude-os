@@ -450,6 +450,7 @@ export default function MainApp() {
                       kbSlug={projectMCPs.find((m: ProjectMCP) => m.kb_name === selectedMCP)?.kb_slug}
                       kbType={projectMCPs.find((m: ProjectMCP) => m.kb_name === selectedMCP)?.mcp_type}
                       projectId={selectedProject?.id}
+                      projectPath={selectedProject?.path}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">

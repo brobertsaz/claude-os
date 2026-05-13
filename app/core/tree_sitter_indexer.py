@@ -17,7 +17,9 @@ Performance: 10,000 files indexed in ~30 seconds
 Author: Claude (for Claude!)
 """
 
+import fnmatch
 import logging
+import os
 import sqlite3
 import time
 from collections import defaultdict
@@ -212,24 +214,43 @@ class TreeSitterIndexer:
         ".m": "objective_c",
     }
 
-    # Directories to skip
+    # Directories to skip (default set — can be extended via extra_skip_dirs).
+    # Supports fnmatch glob patterns, e.g. "Build*", "*.cache".
     SKIP_DIRS = {
         "node_modules", "venv", ".venv", "vendor", "build", "dist",
         ".git", ".svn", "__pycache__", ".pytest_cache", ".mypy_cache",
         "coverage", ".coverage", "htmlcov", ".tox", ".eggs",
+        ".claude", ".claude-os",
     }
 
-    def __init__(self, cache_path: Optional[str] = None):
+    # File name patterns to skip (fnmatch), e.g. "*.generated.h", "*.dep.json".
+    SKIP_FILE_PATTERNS: Set[str] = set()
+
+    def __init__(self, cache_path: Optional[str] = None, extra_skip_dirs: Optional[set] = None):
         """
         Initialize indexer.
 
         Args:
             cache_path: Path to SQLite cache file
+            extra_skip_dirs: Additional directory names/patterns to skip during indexing.
+                Supports fnmatch glob patterns (e.g. {"Binaries", "Content", "*.cache"}).
+                Merged with the default SKIP_DIRS at construction time.
         """
         if not TREE_SITTER_AVAILABLE:
             raise RuntimeError("tree_sitter_languages not installed. Run: pip install tree_sitter_languages")
 
         self.cache = TreeSitterCache(cache_path) if cache_path else None
+        if extra_skip_dirs:
+            self.SKIP_DIRS = self.SKIP_DIRS | extra_skip_dirs
+        self.SKIP_FILE_PATTERNS = set(self.__class__.SKIP_FILE_PATTERNS)
+
+    def _should_skip_dir(self, dirname: str) -> bool:
+        """Return True if the directory name matches any skip pattern (exact or fnmatch glob)."""
+        return any(fnmatch.fnmatch(dirname, pat) for pat in self.SKIP_DIRS)
+
+    def _should_skip_file(self, filename: str) -> bool:
+        """Return True if the file name matches any skip_file_patterns glob."""
+        return any(fnmatch.fnmatch(filename, pat) for pat in self.SKIP_FILE_PATTERNS)
 
     def parse_file(self, file_path: Path, project_root: Path) -> List[Tag]:
         """
@@ -311,7 +332,8 @@ class TreeSitterIndexer:
             tags.extend(self._extract_ruby_tags(tree, code, relative_path))
         elif language in ["javascript", "typescript"]:
             tags.extend(self._extract_js_tags(tree, code, relative_path))
-        # Add more languages as needed
+        elif language == "cpp":
+            tags.extend(self._extract_cpp_tags(tree, code, relative_path))
 
         return tags
 
@@ -464,6 +486,38 @@ class TreeSitterIndexer:
                     ))
 
             # Recurse
+            for child in node.children:
+                traverse(child)
+
+        traverse(tree.root_node)
+        return tags
+
+    def _extract_cpp_tags(self, tree, code: bytes, file_path: str) -> List[Tag]:
+        """Extract C++ classes, structs, functions, and methods."""
+        tags = []
+
+        def traverse(node):
+            if node.type in ("class_specifier", "struct_specifier"):
+                name_node = node.child_by_field_name("name")
+                if name_node:
+                    name = code[name_node.start_byte:name_node.end_byte].decode("utf-8", errors="replace")
+                    kind = "class" if node.type == "class_specifier" else "struct"
+                    tags.append(Tag(file=file_path, name=name, kind=kind, line=node.start_point[0] + 1, signature=f"{kind} {name}"))
+
+            elif node.type == "function_definition":
+                declarator = node.child_by_field_name("declarator")
+                while declarator and declarator.type in ("pointer_declarator", "reference_declarator"):
+                    declarator = declarator.child_by_field_name("declarator")
+                if declarator:
+                    name_node = None
+                    if declarator.type == "function_declarator":
+                        name_node = declarator.child_by_field_name("declarator")
+                    elif declarator.type == "qualified_identifier":
+                        name_node = declarator
+                    if name_node:
+                        name = code[name_node.start_byte:name_node.end_byte].decode("utf-8", errors="replace")
+                        tags.append(Tag(file=file_path, name=name, kind="function", line=node.start_point[0] + 1, signature=name))
+
             for child in node.children:
                 traverse(child)
 
@@ -634,31 +688,50 @@ class TreeSitterIndexer:
         project_root = Path(project_path).resolve()
         logger.info(f"Indexing directory: {project_root}")
 
+        # Load per-project config from .claude-os/config.json if present
+        project_config_path = project_root / ".claude-os" / "config.json"
+        if project_config_path.exists():
+            try:
+                with open(project_config_path) as _f:
+                    _cfg = json.load(_f)
+                _extra_dirs = set(_cfg.get("skip_dirs", []))
+                if _extra_dirs:
+                    self.SKIP_DIRS = self.SKIP_DIRS | _extra_dirs
+                    logger.info(f"Loaded project config from {project_config_path}; extra skip_dirs: {_extra_dirs}")
+                _extra_files = set(_cfg.get("skip_file_patterns", []))
+                if _extra_files:
+                    self.SKIP_FILE_PATTERNS = self.SKIP_FILE_PATTERNS | _extra_files
+                    logger.info(f"Loaded skip_file_patterns: {_extra_files}")
+            except Exception as _e:
+                logger.warning(f"Could not load project config at {project_config_path}: {_e}")
+
         start_time = time.time()
         all_tags = []
         file_count = 0
 
-        # Find all files
-        for file_path in project_root.rglob("*"):
-            # Skip directories
-            if file_path.is_dir():
-                continue
+        # Find all files — prune skip_dirs in-place so os.walk never descends into them
+        for dirpath, dirs, files in os.walk(project_root):
+            # Prune: remove skipped dir names before os.walk recurses (supports glob patterns)
+            dirs[:] = [d for d in dirs if not self._should_skip_dir(d)]
 
-            # Skip if in skip dirs
-            if any(skip_dir in file_path.parts for skip_dir in self.SKIP_DIRS):
-                continue
+            for filename in files:
+                # Skip files matching skip_file_patterns (e.g. "*.generated.h")
+                if self._should_skip_file(filename):
+                    continue
 
-            # Skip non-code files
-            if file_path.suffix.lower() not in self.LANGUAGE_MAP:
-                continue
+                file_path = Path(dirpath) / filename
 
-            # Parse file
-            tags = self.parse_file(file_path, project_root)
-            all_tags.extend(tags)
-            file_count += 1
+                # Skip non-code files
+                if file_path.suffix.lower() not in self.LANGUAGE_MAP:
+                    continue
 
-            if file_count % 100 == 0:
-                logger.info(f"Processed {file_count} files, {len(all_tags)} symbols...")
+                # Parse file
+                tags = self.parse_file(file_path, project_root)
+                all_tags.extend(tags)
+                file_count += 1
+
+                if file_count % 100 == 0:
+                    logger.info(f"Processed {file_count} files, {len(all_tags)} symbols...")
 
         # Build dependency graph
         logger.info("Building dependency graph...")

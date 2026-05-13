@@ -883,6 +883,8 @@ class SemanticIndexRequest(BaseModel):
     selective: bool = True  # Only index top 20% + docs
     personalization: Optional[Dict[str, float]] = None
     background: bool = True  # Run in background (True) or sync/blocking (False)
+    clear_before: bool = False  # Wipe all existing docs in KB before indexing
+    num_workers: int = 1  # Number of parallel embedding workers (1 = sequential)
 
 
 @app.post("/api/kb/{kb_name}/index-structural")
@@ -988,7 +990,7 @@ async def api_index_structural(kb_name: str, request: StructuralIndexRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: str, selective: bool, personalization: dict = None):
+def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: str, selective: bool, personalization: dict = None, clear_before: bool = False, num_workers: int = 1):
     """
     Background worker for semantic indexing. Runs in a separate thread to avoid blocking.
     Updates INDEXING_JOBS with progress.
@@ -1012,6 +1014,14 @@ def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: s
         logger.info(f"[Job {job_id}] Starting semantic indexing for {kb_name} at {project_path}")
         start_time = time.time()
         update_job("running", 0, "Starting indexing...")
+
+        # Optional: wipe all existing docs before indexing
+        if clear_before:
+            from app.core.sqlite_manager import get_sqlite_manager as _get_db
+            _db = _get_db()
+            cleared = _db.clear_documents(kb_name)
+            logger.info(f"[Job {job_id}] Cleared {cleared} existing docs before indexing")
+            update_job("running", 2, f"Cleared {cleared} existing docs...")
 
         if selective:
             # Load repo map if exists
@@ -1037,25 +1047,58 @@ def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: s
             total_files = len(all_files)
 
             update_job("running", 10, f"Found {total_files} files to index (top 20% + docs)")
-            logger.info(f"[Job {job_id}] Selective indexing: {total_files} files")
+            logger.info(f"[Job {job_id}] Selective indexing: {total_files} files (workers={num_workers})")
 
             # Ingest selected files only
             results = []
-            for i, file_rel_path in enumerate(all_files):
-                file_path = Path(project_path) / file_rel_path
-                if file_path.exists() and file_path.is_file():
+            if num_workers > 1:
+                import threading as _threading
+                from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _as_completed
+                lock = _threading.Lock()
+                completed_count = [0]
+
+                def _ingest_selective(file_rel_path):
+                    file_path = Path(project_path) / file_rel_path
+                    if not file_path.exists() or not file_path.is_file():
+                        return {"status": "skipped", "file": str(file_rel_path)}
                     try:
-                        result = ingest_file(str(file_path), kb_name, str(file_rel_path))
-                        results.append({"status": "success", "file": str(file_rel_path)})
+                        ingest_file(str(file_path), kb_name, str(file_rel_path))
+                        res = {"status": "success", "file": str(file_rel_path)}
                         logger.debug(f"[Job {job_id}] Ingested: {file_rel_path}")
                     except Exception as e:
                         logger.warning(f"[Job {job_id}] Failed to ingest {file_rel_path}: {e}")
-                        results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+                        res = {"status": "error", "file": str(file_rel_path), "error": str(e)}
+                    with lock:
+                        completed_count[0] += 1
+                        done = completed_count[0]
+                        if done % 5 == 0 or done == total_files:
+                            progress = 10 + int((done / total_files) * 90)
+                            update_job("running", progress, f"Indexed {done}/{total_files} files...")
+                    return res
 
-                # Update progress every 5 files or at end
-                if (i + 1) % 5 == 0 or (i + 1) == total_files:
-                    progress = 10 + int(((i + 1) / total_files) * 90)
-                    update_job("running", progress, f"Indexed {i + 1}/{total_files} files...")
+                with _TPE(max_workers=num_workers) as executor:
+                    futures = {executor.submit(_ingest_selective, f): f for f in all_files}
+                    for future in _as_completed(futures):
+                        try:
+                            results.append(future.result())
+                        except Exception as e:
+                            results.append({"status": "error", "file": str(futures[future]), "error": str(e)})
+            else:
+                for i, file_rel_path in enumerate(all_files):
+                    file_path = Path(project_path) / file_rel_path
+                    if file_path.exists() and file_path.is_file():
+                        try:
+                            result = ingest_file(str(file_path), kb_name, str(file_rel_path))
+                            results.append({"status": "success", "file": str(file_rel_path)})
+                            logger.debug(f"[Job {job_id}] Ingested: {file_rel_path}")
+                        except Exception as e:
+                            logger.warning(f"[Job {job_id}] Failed to ingest {file_rel_path}: {e}")
+                            results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+
+                    # Update progress every 5 files or at end
+                    if (i + 1) % 5 == 0 or (i + 1) == total_files:
+                        progress = 10 + int(((i + 1) / total_files) * 90)
+                        update_job("running", progress, f"Indexed {i + 1}/{total_files} files...")
 
             successes = [r for r in results if r.get("status") == "success"]
             elapsed = time.time() - start_time
@@ -1066,7 +1109,12 @@ def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: s
         else:
             # Full indexing (all files)
             update_job("running", 10, "Starting full directory indexing...")
-            results = ingest_directory(project_path, kb_name)
+            results = ingest_directory(
+                project_path,
+                kb_name,
+                progress_callback=lambda pct, msg: update_job("running", pct, msg),
+                num_workers=num_workers,
+            )
             successes = [r for r in results if r.get("status") == "success"]
 
             elapsed = time.time() - start_time
@@ -1078,7 +1126,7 @@ def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: s
         update_job("failed", 0, "", str(e))
 
 
-def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool, personalization: dict = None) -> dict:
+def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool, personalization: dict = None, clear_before: bool = False, num_workers: int = 1) -> dict:
     """
     Synchronous semantic indexing for backward compatibility.
     WARNING: This blocks the server! Use background=true for production.
@@ -1088,6 +1136,12 @@ def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool
     from app.core.ingestion import ingest_directory, ingest_file
 
     start_time = time.time()
+
+    # Optional: wipe all existing docs before indexing
+    if clear_before:
+        from app.core.sqlite_manager import get_sqlite_manager as _get_db
+        cleared = _get_db().clear_documents(kb_name)
+        logger.info(f"Cleared {cleared} existing docs before sync indexing of {kb_name}")
 
     if selective:
         cache_path = str(Path(project_path) / ".claude-os" / "tree_sitter_cache.db")
@@ -1107,14 +1161,35 @@ def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool
         all_files = list(set(important_files + [str(f.relative_to(project_path)) for f in doc_files]))
 
         results = []
-        for file_rel_path in all_files:
-            file_path = Path(project_path) / file_rel_path
-            if file_path.exists() and file_path.is_file():
+        if num_workers > 1:
+            from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _as_completed
+
+            def _ingest_sel(file_rel_path):
+                file_path = Path(project_path) / file_rel_path
+                if not file_path.exists() or not file_path.is_file():
+                    return {"status": "skipped", "file": str(file_rel_path)}
                 try:
-                    result = ingest_file(str(file_path), kb_name, str(file_rel_path))
-                    results.append({"status": "success", "file": str(file_rel_path)})
+                    ingest_file(str(file_path), kb_name, str(file_rel_path))
+                    return {"status": "success", "file": str(file_rel_path)}
                 except Exception as e:
-                    results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
+                    return {"status": "error", "file": str(file_rel_path), "error": str(e)}
+
+            with _TPE(max_workers=num_workers) as executor:
+                futures = {executor.submit(_ingest_sel, f): f for f in all_files}
+                for future in _as_completed(futures):
+                    try:
+                        results.append(future.result())
+                    except Exception as e:
+                        results.append({"status": "error", "file": str(futures[future]), "error": str(e)})
+        else:
+            for file_rel_path in all_files:
+                file_path = Path(project_path) / file_rel_path
+                if file_path.exists() and file_path.is_file():
+                    try:
+                        result = ingest_file(str(file_path), kb_name, str(file_rel_path))
+                        results.append({"status": "success", "file": str(file_rel_path)})
+                    except Exception as e:
+                        results.append({"status": "error", "file": str(file_rel_path), "error": str(e)})
 
         successes = [r for r in results if r.get("status") == "success"]
         elapsed = time.time() - start_time
@@ -1129,7 +1204,7 @@ def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool
             "message": f"Selective semantic indexing complete: {len(successes)}/{len(all_files)} files indexed"
         }
     else:
-        results = ingest_directory(project_path, kb_name)
+        results = ingest_directory(project_path, kb_name, num_workers=num_workers)
         successes = [r for r in results if r.get("status") == "success"]
         elapsed = time.time() - start_time
 
@@ -1177,7 +1252,9 @@ async def api_index_semantic(kb_name: str, request: SemanticIndexRequest, backgr
                 kb_name,
                 request.project_path,
                 request.selective,
-                request.personalization
+                request.personalization,
+                request.clear_before,
+                request.num_workers
             )
             return result
         except Exception as e:
@@ -1208,7 +1285,9 @@ async def api_index_semantic(kb_name: str, request: SemanticIndexRequest, backgr
         kb_name,
         request.project_path,
         request.selective,
-        request.personalization
+        request.personalization,
+        request.clear_before,
+        request.num_workers
     )
 
     logger.info(f"Queued semantic indexing job {job_id} for {kb_name}")
@@ -1386,8 +1465,8 @@ async def api_create_project(request: ProjectRequest):
         )
         logger.info(f"Created project: {request.name}")
 
-        # Create 4 required MCPs
-        mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories"]
+        # Create 5 required MCPs (code_structure added in v1.1)
+        mcp_types = ["knowledge_docs", "project_profile", "project_index", "project_memories", "code_structure"]
         mcps_created = []
 
         for i, mcp_type in enumerate(mcp_types):
@@ -1417,7 +1496,7 @@ async def api_create_project(request: ProjectRequest):
         return {
             "project": project,
             "mcps": mcps_created,
-            "message": f"Project '{request.name}' created with 4 required MCPs"
+            "message": f"Project '{request.name}' created with 5 required MCPs"
         }
 
     except ValueError as e:
@@ -2691,46 +2770,40 @@ class ServiceControlRequest(BaseModel):
     action: str  # start, stop, restart
 
 
-def check_process_running(process_name: str) -> dict:
+def check_process_running(process_name: str, process_cache: list | None = None) -> dict:
     """
-    Check if a process is running by name.
+    Check if a process is running by name (cross-platform via psutil).
+
+    ``process_name`` may contain multiple space-separated keywords; ALL must
+    appear somewhere in the combined ``<proc_name> <cmdline>`` string.  This
+    handles OS differences like ``rq worker`` (Linux) vs ``rq.exe worker``
+    (Windows) without needing separate call sites.
+
+    ``process_cache`` is an optional pre-fetched list of psutil process info
+    dicts (from ``_snapshot_processes``).  Pass it when calling this function
+    multiple times in the same request to avoid re-iterating all processes.
 
     Returns:
         dict with status, pid, memory, cpu
     """
     try:
-        # Use pgrep to find process
-        result = subprocess.run(
-            ["pgrep", "-f", process_name],
-            capture_output=True,
-            text=True,
-            timeout=2
-        )
+        keywords = process_name.lower().split()
 
-        if result.returncode == 0 and result.stdout.strip():
-            pids = result.stdout.strip().split('\n')
-            pid = pids[0]  # Get first matching PID
+        if process_cache is None:
+            process_cache = _snapshot_processes()
 
-            # Get process stats using ps
-            ps_result = subprocess.run(
-                ["ps", "-p", pid, "-o", "pid,%cpu,%mem,command"],
-                capture_output=True,
-                text=True,
-                timeout=2
-            )
-
-            if ps_result.returncode == 0:
-                lines = ps_result.stdout.strip().split('\n')
-                if len(lines) > 1:
-                    parts = lines[1].split(None, 3)
-                    return {
-                        "running": True,
-                        "pid": int(pid),
-                        "cpu": float(parts[1]) if len(parts) > 1 else 0.0,
-                        "memory": float(parts[2]) if len(parts) > 2 else 0.0,
-                        "status": "running"
-                    }
-
+        for info in process_cache:
+            cmdline = info.get("cmdline", "")
+            proc_name = info.get("name", "")
+            text = f"{proc_name} {cmdline}"
+            if all(kw in text for kw in keywords):
+                return {
+                    "running": True,
+                    "pid": info["pid"],
+                    "cpu": info.get("cpu_percent") or 0.0,
+                    "memory": info.get("memory_percent") or 0.0,
+                    "status": "running"
+                }
         return {
             "running": False,
             "pid": None,
@@ -2750,20 +2823,51 @@ def check_process_running(process_name: str) -> dict:
         }
 
 
-def check_port_listening(port: int) -> bool:
-    """Check if a port is being listened on."""
+def _snapshot_processes() -> list:
+    """Return a lightweight snapshot of all running processes for one status check."""
     try:
-        # Use netstat or ss to check if port is listening
-        result = subprocess.run(
-            ["sh", "-c", f"lsof -i :{port} -t || netstat -tuln | grep :{port} || ss -tuln | grep :{port}"],
-            capture_output=True,
-            text=True,
-            timeout=2
-        )
-        return result.returncode == 0 and result.stdout.strip() != ""
-    except Exception as e:
-        logger.warning(f"Failed to check port {port}: {e}")
-        return False
+        import psutil
+        snapshot = []
+        for proc in psutil.process_iter(["pid", "name", "cmdline", "cpu_percent", "memory_percent"]):
+            try:
+                info = proc.info
+                snapshot.append({
+                    "pid": info["pid"],
+                    "name": (info.get("name") or "").lower(),
+                    "cmdline": " ".join(info.get("cmdline") or []).lower(),
+                    "cpu_percent": info.get("cpu_percent") or 0.0,
+                    "memory_percent": info.get("memory_percent") or 0.0,
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return snapshot
+    except Exception:
+        return []
+
+
+def check_port_listening(port: int) -> bool:
+    """
+    Check if something is accepting connections on *port* (cross-platform).
+
+    Tries 127.0.0.1 first (covers native services and WSL2 port-forwarded
+    services).  Falls back to a psutil scan so the result is consistent
+    with how the old lsof/netstat implementation worked on Linux.
+    """
+    import socket
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except (OSError, ConnectionRefusedError):
+        pass
+    # psutil fallback: catches services bound to 0.0.0.0 / specific IPs
+    try:
+        import psutil
+        for conn in psutil.net_connections(kind="tcp"):
+            if conn.laddr.port == port and conn.status == psutil.CONN_LISTEN:
+                return True
+    except Exception:
+        pass
+    return False
 
 
 @app.get("/api/services/status")
@@ -2781,6 +2885,9 @@ async def api_get_services_status():
     """
     services = []
 
+    # Snapshot all processes once to avoid re-iterating for each service check
+    proc_cache = _snapshot_processes()
+
     # 1. MCP Server (always running since we're responding)
     mcp_status = {
         "name": "MCP Server",
@@ -2797,7 +2904,7 @@ async def api_get_services_status():
 
     # 2. Frontend (Vite dev server on port 5173)
     frontend_port = 5173
-    frontend_process = check_process_running("vite")
+    frontend_process = check_process_running("vite", proc_cache)
     frontend_status = {
         "name": "Frontend",
         "type": "frontend",
@@ -2813,7 +2920,7 @@ async def api_get_services_status():
 
     # 3. Redis (port 6379)
     redis_port = 6379
-    redis_process = check_process_running("redis-server")
+    redis_process = check_process_running("redis-server", proc_cache)
     redis_status = {
         "name": "Redis",
         "type": "redis",
@@ -2828,7 +2935,7 @@ async def api_get_services_status():
     services.append(redis_status)
 
     # 4. RQ Worker
-    rq_process = check_process_running("rq worker")
+    rq_process = check_process_running("rq worker", proc_cache)
     rq_status = {
         "name": "RQ Worker",
         "type": "rq_worker",
@@ -2851,7 +2958,7 @@ async def api_get_services_status():
     except:
         ollama_running = check_port_listening(ollama_port)
 
-    ollama_process = check_process_running("ollama")
+    ollama_process = check_process_running("ollama", proc_cache)
     ollama_status = {
         "name": "Ollama",
         "type": "ollama",

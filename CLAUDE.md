@@ -152,28 +152,21 @@ These commands are installed to `~/.claude/commands/` via the install script:
 - Redis
 - Node.js (for frontend)
 
-### Installation
+### Installation (macOS / Linux)
 
 ```bash
 # Clone the repo
 git clone https://github.com/brobertsaz/claude-os.git
 cd claude-os
 
-# Create virtual environment
-python3.12 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install commands and skills to Claude Code
-./install.sh
+# Run the unified installer
+./setup-claude-os.sh
 
 # Start all services
 ./start_all_services.sh
 ```
 
-### Configure Claude Code
+### Configure Claude Code (macOS / Linux)
 
 Add to your `~/.claude/settings.json`:
 
@@ -190,6 +183,82 @@ Add to your `~/.claude/settings.json`:
   }
 }
 ```
+
+---
+
+### Windows Quick Start (UV)
+
+Windows uses UV for fast Python package management and PowerShell scripts for all operations.
+
+#### Prerequisites (Windows)
+- Windows 10/11 with PowerShell 5.1+
+- Git for Windows (`winget install Git.Git`)
+- Node.js (for frontend — `winget install OpenJS.NodeJS`)
+- Ollama for Windows (installed automatically by `setup-claude-os.ps1`)
+
+#### Installation
+
+```powershell
+# Clone the repo
+git clone https://github.com/brobertsaz/claude-os.git
+cd claude-os
+
+# If needed, allow script execution for current user (no Administrator required):
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Run the Windows installer (installs UV, creates venv, sets up Ollama + Redis)
+.\setup-claude-os.ps1
+
+# Start the MCP server only
+.\start.ps1
+
+# OR start all services (Ollama, Redis, RQ workers, MCP + frontend)
+.\start_all_services.ps1
+```
+
+Preview changes without making them:
+
+```powershell
+.\setup-claude-os.ps1 -DryRun
+```
+
+#### Configure Claude Code (Windows)
+
+Add to your `%USERPROFILE%\.claude\settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "code-forge": {
+      "command": "C:\\path\\to\\claude-os\\venv\\Scripts\\python.exe",
+      "args": ["C:\\path\\to\\claude-os\\mcp_server\\claude_code_mcp.py"],
+      "env": {
+        "CLAUDE_OS_API": "http://localhost:8051"
+      }
+    }
+  }
+}
+```
+
+#### Redis on Windows
+
+Redis doesn't ship natively on Windows. Options:
+- **Memurai** (recommended) — Redis-compatible, free for dev: https://www.memurai.com
+- **WSL2** — `wsl sudo apt install redis-server && wsl sudo service redis-server start`
+- **Skip** — MCP server works without Redis; real-time learning will be disabled
+
+#### Windows Service Management
+
+```powershell
+.\start_all_services.ps1    # Start all services
+.\stop_all_services.ps1     # Stop all services
+.\restart_services.ps1      # Restart all services
+.\start.ps1                 # Start MCP server only
+```
+
+Logs written to `.\logs\` (mcp_server.log, rq_workers.log, frontend.log).
+
+---
 
 ### Verify Installation
 
@@ -208,8 +277,14 @@ pytest
 
 ### Viewing Logs
 ```bash
+# macOS / Linux
 tail -f logs/mcp_server.log
 tail -f logs/frontend.log
+```
+```powershell
+# Windows
+Get-Content logs\mcp_server.log -Wait -Tail 40
+Get-Content logs\frontend.log -Wait -Tail 40
 ```
 
 ### Database Location

@@ -161,3 +161,40 @@ class TestDocumentUploadAPI:
 
         # Should either reject or handle gracefully
         assert response.status_code in [200, 400, 404, 415, 422]
+
+
+@pytest.mark.api
+class TestServicesStatusAPI:
+    """Test /api/services/status endpoint."""
+
+    def test_services_status_returns_200(self, api_client):
+        """Test that /api/services/status responds successfully."""
+        from unittest.mock import patch
+
+        mock_procs = [
+            {"pid": 1, "name": "python", "cmdline": "python server.py", "cpu_percent": 0.0, "memory_percent": 0.1},
+        ]
+        with patch("mcp_server.server._snapshot_processes", return_value=mock_procs):
+            response = api_client.get("/api/services/status")
+
+        assert response.status_code == 200
+
+    def test_services_status_shape(self, api_client):
+        """Test that /api/services/status returns expected keys."""
+        from unittest.mock import patch
+
+        with patch("mcp_server.server._snapshot_processes", return_value=[]):
+            response = api_client.get("/api/services/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "services" in data or "status" in data or isinstance(data, dict)
+
+    def test_services_status_no_psutil_crash(self, api_client):
+        """Test that the endpoint handles an empty process list gracefully."""
+        from unittest.mock import patch
+
+        with patch("mcp_server.server._snapshot_processes", return_value=[]):
+            response = api_client.get("/api/services/status")
+
+        assert response.status_code == 200

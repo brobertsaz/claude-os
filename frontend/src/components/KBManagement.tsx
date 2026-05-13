@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link, Trash2, FolderOpen, Settings } from 'lucide-react';
+import { FileText, BarChart3, Clock, Database, Upload, CheckCircle, XCircle, Info, Copy, Link, Trash2, FolderOpen, Settings, Play } from 'lucide-react';
 import { getKBStats, listDocuments, uploadDocument, deleteDocument, type KBStats } from '../lib/api';
 import DirectoryPicker from './DirectoryPicker';
 import axios from 'axios';
@@ -11,9 +11,10 @@ interface KBManagementProps {
   kbSlug?: string;
   kbType?: string;
   projectId?: number;
+  projectPath?: string;
 }
 
-export default function KBManagement({ kbName, kbSlug, kbType, projectId }: KBManagementProps) {
+export default function KBManagement({ kbName, kbSlug, kbType, projectId, projectPath }: KBManagementProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadMessage, setUploadMessage] = useState('');
@@ -24,12 +25,43 @@ export default function KBManagement({ kbName, kbSlug, kbType, projectId }: KBMa
   const [showDirectoryPicker, setShowDirectoryPicker] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [showIndexModal, setShowIndexModal] = useState(false);
+  const [indexFull, setIndexFull] = useState(true);
+  const [clearBefore, setClearBefore] = useState(false);
+  const [numWorkers, setNumWorkers] = useState(1);
+  const [indexStatus, setIndexStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [indexMessage, setIndexMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Determine if this MCP type allows manual uploads
-  const isCliManaged = kbType === 'project_index' || kbType === 'project_memories';
+  const isCliManaged = kbType === 'project_index' || kbType === 'project_memories' || kbType === 'code_structure';
+  const isIndexable = (kbType === 'project_index' || kbType === 'code_structure') && !!projectPath;
   const allowsManualUpload = kbType === 'knowledge_docs' || kbType === 'project_profile';
+
+  const startIndexing = async () => {
+    if (!projectPath) return;
+    setIndexStatus('running');
+    setIndexMessage('');
+    try {
+      if (kbType === 'code_structure') {
+        await axios.post(`/api/kb/${kbName}/index-structural`, { project_path: projectPath });
+        setIndexMessage('Structural indexing started.');
+      } else {
+        await axios.post(`/api/kb/${kbName}/index-semantic`, {
+          project_path: projectPath,
+          selective: !indexFull,
+          clear_before: clearBefore,
+          num_workers: numWorkers,
+        });
+        setIndexMessage(`${indexFull ? 'Full' : 'Selective'} semantic indexing started.`);
+      }
+      setIndexStatus('success');
+    } catch (err: any) {
+      setIndexStatus('error');
+      setIndexMessage(err?.response?.data?.detail || 'Failed to start indexing.');
+    }
+  };
 
   // Fetch folder configuration for this MCP
   const { data: folderConfig } = useQuery({
@@ -359,22 +391,167 @@ export default function KBManagement({ kbName, kbSlug, kbType, projectId }: KBMa
           >
             <div className="flex gap-3">
               <Info className="w-5 h-5 text-blaze-orange flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-light-grey">
+              <div className="text-sm text-light-grey flex-1">
                 <p className="font-semibold text-white mb-2">🤖 CLI Managed MCP</p>
                 <p className="mb-2">
                   This MCP is automatically managed by the Claude OS CLI. Documents are added/updated automatically based on your project activity.
                 </p>
                 <p className="text-xs text-light-grey/70">
-                  <strong className="text-white">{kbType === 'project_index' ? 'Project Index:' : 'Project Memories:'}</strong>
+                  <strong className="text-white">
+                    {kbType === 'project_index' ? 'Project Index:' : kbType === 'code_structure' ? 'Code Structure:' : 'Project Memories:'}
+                  </strong>
                   {' '}
                   {kbType === 'project_index'
                     ? 'Automatically indexes your codebase structure, files, and symbols.'
+                    : kbType === 'code_structure'
+                    ? 'Structural symbol index — classes, functions, methods extracted from source files.'
                     : 'Stores conversation history, decisions, and context from CLI interactions.'}
                 </p>
               </div>
+              {isIndexable && (
+                <button
+                  onClick={() => { setShowIndexModal(true); setIndexStatus('idle'); setIndexMessage(''); setClearBefore(false); setNumWorkers(1); }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-electric-teal/20 hover:bg-electric-teal/30 border border-electric-teal/50 text-electric-teal text-sm font-semibold rounded-lg transition-colors flex-shrink-0 self-start"
+                >
+                  <Play className="w-4 h-4" />
+                  Start Indexing
+                </button>
+              )}
             </div>
           </motion.div>
         )}
+
+        {/* Start Indexing Modal */}
+        <AnimatePresence>
+          {showIndexModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={(e) => { if (e.target === e.currentTarget) setShowIndexModal(false); }}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-dark-navy border border-electric-teal/30 rounded-xl p-6 w-full max-w-sm shadow-2xl"
+              >
+                <h3 className="text-lg font-bold text-electric-teal mb-1 flex items-center gap-2">
+                  <Play className="w-5 h-5" />
+                  Start Indexing
+                </h3>
+                <p className="text-xs text-light-grey/60 mb-5 font-mono truncate">{kbName}</p>
+
+                {kbType === 'project_index' && (
+                  <>
+                    <div className="mb-5">
+                      <p className="text-sm text-light-grey mb-3">Indexing mode</p>
+                      <div className="flex items-center gap-3">
+                        <span
+                          onClick={() => setIndexFull(true)}
+                          className={`text-sm cursor-pointer select-none ${indexFull ? 'text-white font-semibold' : 'text-light-grey/60 hover:text-light-grey'}`}
+                        >Full</span>
+                        <button
+                          onClick={() => setIndexFull(f => !f)}
+                          className={`relative w-12 h-6 rounded-full transition-colors ${indexFull ? 'bg-electric-teal/30' : 'bg-electric-teal'}`}
+                          aria-label="Toggle Full/Selective"
+                        >
+                          <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${indexFull ? 'left-1' : 'left-7'}`} />
+                        </button>
+                        <span
+                          onClick={() => setIndexFull(false)}
+                          className={`text-sm cursor-pointer select-none ${!indexFull ? 'text-white font-semibold' : 'text-light-grey/60 hover:text-light-grey'}`}
+                        >Selective</span>
+                      </div>
+                      <p className="text-xs text-light-grey/50 mt-2">
+                        {indexFull ? 'Re-indexes all files in the project.' : 'Indexes the top 20% most important files + documentation.'}
+                      </p>
+                    </div>
+
+                    {/* Full cleanup checkbox */}
+                    <label className="flex items-start gap-2 mb-5 cursor-pointer select-none group">
+                      <input
+                        type="checkbox"
+                        checked={clearBefore}
+                        onChange={e => setClearBefore(e.target.checked)}
+                        className="mt-0.5 accent-electric-teal"
+                      />
+                      <span className="text-sm text-light-grey group-hover:text-white transition-colors">
+                        Full cleanup before indexing
+                        <span className="block text-xs text-light-grey/50 mt-0.5">Removes all existing docs first. Forces re-embedding of every file (slower).</span>
+                      </span>
+                    </label>
+
+                    {/* Parallel workers */}
+                    <div className="mb-5">
+                      <label className="block text-sm text-light-grey mb-2">
+                        Parallel workers
+                        <span className="ml-2 text-xs text-light-grey/50">(1 = sequential)</span>
+                      </label>
+                      <div className="flex items-center gap-3">
+                        {[1, 2, 4, 8].map(n => (
+                          <button
+                            key={n}
+                            onClick={() => setNumWorkers(n)}
+                            className={`px-3 py-1 rounded text-sm font-mono transition-colors ${numWorkers === n ? 'bg-electric-teal/20 text-electric-teal border border-electric-teal/50' : 'bg-white/5 text-light-grey/60 border border-white/10 hover:bg-white/10'}`}
+                          >{n}</button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-light-grey/50 mt-2">
+                        Higher values speed up indexing by running multiple Ollama embedding calls in parallel.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {indexStatus === 'success' && (
+                  <div className="flex items-center gap-2 text-sm text-green-400 mb-4">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    {indexMessage}
+                  </div>
+                )}
+                {indexStatus === 'error' && (
+                  <div className="flex items-center gap-2 text-sm text-red-400 mb-4">
+                    <XCircle className="w-4 h-4 flex-shrink-0" />
+                    {indexMessage}
+                  </div>
+                )}
+
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowIndexModal(false)}
+                    className="px-4 py-2 text-sm text-light-grey hover:text-white transition-colors"
+                  >
+                    {indexStatus === 'success' ? 'Close' : 'Cancel'}
+                  </button>
+                  {indexStatus !== 'success' && (
+                    <button
+                      onClick={startIndexing}
+                      disabled={indexStatus === 'running'}
+                      className="flex items-center gap-2 px-4 py-2 bg-electric-teal text-deep-navy text-sm font-bold rounded-lg hover:bg-electric-teal/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {indexStatus === 'running' ? (
+                        <>
+                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Starting…
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4" />
+                          Start
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Agent OS Help Text */}
         {kbType === 'AGENT_OS' && (

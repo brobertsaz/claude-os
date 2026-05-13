@@ -3,11 +3,15 @@ Document ingestion pipeline for Claude OS.
 Handles file upload, text extraction, chunking, embedding, and storage.
 """
 
+import fnmatch
+import hashlib
+import json
 import logging
-import uuid
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional, Set
 
 import fitz  # PyMuPDF
 from llama_index.core import Document, Settings
@@ -92,15 +96,34 @@ def ingest_file(
     """
     Ingest a single file into a knowledge base.
 
+    Skips the file if its SHA-256 hash matches what's already stored in the KB
+    (i.e. the file has not changed since last index). Uses deterministic chunk IDs
+    so re-indexing an updated file replaces existing chunks in-place.
+
     Args:
         file_path: Path to the file
         collection_name: Target collection name
         filename: Original filename
 
     Returns:
-        dict: Ingestion result with status and details
+        dict: Ingestion result with status ("success", "skipped", or "error")
     """
     try:
+        # Compute file hash for change detection
+        try:
+            file_hash = hashlib.sha256(Path(file_path).read_bytes()).hexdigest()
+        except Exception as e:
+            logger.warning(f"Could not hash {file_path}: {e}. Proceeding without hash check.")
+            file_hash = None
+
+        # Skip unchanged files
+        if file_hash:
+            db_mgr = get_sqlite_manager()
+            existing_hash = db_mgr.get_file_hash_in_kb(collection_name, str(file_path))
+            if existing_hash == file_hash:
+                logger.debug(f"Skipping unchanged file: {filename}")
+                return {"status": "skipped", "filename": filename}
+
         # Extract text
         text = extract_text_from_file(file_path)
         if not text.strip():
@@ -116,8 +139,10 @@ def ingest_file(
             "filename": filename,
             "file_type": file_ext,
             "upload_date": datetime.now().isoformat(),
-            "source_path": str(file_path)
+            "source_path": str(file_path),
         }
+        if file_hash:
+            metadata["file_hash"] = file_hash
 
         # Preprocess markdown files
         if file_ext in ['.md', '.markdown']:
@@ -169,8 +194,10 @@ def ingest_file(
                 # Generate embedding
                 embedding = embed_model.get_text_embedding(chunk_text)
 
-                # Create unique ID
-                chunk_id = f"{filename}_{chunk.metadata['chunk_index']}_{uuid.uuid4().hex[:8]}"
+                # Deterministic chunk ID — stable across re-indexing runs
+                chunk_id = hashlib.sha256(
+                    f"{file_path}:{chunk.metadata['chunk_index']}".encode()
+                ).hexdigest()[:24]
 
                 # Collect data for batch insert
                 documents.append(chunk_text)
@@ -350,33 +377,62 @@ SKIP_DIRECTORIES = {
     '.gradle',
     '.idea',
     '.vscode',
-    '.claude-os',  # Our own cache
+    '.claude-os',  # Our own config/cache
+    '.claude',     # Claude Code memory/skills
 }
 
 
-def should_skip_path(file_path: Path) -> bool:
-    """Check if a file path should be skipped based on directory exclusions."""
+def should_skip_path(
+    file_path: Path,
+    extra_skip_dirs: Optional[Set[str]] = None,
+    skip_file_patterns: Optional[Set[str]] = None,
+) -> bool:
+    """Check if a file path should be skipped based on directory/file exclusions.
+
+    Supports fnmatch glob patterns in both skip sets.
+    """
+    combined_skip_dirs = SKIP_DIRECTORIES | (extra_skip_dirs or set())
     for part in file_path.parts:
-        if part in SKIP_DIRECTORIES:
-            return True
-        # Handle wildcard patterns like *.egg-info
-        for pattern in SKIP_DIRECTORIES:
-            if '*' in pattern and part.endswith(pattern.replace('*', '')):
+        for pattern in combined_skip_dirs:
+            if fnmatch.fnmatch(part, pattern):
                 return True
+
+    if skip_file_patterns and file_path.is_file():
+        for pattern in skip_file_patterns:
+            if fnmatch.fnmatch(file_path.name, pattern):
+                return True
+
     return False
+
+
+def _load_project_config(dir_path: Path) -> Dict:
+    """Load .claude-os/config.json from a project root, return {} if missing."""
+    config_file = dir_path / ".claude-os" / "config.json"
+    if config_file.exists():
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read project config {config_file}: {e}")
+    return {}
 
 
 def ingest_directory(
     dir_path: str,
-    collection_name: str
+    collection_name: str,
+    progress_callback: Optional[Callable[[int, str], None]] = None,
+    num_workers: int = 1,
 ) -> List[Dict[str, any]]:
     """
     Recursively ingest all supported files from a directory.
-    Automatically skips common non-source directories like node_modules, .git, etc.
+    Automatically skips common non-source directories and respects per-project
+    .claude-os/config.json (skip_dirs + skip_file_patterns with glob support).
 
     Args:
         dir_path: Path to directory
         collection_name: Target collection name
+        progress_callback: Optional callable(progress_pct, message) for progress updates
+        num_workers: Number of parallel workers for embedding (default 1 = sequential)
 
     Returns:
         List of ingestion results
@@ -386,23 +442,75 @@ def ingest_directory(
 
     if not dir_path.exists() or not dir_path.is_dir():
         logger.error(f"Directory not found: {dir_path}")
-        return [{
-            "status": "error",
-            "error": f"Directory not found: {dir_path}"
-        }]
+        return [{"status": "error", "error": f"Directory not found: {dir_path}"}]
 
-    # Recursively find all supported files, skipping excluded directories
+    # Load per-project skip configuration
+    project_config = _load_project_config(dir_path)
+    extra_skip_dirs: Set[str] = set(project_config.get("skip_dirs", []))
+    skip_file_patterns: Set[str] = set(project_config.get("skip_file_patterns", []))
+
+    if extra_skip_dirs:
+        logger.info(f"Ingestion skip_dirs from config: {extra_skip_dirs}")
+    if skip_file_patterns:
+        logger.info(f"Ingestion skip_file_patterns from config: {skip_file_patterns}")
+
+    # Collect all candidate files first so we can report progress
+    all_files: List[Path] = []
     for file_path in dir_path.rglob("*"):
-        # Skip excluded directories
-        if should_skip_path(file_path):
+        if should_skip_path(file_path, extra_skip_dirs, skip_file_patterns):
             continue
         if file_path.is_file() and Config.is_supported_file(file_path.name):
-            result = ingest_file(
-                str(file_path),
-                collection_name,
-                file_path.name
-            )
+            all_files.append(file_path)
+
+    total = len(all_files)
+    logger.info(f"Ingesting {total} files into {collection_name} (workers={num_workers})")
+
+    if num_workers > 1:
+        # Parallel ingestion via ThreadPoolExecutor
+        lock = threading.Lock()
+        completed_count = [0]  # mutable container for thread-safe counter
+
+        def _ingest_with_progress(fp: Path) -> Dict:
+            result = ingest_file(str(fp), collection_name, fp.name)
+            with lock:
+                completed_count[0] += 1
+                done = completed_count[0]
+                if progress_callback and (done % 50 == 0 or done == total):
+                    pct = 10 + int((done / total) * 78)
+                    progress_callback(pct, f"Indexed {done}/{total} files...")
+            return result
+
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = {executor.submit(_ingest_with_progress, fp): fp for fp in all_files}
+            for future in as_completed(futures):
+                try:
+                    results.append(future.result())
+                except Exception as e:
+                    fp = futures[future]
+                    logger.warning(f"Worker failed for {fp}: {e}")
+                    results.append({"status": "error", "filename": fp.name, "error": str(e)})
+    else:
+        # Sequential ingestion (default)
+        for i, file_path in enumerate(all_files):
+            result = ingest_file(str(file_path), collection_name, file_path.name)
             results.append(result)
+
+            if progress_callback and (((i + 1) % 50 == 0) or (i + 1) == total):
+                pct = 10 + int(((i + 1) / total) * 78)
+                progress_callback(pct, f"Indexed {i + 1}/{total} files...")
+
+    # Stale cleanup: remove docs for files no longer in the project/filter set
+    current_paths = {str(f) for f in all_files}
+    if current_paths:
+        db_manager = get_sqlite_manager()
+        deleted = db_manager.delete_docs_not_in_paths(collection_name, current_paths)
+        if deleted > 0:
+            logger.info(f"Stale cleanup: removed {deleted} docs for {collection_name} (files removed or filtered out)")
+        if progress_callback:
+            progress_callback(98, f"Cleaned up {deleted} stale docs...")
+
+    if progress_callback:
+        progress_callback(100, f"Done: {len(results)} files processed")
 
     return results
 

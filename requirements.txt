@@ -52,3 +52,4 @@ pytest-cov>=4.1.0
 pytest-mock>=3.12.0
 httpx>=0.25.0  # For testing FastAPI endpoints
 faker>=20.0.0  # For generating test data
+psutil>=5.9.0

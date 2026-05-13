@@ -7,7 +7,7 @@ import os
 import json
 import re
 import sqlite3
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Set, Tuple
 from datetime import datetime
 from pathlib import Path
 import numpy as np
@@ -284,13 +284,86 @@ class SQLiteManager:
 
                 cursor.execute(
                     """
-                    INSERT INTO documents (kb_id, doc_id, content, embedding, metadata)
+                    INSERT OR REPLACE INTO documents (kb_id, doc_id, content, embedding, metadata)
                     VALUES (?, ?, ?, ?, ?)
                     """,
                     (kb_id, doc_id, doc, emb_bytes, json.dumps(meta_with_kb))
                 )
 
             conn.commit()
+        finally:
+            conn.close()
+
+    def get_file_hash_in_kb(self, kb_name: str, source_path: str) -> Optional[str]:
+        """Get the stored file hash for a source_path in a KB (for change detection)."""
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM knowledge_bases WHERE name = ?", (kb_name,))
+            result = cursor.fetchone()
+            if not result:
+                return None
+            kb_id = result['id']
+            cursor.execute(
+                """
+                SELECT json_extract(metadata, '$.file_hash') AS file_hash
+                FROM documents
+                WHERE kb_id = ? AND json_extract(metadata, '$.source_path') = ?
+                LIMIT 1
+                """,
+                (kb_id, source_path)
+            )
+            row = cursor.fetchone()
+            return row['file_hash'] if row and row['file_hash'] else None
+        finally:
+            conn.close()
+
+    def delete_docs_not_in_paths(self, kb_name: str, source_paths: Set[str]) -> int:
+        """Delete all docs whose source_path is not in source_paths (stale cleanup).
+
+        Returns the number of deleted documents.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM knowledge_bases WHERE name = ?", (kb_name,))
+            result = cursor.fetchone()
+            if not result:
+                return 0
+            kb_id = result['id']
+            paths_json = json.dumps(list(source_paths))
+            cursor.execute(
+                """
+                DELETE FROM documents
+                WHERE kb_id = ?
+                  AND json_extract(metadata, '$.source_path') IS NOT NULL
+                  AND json_extract(metadata, '$.source_path') NOT IN (
+                      SELECT value FROM json_each(?)
+                  )
+                """,
+                (kb_id, paths_json)
+            )
+            conn.commit()
+            return cursor.rowcount
+        finally:
+            conn.close()
+
+    def clear_documents(self, kb_name: str) -> int:
+        """Delete all documents in a KB while keeping the KB record itself.
+
+        Returns the number of deleted documents.
+        """
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM knowledge_bases WHERE name = ?", (kb_name,))
+            result = cursor.fetchone()
+            if not result:
+                return 0
+            kb_id = result['id']
+            cursor.execute("DELETE FROM documents WHERE kb_id = ?", (kb_id,))
+            conn.commit()
+            return cursor.rowcount
         finally:
             conn.close()
 
