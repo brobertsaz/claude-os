@@ -606,7 +606,8 @@ async def _execute_tool(name: str, args: dict[str, Any]) -> dict:
     # Indexing Tools
     elif name == "index_structural":
         return await api_post(f"/api/kb/{args['kb_name']}/index-structural", {
-            "path": args["path"]
+            # API expects "project_path" - sending "path" returns 422
+            "project_path": args["path"]
         })
 
     elif name == "index_semantic":

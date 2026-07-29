@@ -988,6 +988,27 @@ async def api_index_structural(kb_name: str, request: StructuralIndexRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _collect_doc_files(project_path: str) -> list:
+    """
+    Collect documentation files (*.md, *.txt, *.rst) under project_path.
+
+    Applies TreeSitterIndexer.SKIP_DIRS so vendored trees (venv, node_modules,
+    .git, ...) are excluded. Without this filter a bare rglob pulls in every
+    README/LICENSE/top_level.txt shipped by third-party packages, which both
+    floods the KB with irrelevant chunks and makes indexing take many times
+    longer than it should.
+    """
+    from app.core.tree_sitter_indexer import TreeSitterIndexer
+
+    skip = TreeSitterIndexer.SKIP_DIRS
+    doc_files = []
+    for pattern in ("*.md", "*.txt", "*.rst"):
+        for f in Path(project_path).rglob(pattern):
+            if not any(part in skip for part in f.parts):
+                doc_files.append(f)
+    return doc_files
+
+
 def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: str, selective: bool, personalization: dict = None):
     """
     Background worker for semantic indexing. Runs in a separate thread to avoid blocking.
@@ -1027,11 +1048,8 @@ def _run_semantic_indexing_background(job_id: str, kb_name: str, project_path: s
             important_tags = repo_map.tags[:top_20_percent]
             important_files = list(set(tag.file for tag in important_tags))
 
-            # Add all documentation files
-            docs_patterns = ["*.md", "*.txt", "*.rst"]
-            doc_files = []
-            for pattern in docs_patterns:
-                doc_files.extend(Path(project_path).rglob(pattern))
+            # Add all documentation files (vendored dirs excluded)
+            doc_files = _collect_doc_files(project_path)
 
             all_files = list(set(important_files + [str(f.relative_to(project_path)) for f in doc_files]))
             total_files = len(all_files)
@@ -1099,10 +1117,7 @@ def _run_semantic_indexing_sync(kb_name: str, project_path: str, selective: bool
         important_tags = repo_map.tags[:top_20_percent]
         important_files = list(set(tag.file for tag in important_tags))
 
-        docs_patterns = ["*.md", "*.txt", "*.rst"]
-        doc_files = []
-        for pattern in docs_patterns:
-            doc_files.extend(Path(project_path).rglob(pattern))
+        doc_files = _collect_doc_files(project_path)
 
         all_files = list(set(important_files + [str(f.relative_to(project_path)) for f in doc_files]))
 
