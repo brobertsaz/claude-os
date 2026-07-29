@@ -25,7 +25,9 @@ sentence-transformers>=2.2.0
 rank-bm25>=0.2.2
 
 # MCP Server
-mcp>=1.0.0
+# NOTE: mcp 2.0+ removed the decorator API (@server.list_tools()) used by
+# mcp_server/claude_code_mcp.py -> AttributeError at import. Pinned to 1.x.
+mcp>=1.0.0,<2.0.0
 fastapi>=0.104.0
 uvicorn>=0.24.0
 pydantic>=2.0.0
